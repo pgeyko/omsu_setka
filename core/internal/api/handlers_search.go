@@ -22,6 +22,9 @@ func (s *Server) handleSearch(c *fiber.Ctx) error {
 	if len(query) < 2 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "query too short (min 2 characters)"})
 	}
+	if len(query) > 100 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "query too long (max 100 characters)"})
+	}
 
 	filterType := c.Query("type", "all")
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,6 +35,34 @@ func AdminAuth(cfg *config.Config) fiber.Handler {
 				"error": "unauthorized: invalid admin key",
 			})
 		}
+		return c.Next()
+	}
+}
+
+// RateLimitMiddleware creates a rate limiter based on client IP.
+func RateLimitMiddleware(maxRequests int, window time.Duration) fiber.Handler {
+	return limiter.New(limiter.Config{
+		Max:        maxRequests,
+		Expiration: window,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error":       "rate limit exceeded",
+				"retry_after": window.String(),
+			})
+		},
+	})
+}
+
+// SecurityHeadersMiddleware adds standard security headers to every response.
+func SecurityHeadersMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		c.Set("X-Content-Type-Options", "nosniff")
+		c.Set("X-Frame-Options", "DENY")
+		c.Set("X-XSS-Protection", "1; mode=block")
+		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		return c.Next()
 	}
 }

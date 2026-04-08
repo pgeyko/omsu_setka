@@ -179,3 +179,40 @@
 - [x] 10.8 Логика "Избранного" (Zustand + LocalStorage)
 - [x] 10.9 UX-полишинг (микроанимации, жесты свайпа, glassmorphism)
 - [x] 10.10 Настройка раздачи статики фронтенда через Go Fiber (опционально)
+
+---
+
+> **Новые этапы:** детальное описание в [PLAN_v2.md](./PLAN_v2.md)
+
+## Этап 11: Мониторинг и статус-табло (→ [PLAN_v2.md § 11](./PLAN_v2.md#этап-11-мониторинг-и-статус-табло))
+- [x] 11.1 Backend: `UpstreamStatus` struct с atomic-полями для отслеживания здоровья upstream
+- [x] 11.2 Backend: Таблица `upstream_incidents` + `IncidentRepo` в SQLite
+- [x] 11.3 Backend: Обновить `/health` — включить upstream_status, last_sync timestamps
+- [x] 11.4 Backend: Эндпоинт `GET /api/v1/incidents` — история инцидентов
+- [x] 11.5 Backend: Логирование инцидентов при sync ошибках (down/up/slow transitions)
+- [x] 11.6 Frontend: `fetchHealth()` и `fetchIncidents()` в API-клиенте
+- [x] 11.7 Frontend: Компонент `StatusBar` на главной (зелёная/красная точка + время обновления)
+- [x] 11.8 Frontend: Страница `/status` — timeline инцидентов, текущий статус upstream
+
+---
+
+## Этап 12: Rate Limiting и защита (→ [PLAN_v2.md § 12](./PLAN_v2.md#этап-12-rate-limiting-и-защита-от-ddos))
+- [x] 12.1 Rate-limit middleware: 120 req/min общий, 30 req/min для /search
+- [x] 12.2 Config: `RATE_LIMIT_GENERAL`, `RATE_LIMIT_SEARCH`, `RATE_LIMIT_WINDOW`
+- [x] 12.3 Security Headers middleware (X-Content-Type-Options, X-Frame-Options и т.д.)
+- [x] 12.4 Input Validation: ограничение ID (1–999999), query length (max 100 chars), санитизация
+- [x] 12.5 Request Size Limits: `BodyLimit: 1KB`, `ReadBufferSize: 4096`
+
+---
+
+## Этап 13: Очистка и оптимизация (→ [PLAN_v2.md § 13](./PLAN_v2.md#этап-13-очистка-и-оптимизация))
+- [x] 13.1 Периодическая очистка expired-кэша (ticker раз в 1 час)
+- [x] 13.2 Прогрев L1 из L2 при старте (устранение cold-start misses)
+- [x] 13.3 GZIP-кэширование для справочников (SetGzip + отдача gzip-версии)
+
+---
+
+## Этап 14: Улучшения Frontend (→ [PLAN_v2.md § 14](./PLAN_v2.md#этап-14-улучшения-frontend))
+- [x] 14.1 React Error Boundary с fallback-экраном
+- [x] 14.2 Skeleton-загрузки вместо текстовых «Загрузка...»
+- [x] 14.3 Pull-to-refresh жест на странице расписания

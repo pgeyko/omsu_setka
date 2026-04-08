@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"omsu_mirror/internal/models"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -46,7 +47,18 @@ func (s *Server) handleGetTutors(c *fiber.Ctx) error {
 }
 
 func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (interface{}, error)) error {
-	// 1. Try L1 Cache (pre-rendered JSON)
+	// 1. Try L1 Cache (pre-rendered JSON or GZIP)
+	wantsGzip := strings.Contains(c.Get("Accept-Encoding"), "gzip")
+	
+	if wantsGzip {
+		if gzData, ok := s.MemoryCache.GetGzip(key); ok {
+			c.Set("X-Cache-Status", "HIT-GZIP")
+			c.Set("Content-Type", "application/json")
+			c.Set("Content-Encoding", "gzip")
+			return c.Send(gzData)
+		}
+	}
+
 	if data, ok := s.MemoryCache.Get(key); ok {
 		c.Set("X-Cache-Status", "HIT")
 		c.Set("Content-Type", "application/json")

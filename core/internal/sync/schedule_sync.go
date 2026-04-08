@@ -19,6 +19,9 @@ func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
 
 	log.Info().Msgf("Syncing %d active schedules...", len(keys))
 
+	var hasErrors bool
+	var lastErr error
+
 	for _, key := range keys {
 		select {
 		case <-ctx.Done():
@@ -53,18 +56,28 @@ func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
 
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to sync schedule for %s", key)
+			hasErrors = true
+			lastErr = err
 			continue
 		}
 
 		if err := s.UpdateSchedule(ctx, key, entityType, entityID, schedule); err != nil {
 			log.Error().Err(err).Msgf("Failed to update cache for %s", key)
+			hasErrors = true
+			lastErr = err
 		}
+	}
+
+	if hasErrors {
+		s.recordFailure(ctx, "sync_active_schedules", lastErr)
+		return lastErr
 	}
 
 	if err := s.scheduleRepo.PutSyncMeta(ctx, "last_schedule_sync", time.Now().Format(time.RFC3339)); err != nil {
 		log.Warn().Err(err).Msg("Failed to update sync metadata")
 	}
 
+	s.recordSuccess(ctx, "sync_active_schedules")
 	return nil
 }
 

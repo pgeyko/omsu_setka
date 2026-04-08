@@ -93,6 +93,15 @@ func (s *SQLite) migrate() error {
 			value       TEXT,
 			updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
+
+		`CREATE TABLE IF NOT EXISTS upstream_incidents (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			event_type  TEXT NOT NULL,
+			message     TEXT,
+			error_text  TEXT,
+			created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_incidents_created ON upstream_incidents(created_at DESC);`,
 	}
 
 	for _, q := range queries {

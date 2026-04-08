@@ -41,8 +41,13 @@ type Config struct {
 	LogFormat  string `env:"LOG_FORMAT" envDefault:"json"`
 
 	// Security
-	AdminKey            string `env:"ADMIN_KEY" envDefault:"admin-secret"`
-	CORSAllowedOrigins  string `env:"CORS_ALLOWED_ORIGINS" envDefault:"*"`
+	AdminKey            string        `env:"ADMIN_KEY" envDefault:"admin-secret"`
+	CORSAllowedOrigins  string        `env:"CORS_ALLOWED_ORIGINS" envDefault:"*"`
+
+	// Rate Limiting
+	RateLimitGeneral int           `env:"RATE_LIMIT_GENERAL" envDefault:"120"`
+	RateLimitSearch  int           `env:"RATE_LIMIT_SEARCH" envDefault:"30"`
+	RateLimitWindow  time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
 }
 
 func Load() *Config {

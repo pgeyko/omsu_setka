@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"omsu_mirror/internal/models"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,9 +21,17 @@ var startTime = time.Now()
 func (s *Server) handleHealth(c *fiber.Ctx) error {
 	stats := s.MemoryCache.Stats()
 	
+	dictSync, _ := s.ScheduleRepo.GetSyncMeta(c.Context(), "last_dict_sync")
+	schedSync, _ := s.ScheduleRepo.GetSyncMeta(c.Context(), "last_schedule_sync")
+
 	health := fiber.Map{
 		"status": "ok",
 		"uptime": time.Since(startTime).String(),
+		"upstream": s.Syncer.GetUpstreamStatus(),
+		"last_sync": fiber.Map{
+			"dictionaries": dictSync,
+			"schedules":    schedSync,
+		},
 		"cache":  stats,
 	}
 
@@ -54,6 +63,29 @@ func (s *Server) handleSyncStatus(c *fiber.Ctx) error {
 		Data:     status,
 		CachedAt: time.Now(),
 		Source:   "cache",
+	})
+}
+
+// @Summary Get recent incidents
+// @Description Returns recent health incidents for the upstream service.
+// @Tags Meta
+// @Produce json
+// @Success 200 {object} models.BFFResponse
+// @Router /incidents [get]
+func (s *Server) handleGetIncidents(c *fiber.Ctx) error {
+	limit, _ := strconv.Atoi(c.Query("limit", "50"))
+	offset, _ := strconv.Atoi(c.Query("offset", "0"))
+
+	incidents, err := s.IncidentRepo.GetIncidents(c.Context(), limit, offset)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve incidents"})
+	}
+
+	return c.JSON(models.BFFResponse{
+		Success:  true,
+		Data:     incidents,
+		CachedAt: time.Now(),
+		Source:   "database",
 	})
 }
 

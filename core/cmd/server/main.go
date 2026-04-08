@@ -39,6 +39,7 @@ func main() {
 
 	dictRepo := storage.NewDictRepo(db)
 	scheduleRepo := storage.NewScheduleRepo(db)
+	incidentRepo := storage.NewIncidentRepo(db)
 
 	// 4. Initialize Upstream Client
 	client := upstream.NewClient(cfg)
@@ -48,10 +49,10 @@ func main() {
 	searchIndex := cache.NewSearchIndex()
 
 	// 6. Initialize Syncer
-	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex)
+	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo)
 
 	// 7. Initialize API Server
-	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer)
+	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo)
 
 	// Context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

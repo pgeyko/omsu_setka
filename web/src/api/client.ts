@@ -83,3 +83,46 @@ export const fetchSchedule = async (type: string, id: number) => {
   const { data } = await apiClient.get<BFFResponse<Day[]>>(`/schedule/${type}/${id}`);
   return data.data;
 };
+
+export interface UpstreamStatus {
+  healthy: boolean;
+  last_success?: string;
+  last_fail?: string;
+  last_error?: string;
+  consecutive_failures: number;
+  total_failures: number;
+}
+
+export interface HealthData {
+  status: string;
+  uptime: string;
+  upstream: UpstreamStatus;
+  last_sync: {
+    dictionaries: string;
+    schedules: string;
+  };
+  cache: {
+    hits: number;
+    misses: number;
+    item_count: number;
+  };
+}
+
+export interface Incident {
+  id: number;
+  event_type: 'down' | 'up' | 'error' | 'slow';
+  message: string;
+  error_text?: string;
+  created_at: string;
+}
+
+export const fetchHealth = async (): Promise<HealthData> => {
+  const { data } = await apiClient.get<BFFResponse<HealthData>>('/health');
+  return data.data;
+};
+
+export const fetchIncidents = async (limit: number = 50, offset: number = 0): Promise<Incident[]> => {
+  const { data } = await apiClient.get<BFFResponse<Incident[]>>(`/incidents?limit=${limit}&offset=${offset}`);
+  return data.data;
+};
+

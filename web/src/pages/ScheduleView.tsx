@@ -81,40 +81,70 @@ export const ScheduleView: React.FC = () => {
   const [entityName, setEntityName] = useState(initialName);
   const favorite = isFavorite(entityID, entityType);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchSchedule(entityType, entityID);
-        const sortedData = [...data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
-        setSchedule(sortedData);
-        
-        // Try to refine name from schedule data if group info is present
-        if (!location.state?.name && sortedData.length > 0) {
-           // Look for first lesson with a group or auditory
-           for (const day of sortedData) {
-             for (const lesson of day.lessons) {
-               if (entityType === 'group' && lesson.group && !entityName.includes(lesson.group)) {
-                 setEntityName(`Группа: ${lesson.group}`);
-                 break;
-               }
+  const [refreshing, setRefreshing] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [pullDistance, setPullDistance] = useState(0);
+
+  const loadData = React.useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    
+    try {
+      const data = await fetchSchedule(entityType, entityID);
+      const sortedData = [...data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
+      setSchedule(sortedData);
+      
+      if (!location.state?.name && sortedData.length > 0) {
+         for (const day of sortedData) {
+           for (const lesson of day.lessons) {
+             if (entityType === 'group' && lesson.group && !entityName.includes(lesson.group)) {
+               setEntityName(`Группа: ${lesson.group}`);
+               break;
              }
            }
-        }
+         }
+      }
 
-        // Initial setup
+      if (!isRefresh) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const monday = getMonday(today);
         setActiveWeekStart(monday);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
-    load();
-  }, [entityType, entityID]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [entityType, entityID, entityName, location.state?.name]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 0) {
+      setStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startY > 0) {
+      const distance = e.touches[0].clientY - startY;
+      if (distance > 0) {
+        setPullDistance(Math.min(distance, 80));
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance >= 60) {
+      loadData(true);
+    }
+    setStartY(0);
+    setPullDistance(0);
+  };
 
   // Handle filtering by week or specific date
   useEffect(() => {
@@ -198,13 +228,56 @@ export const ScheduleView: React.FC = () => {
     return now >= startDate && now <= endDate;
   };
 
-  if (loading) return <div className="app-container"><div className={styles.loading}>Загрузка расписания...</div></div>;
+  if (loading && !refreshing) return (
+    <div className="app-container">
+      <nav className={styles.nav}>
+        <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
+        <div className={styles.navActions} style={{ width: '120px' }}></div>
+      </nav>
+      <div className={styles.viewModeHeader}>
+        <div className={styles.skeletonTitle}></div>
+      </div>
+      <div className={styles.daySelector}>
+        {[1,2,3,4,5,6].map(i => <div key={i} className={styles.skeletonDayTab}></div>)}
+      </div>
+      <main className={styles.content}>
+        <div className={styles.lessonList}>
+          {[1,2,3].map(i => (
+            <GlassCard key={i} className={`${styles.lessonCard} ${styles.skeletonCard}`}>
+              <div className={styles.skeletonTime}></div>
+              <div className={styles.lessonInfo}>
+                <div className={styles.skeletonLine} style={{ width: '80%' }}></div>
+                <div className={styles.skeletonLine} style={{ width: '40%' }}></div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
 
   const currentDay = filteredSchedule[activeDayIdx];
   const isToday = currentDay ? parseDate(currentDay.day).toDateString() === new Date().toDateString() : false;
 
   return (
-    <div className="app-container animate-fade-in">
+    <div 
+      className="app-container animate-fade-in"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div 
+        className={styles.pullToRefresh} 
+        style={{ 
+          transform: `translateY(${pullDistance}px)`, 
+          opacity: pullDistance / 60 
+        }}
+      >
+        <div className={`${styles.ptrSpinner} ${refreshing ? styles.spinning : ''}`}>
+           <ArrowLeft size={20} style={{ transform: 'rotate(-90deg)' }}/>
+        </div>
+      </div>
+
       <nav className={styles.nav}>
         <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
         <div className={styles.navActions}>

@@ -42,8 +42,8 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		idStr := c.Params("id")
 		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID"})
+		if err != nil || id < 1 || id > 999999 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID: must be a number between 1 and 999999"})
 		}
 
 		key := fmt.Sprintf("%s:%d", entityType, id)
