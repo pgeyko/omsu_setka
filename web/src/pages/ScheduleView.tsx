@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Star, Share2, MapPin, User, Clock, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, Star, Share2, MapPin, User, Clock, LayoutGrid, List, Layers } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { fetchSchedule, fetchHealth, TIME_SLOTS } from '../api/client';
 import type { Day, Lesson, HealthData } from '../api/client';
@@ -70,7 +70,43 @@ export const ScheduleView: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
-  const { addFavorite, removeFavorite, isFavorite } = useFavoritesStore();
+  const [showSubgroupDrawer, setShowSubgroupDrawer] = useState(false);
+  const { addFavorite, removeFavorite, isFavorite, subgroup, setSubgroup } = useFavoritesStore();
+
+  const isLessonForSubgroup = (lesson: Lesson) => {
+    if (!subgroup || entityType !== 'group') return true;
+    
+    const getSubgroupFromText = (text: string | undefined) => {
+      if (!text) return null;
+      // 1. Look for /X at the end (e.g. "МБС-501-О-01/1")
+      const slashMatch = text.match(/\/(\d+)$/);
+      if (slashMatch) return slashMatch[1];
+      
+      // 2. Look for "X подгруппа" or "X п/г"
+      const wordMatch = text.match(/(\d+)\s*(?:подгруппа|подгр|п\/г)/i);
+      if (wordMatch) return wordMatch[1];
+
+      return null;
+    };
+
+    const lessonSubgroup = getSubgroupFromText(lesson.subgroupName) || getSubgroupFromText(lesson.group);
+
+    // If lesson specifies a subgroup, it must match the selected one
+    if (lessonSubgroup) {
+      return lessonSubgroup === subgroup;
+    }
+    
+    // If no subgroup info found in the lesson, it's a common lesson for all
+    return true;
+  };
+
+  // Highlight types
+  const getHighlightClass = (type: string) => {
+    if (type.includes('Экзамен')) return styles.examHighlight;
+    if (type.includes('Консультация')) return styles.consultHighlight;
+    if (type.includes('Зачет')) return styles.testHighlight;
+    return '';
+  };
   
   useEffect(() => {
     if (selectedGroup) {
@@ -137,7 +173,6 @@ export const ScheduleView: React.FC = () => {
            if (found) break; 
          }
       }
-// ... (остальной код функции)
     } catch (err) {
       console.error(err);
     } finally {
@@ -347,6 +382,15 @@ export const ScheduleView: React.FC = () => {
                   <LayoutGrid size={20} />
                 </button>
               </div>
+              {entityType === 'group' && (
+                <button 
+                  onClick={() => setShowSubgroupDrawer(true)} 
+                  className={`${styles.actionBtn} ${subgroup ? styles.filterActive : ''}`}
+                  title="Выбор подгруппы"
+                >
+                  <Layers size={22} />
+                </button>
+              )}
               <button onClick={toggleFavorite} className={`${styles.actionBtn} ${favorite ? styles.active : ''}`}>
                 <Star size={22} fill={favorite ? 'currentColor' : 'none'} />
               </button>
@@ -423,6 +467,9 @@ export const ScheduleView: React.FC = () => {
                       // Merging logic: group by unique key (lesson + type + teacher + auditory)
                       const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
                       rawLessons.forEach(l => {
+                        // Filter by subgroup if applicable
+                        if (!isLessonForSubgroup(l)) return;
+
                         const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
                         if (mergedMap.has(key)) {
                           const existing = mergedMap.get(key)!;
@@ -437,12 +484,13 @@ export const ScheduleView: React.FC = () => {
                       });
 
                       const lessons = Array.from(mergedMap.values());
+                      if (lessons.length === 0) return null;
                       const isMultiple = lessons.length > 1;
 
                       return (
                         <GlassCard 
                           key={time} 
-                          className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''}`} 
+                          className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} 
                           glow={active}
                           onClick={() => isMultiple && setSelectedGroup(lessons)}
                         >
@@ -469,7 +517,7 @@ export const ScheduleView: React.FC = () => {
                               <>
                                 <h3 className={styles.discipline}>{lessons[0].lesson}</h3>
                                 <div className={styles.meta}>
-                                  <span className={styles.type}>{lessons[0].type_work}</span>
+                                  <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
                                   {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
                                   {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
                                   {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
@@ -507,7 +555,8 @@ export const ScheduleView: React.FC = () => {
                   const dayDate = new Date(activeWeekStart);
                   dayDate.setDate(activeWeekStart.getDate() + dayOffset - 1);
                   const dayData = filteredSchedule.find(d => parseDate(d.day).toDateString() === dayDate.toDateString());
-                  const slotLessons = dayData?.lessons.filter(l => l.time === Number(slotIdx)) || [];
+                  const slotLessons = (dayData?.lessons.filter(l => l.time === Number(slotIdx)) || [])
+                    .filter(isLessonForSubgroup);
                   
                   return (
                     <div key={dayOffset} className={styles.gridCell}>
@@ -526,7 +575,11 @@ export const ScheduleView: React.FC = () => {
                           key={i} 
                           className={styles.gridLesson}
                           onClick={() => setSelectedGroup([l])}
-                          style={{ borderLeftColor: l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981', cursor: 'pointer' }}
+                          style={{ 
+                            borderLeftColor: l.type_work.includes('Экзамен') ? '#f59e0b' : l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981', 
+                            background: l.type_work.includes('Экзамен') ? 'rgba(245, 158, 11, 0.1)' : undefined,
+                            cursor: 'pointer' 
+                          }}
                         >
                           <span className={styles.gridLessonType}>{l.type_work}</span>
                           {l.lesson}
@@ -554,7 +607,37 @@ export const ScheduleView: React.FC = () => {
       )}
     </div>
 
-    {selectedGroup && (
+      {showSubgroupDrawer && (
+        <div className={styles.modalOverlay} onClick={() => setShowSubgroupDrawer(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTimeTitle}>
+                <h3>Выбор подгруппы</h3>
+              </div>
+              <button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn}><X size={24} /></button>
+            </div>
+            <div className={styles.subgroupOptions}>
+              <button 
+                onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }} 
+                className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}
+              >
+                Все занятия
+              </button>
+              {['1', '2'].map(num => (
+                <button 
+                  key={num}
+                  onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }} 
+                  className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}
+                >
+                  {num} подгруппа
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedGroup && (
       <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>

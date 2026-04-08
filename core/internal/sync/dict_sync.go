@@ -17,43 +17,53 @@ func (s *Syncer) SyncDictionaries(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Load current state from DB as fallback
+	groups, _ := s.dictRepo.GetAllGroups(ctx)
+	auds, _ := s.dictRepo.GetAllAuditories(ctx)
+	tutors, _ := s.dictRepo.GetAllTutors(ctx)
+
 	log.Debug().Msg("Syncing groups...")
-	groups, err := s.client.FetchGroups(ctx)
-	if err != nil {
+	upGroups, err := s.client.FetchGroups(ctx)
+	if err == nil && len(upGroups) > 0 {
+		groups = upGroups
+		if err := s.dictRepo.UpsertGroups(ctx, groups); err != nil {
+			log.Error().Err(err).Msg("Failed to upsert groups")
+		}
+		s.cacheCollection("groups", groups)
+	} else if err != nil {
 		s.recordFailure(ctx, "sync_groups", err)
-		return err
-	}
-	if err := s.dictRepo.UpsertGroups(ctx, groups); err != nil {
-		return err
-	}
-	if err := s.cacheCollection("groups", groups); err != nil {
-		log.Error().Err(err).Msg("Failed to cache groups collection")
 	}
 
 	log.Debug().Msg("Syncing auditories...")
-	auds, err := s.client.FetchAuditories(ctx)
-	if err != nil {
-		s.recordFailure(ctx, "sync_auditories", err)
-		return err
-	}
-	if err := s.dictRepo.UpsertAuditories(ctx, auds); err != nil {
-		return err
-	}
-	if err := s.cacheCollection("auditories", auds); err != nil {
-		log.Error().Err(err).Msg("Failed to cache auditories collection")
+	upAuds, err := s.client.FetchAuditories(ctx)
+	if err == nil && len(upAuds) > 0 {
+		auds = upAuds
+		if err := s.dictRepo.UpsertAuditories(ctx, auds); err != nil {
+			log.Error().Err(err).Msg("Failed to upsert auditories")
+		}
+		s.cacheCollection("auditories", auds)
+		log.Info().Msgf("Successfully synced %d auditories", len(auds))
+	} else {
+		if err != nil {
+			s.recordFailure(ctx, "sync_auditories", err)
+		}
+		// If we have nothing in DB, and upstream failed, auds is still empty
+		if len(auds) > 0 {
+			s.cacheCollection("auditories", auds)
+			log.Info().Msgf("Using %d auditories from DB (upstream returned nothing)", len(auds))
+		}
 	}
 
 	log.Debug().Msg("Syncing tutors...")
-	tutors, err := s.client.FetchTutors(ctx)
-	if err != nil {
+	upTutors, err := s.client.FetchTutors(ctx)
+	if err == nil && len(upTutors) > 0 {
+		tutors = upTutors
+		if err := s.dictRepo.UpsertTutors(ctx, tutors); err != nil {
+			log.Error().Err(err).Msg("Failed to upsert tutors")
+		}
+		s.cacheCollection("tutors", tutors)
+	} else if err != nil {
 		s.recordFailure(ctx, "sync_tutors", err)
-		return err
-	}
-	if err := s.dictRepo.UpsertTutors(ctx, tutors); err != nil {
-		return err
-	}
-	if err := s.cacheCollection("tutors", tutors); err != nil {
-		log.Error().Err(err).Msg("Failed to cache tutors collection")
 	}
 
 	log.Debug().Msg("Rebuilding search index...")
@@ -64,7 +74,6 @@ func (s *Syncer) SyncDictionaries(ctx context.Context) error {
 	}
 
 	s.recordSuccess(ctx, "dict_sync")
-	log.Info().Msgf("Dictionary sync completed: %d groups, %d auditories, %d tutors", len(groups), len(auds), len(tutors))
 	return nil
 }
 

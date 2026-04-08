@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, History, Star, School, User, MapPin } from 'lucide-react';
+import { Search, Star, School, User, MapPin } from 'lucide-react';
 import { GlassInput } from '../components/ui/GlassInput';
-import { GlassCard } from '../components/ui/GlassCard';
 import { fetchSearch, fetchHealth } from '../api/client';
 import type { SearchResult, GroupedSearchResult, HealthData } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
@@ -27,8 +26,9 @@ export const Home: React.FC = () => {
   const [results, setResults] = useState<SearchResult[] | GroupedSearchResult>([]);
   const [loading, setLoading] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
-  const { favorites, recent, addRecent } = useFavoritesStore();
+  const { favorites, recent, recentTutors, recentAuditories, addRecent } = useFavoritesStore();
 
   useEffect(() => {
     fetchHealth().then(setHealthData).catch(console.error);
@@ -94,6 +94,7 @@ export const Home: React.FC = () => {
   );
 
   const hasResults = Array.isArray(results) ? results.length > 0 : (results.groups.length > 0 || results.tutors.length > 0 || results.auditories.length > 0);
+  const showRecent = isFocused && query.length < 2 && (recent.length > 0 || recentTutors.length > 0 || recentAuditories.length > 0);
 
   return (
     <div className="app-container animate-fade-in">
@@ -107,13 +108,36 @@ export const Home: React.FC = () => {
           placeholder="Группа, преподаватель или ауд..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
         />
         
         {loading && <div className={styles.loader}>Searching...</div>}
         
-        {hasResults && (
+        {(hasResults || showRecent) && (
           <div className={styles.resultsDropdown}>
-            {Array.isArray(results) ? (
+            {showRecent ? (
+              <>
+                {recent.length > 0 && (
+                  <div className={styles.dropdownSection}>
+                    <div className={styles.dropdownHeader}>Недавние группы</div>
+                    {recent.map(renderResultItem)}
+                  </div>
+                )}
+                {recentTutors.length > 0 && (
+                  <div className={styles.dropdownSection}>
+                    <div className={styles.dropdownHeader}>Недавние преподаватели</div>
+                    {recentTutors.map(renderResultItem)}
+                  </div>
+                )}
+                {recentAuditories.length > 0 && (
+                  <div className={styles.dropdownSection}>
+                    <div className={styles.dropdownHeader}>Недавние аудитории</div>
+                    {recentAuditories.map(renderResultItem)}
+                  </div>
+                )}
+              </>
+            ) : Array.isArray(results) ? (
               results.map(renderResultItem)
             ) : (
               <>
@@ -143,33 +167,35 @@ export const Home: React.FC = () => {
 
       {query.length < 2 && (
         <div className={styles.quickAccess}>
-          {favorites.length > 0 && (
+          {favorites.length === 0 ? (
+            <div className={styles.banner}>
+              <div className={styles.bannerTitle}>Быстрый доступ к расписанию</div>
+              <div className={styles.bannerText}>
+                Добавьте группы, преподавателей или аудитории в избранное (нажав на ⭐), чтобы они всегда были под рукой на этой странице.
+              </div>
+            </div>
+          ) : (
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}><Star size={16} /> Избранное</h2>
               <div className={styles.grid}>
                 {favorites.map(fav => (
-                  <GlassCard key={`${fav.type}-${fav.id}`} className={styles.card} onClick={() => handleSelect(fav)}>
-                    <div className={styles.cardType}>{fav.type === 'group' ? 'Группа' : fav.type === 'tutor' ? 'Преп.' : 'Ауд.'}</div>
-                    <div className={styles.cardLabel}>{fav.name}</div>
-                  </GlassCard>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {recent.length > 0 && (
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}><History size={16} /> Недавние</h2>
-              <div className={styles.list}>
-                {recent.map(rec => (
-                  <div key={`${rec.type}-${rec.id}`} className={styles.listItem} onClick={() => handleSelect(rec)}>
-                    {getIcon(rec.type)}
-                    <span>{rec.name}</span>
+                  <div key={`${fav.type}-${fav.id}`} className={styles.actionCard} onClick={() => handleSelect(fav)}>
+                    <div className={styles.actionIcon}>
+                      {fav.type === 'group' ? <School size={24} /> : fav.type === 'tutor' ? <User size={24} /> : <MapPin size={24} />}
+                    </div>
+                    <span className={styles.actionLabel}>{fav.name}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          <div className={styles.mainActions}>
+            <div className={styles.actionCard} onClick={() => navigate('/tutors')}>
+              <div className={styles.actionIcon}><User size={24} /></div>
+              <span className={styles.actionLabel}>Преподаватели</span>
+            </div>
+          </div>
         </div>
       )}
 

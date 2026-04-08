@@ -1,0 +1,226 @@
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0 var(--spacing-md);
+  margin: 0 calc(var(--spacing-md) * -1) var(--spacing-sm);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.navTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.navActions {
+  width: 44px; /* balance the back button */
+}
+
+.backBtn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.backBtn:active {
+  transform: scale(0.9);
+}
+
+.container {
+  padding-bottom: 80px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: var(--spacing-lg);
+}
+
+.searchWrapper {
+  margin-bottom: var(--spacing-xl);
+  max-width: 600px;
+  position: relative;
+  z-index: 10;
+}
+
+.resultsDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: var(--spacing-sm);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 200ms ease;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dropdownHeader {
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.02);
+  opacity: 0.7;
+}
+
+.resultItem {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.resultIcon {
+  color: var(--accent-color);
+  display: flex;
+  opacity: 0.8;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultLabel {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tutorList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .tutorList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+.tutorCard {
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.tutorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tutorName {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.details {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--surface-border);
+  animation: slideDown 0.3s ease;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subjectBadge {
+  background: rgba(170, 59, 255, 0.1);
+  color: var(--accent-color);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.viewScheduleBtn {
+  margin-top: var(--spacing-lg);
+  width: 100%;
+  padding: 10px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-base);
+}
+
+.viewScheduleBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

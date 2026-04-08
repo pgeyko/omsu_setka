@@ -153,9 +153,10 @@ func (s *Syncer) Run(ctx context.Context) {
 				log.Error().Err(err).Msg("Periodic active schedules sync failed")
 			}
 		case <-auditTicker.C:
-			log.Info().Msg("Starting periodic auditory synchronization...")
-			if err := s.SyncDictionaries(ctx); err != nil {
-				log.Error().Err(err).Msg("Periodic auditory sync failed")
+			log.Info().Msg("Starting periodic auditory schedule synchronization...")
+			// Here we should sync schedules for auditories, not the dictionary itself
+			if err := s.SyncAuditorySchedules(ctx); err != nil {
+				log.Error().Err(err).Msg("Periodic auditory schedules sync failed")
 			}
 		case <-cleanTicker.C:
 			log.Info().Msg("Running periodic cleanup tasks...")

@@ -3,6 +3,7 @@ import { useLayoutEffect, useEffect } from 'react';
 import { Home } from './pages/Home';
 import { ScheduleView } from './pages/ScheduleView';
 import { StatusPage } from './pages/StatusPage';
+import { TutorsPage } from './pages/TutorsPage';
 import './styles/global.css';
 
 const ScrollToTop = () => {
@@ -32,6 +33,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/schedule/:type/:id" element={<ScheduleView />} />
         <Route path="/status" element={<StatusPage />} />
+        <Route path="/tutors" element={<TutorsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

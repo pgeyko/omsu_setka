@@ -62,6 +62,25 @@ func (r *ScheduleRepo) GetSchedule(ctx context.Context, key string) ([]byte, *Ca
 	return data, &meta, nil
 }
 
+func (r *ScheduleRepo) GetSchedulesByType(ctx context.Context, entityType string) (map[int][]byte, error) {
+	rows, err := r.db.DB.QueryContext(ctx, "SELECT entity_id, data FROM schedule_cache WHERE entity_type = ?", entityType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	res := make(map[int][]byte)
+	for rows.Next() {
+		var id int
+		var data []byte
+		if err := rows.Scan(&id, &data); err != nil {
+			return nil, err
+		}
+		res[id] = data
+	}
+	return res, nil
+}
+
 func (r *ScheduleRepo) GetActiveScheduleKeys(ctx context.Context, threshold time.Duration) ([]string, error) {
 	since := time.Now().Add(-threshold)
 	rows, err := r.db.DB.QueryContext(ctx, "SELECT cache_key FROM schedule_cache WHERE last_hit_at > ?", since)

@@ -81,6 +81,12 @@ func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
 	return nil
 }
 
+func (s *Syncer) SyncAuditorySchedules(ctx context.Context) error {
+	// For now, it just triggers SyncActiveSchedules or does nothing
+	// Later we can implement background sync for all auditories to keep free-rooms data fresh
+	return nil
+}
+
 func (s *Syncer) UpdateSchedule(ctx context.Context, key string, entityType string, entityID int, schedule []models.Day) error {
 	jsonData, err := json.Marshal(models.BFFResponse{
 		Success:  true,

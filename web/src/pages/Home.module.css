@@ -1,14 +1,89 @@
 .header {
-  margin: calc(var(--spacing-xl) * 2) 0 var(--spacing-xl);
-  text-align: center;
+  margin: calc(var(--spacing-xl) * 1.5) 0 var(--spacing-xl);
+  text-align: left;
 }
 
 .title {
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 900;
-  letter-spacing: -2px;
+  letter-spacing: -3px;
   text-transform: lowercase;
   color: var(--text-primary);
+  margin: 0;
+}
+
+.banner {
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(170, 59, 255, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bannerTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.bannerText {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.mainActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.actionCard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.actionCard:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.actionIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(170, 59, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-color);
+}
+
+.actionLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+@media (max-width: 480px) {
+  .mainActions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .searchSection {
@@ -133,28 +208,15 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.cardType {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  font-weight: 700;
-}
-
-.cardLabel {
-  font-weight: 600;
-  font-size: 16px;
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .list {

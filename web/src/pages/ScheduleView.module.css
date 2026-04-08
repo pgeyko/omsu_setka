@@ -10,6 +10,38 @@
   border-bottom: 1px solid var(--surface-border);
 }
 
+.filterActive {
+  color: #10b981 !important; /* Green */
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: #10b981 !important;
+}
+
+.subgroupOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subgroupOption {
+  padding: 16px;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.optionActive {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
 .nav {
   display: flex;
   justify-content: space-between;
@@ -187,6 +219,33 @@
 
 .activeLesson {
   border-color: var(--accent-color);
+}
+
+.examHighlight {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+.examHighlight .type {
+  color: #f59e0b !important;
+}
+
+.consultHighlight {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.consultHighlight .type {
+  color: #10b981 !important;
+}
+
+.testHighlight {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.testHighlight .type {
+  color: #ef4444 !important;
 }
 
 .lessonTime {

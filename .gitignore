@@ -19,3 +19,4 @@ data/
 
 # System
 .DS_Store
+core/main

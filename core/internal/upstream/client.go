@@ -71,8 +71,10 @@ func (c *Client) doRequest(ctx context.Context, url string, result interface{}) 
 		return fmt.Errorf("failed to fetch from upstream after retries: %w", err)
 	}
 
+	body := resp.Body()
 	var wrapper models.UpstreamResponse
-	if err := json.Unmarshal(resp.Body(), &wrapper); err != nil {
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		log.Error().Str("body", string(body)).Msg("Failed to decode upstream wrapper")
 		return fmt.Errorf("failed to decode upstream response wrapper: %w", err)
 	}
 
@@ -81,6 +83,7 @@ func (c *Client) doRequest(ctx context.Context, url string, result interface{}) 
 	}
 
 	if err := json.Unmarshal(wrapper.Data, result); err != nil {
+		log.Error().Str("data", string(wrapper.Data)).Msg("Failed to decode upstream data field")
 		return fmt.Errorf("failed to decode upstream data: %w", err)
 	}
 

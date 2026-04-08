@@ -50,7 +50,7 @@ func (r *DictRepo) GetAllGroups(ctx context.Context) ([]models.Group, error) {
 	}
 	defer rows.Close()
 
-	var groups []models.Group
+	groups := make([]models.Group, 0)
 	for rows.Next() {
 		var g models.Group
 		if err := rows.Scan(&g.ID, &g.Name, &g.RealGroupID); err != nil {
@@ -97,7 +97,7 @@ func (r *DictRepo) GetAllAuditories(ctx context.Context) ([]models.Auditory, err
 	}
 	defer rows.Close()
 
-	var auds []models.Auditory
+	auds := make([]models.Auditory, 0)
 	for rows.Next() {
 		var a models.Auditory
 		if err := rows.Scan(&a.ID, &a.Name, &a.Building); err != nil {
@@ -143,7 +143,7 @@ func (r *DictRepo) GetAllTutors(ctx context.Context) ([]models.Tutor, error) {
 	}
 	defer rows.Close()
 
-	var tutors []models.Tutor
+	tutors := make([]models.Tutor, 0)
 	for rows.Next() {
 		var t models.Tutor
 		if err := rows.Scan(&t.ID, &t.Name); err != nil {

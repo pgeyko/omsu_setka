@@ -23,12 +23,12 @@ export interface Group {
 
 export interface Tutor {
   id: number;
-  label: string;
+  name: string;
 }
 
 export interface Auditory {
   id: number;
-  label: string;
+  name: string;
 }
 
 export interface Lesson {
@@ -84,6 +84,29 @@ export const fetchSchedule = async (type: string, id: number) => {
   return data.data;
 };
 
+export const fetchTutors = async (): Promise<Tutor[]> => {
+  const { data } = await apiClient.get<BFFResponse<Tutor[]>>('/tutors');
+  return data.data;
+};
+
+export const fetchHealth = async (): Promise<HealthData> => {
+  const { data } = await apiClient.get<BFFResponse<HealthData>>('/health');
+  return data.data;
+};
+
+export const onRateLimit = (callback: (retryAfter: string) => void) => {
+  apiClient.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.response?.status === 429) {
+        const retryAfter = error.response.data?.retry_after || '1m';
+        callback(retryAfter);
+      }
+      return Promise.reject(error);
+    }
+  );
+};
+
 export interface UpstreamStatus {
   healthy: boolean;
   last_success?: string;
@@ -116,13 +139,7 @@ export interface Incident {
   created_at: string;
 }
 
-export const fetchHealth = async (): Promise<HealthData> => {
-  const { data } = await apiClient.get<BFFResponse<HealthData>>('/health');
-  return data.data;
-};
-
 export const fetchIncidents = async (limit: number = 50, offset: number = 0): Promise<Incident[]> => {
   const { data } = await apiClient.get<BFFResponse<Incident[]>>(`/incidents?limit=${limit}&offset=${offset}`);
   return data.data;
 };
-
