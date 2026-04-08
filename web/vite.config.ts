@@ -10,23 +10,18 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'ОмГУ Зеркало',
-        short_name: 'Зеркало',
-        description: 'Высокопроизводительное зеркало расписания ОмГУ',
+        name: 'Setka',
+        short_name: 'Setka',
+        description: 'Легкое и быстрое расписание',
         theme_color: '#0c101a',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'web-app-manifest-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
+            src: 'web-app-manifest-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'

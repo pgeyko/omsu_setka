@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Star, Share2, MapPin, User, Clock, Printer, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, Star, Share2, MapPin, User, Clock, LayoutGrid, List } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { fetchSchedule, TIME_SLOTS } from '../api/client';
-import type { Day, Lesson } from '../api/client';
+import { fetchSchedule, fetchHealth, TIME_SLOTS } from '../api/client';
+import type { Day, Lesson, HealthData } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { X } from 'lucide-react';
 import { Toast } from '../components/ui/Toast';
 import { CustomDatePicker } from '../components/ui/CustomDatePicker';
 import styles from './ScheduleView.module.css';
+
+const formatRelativeTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+
+  if (diffInMinutes < 1) return 'только что';
+  if (diffInMinutes < 60) return `${diffInMinutes} мин назад`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} ч назад`;
+  
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+};
 
 const parseDate = (dateStr: string) => {
   const [d, m, y] = dateStr.split('.').map(Number);
@@ -48,6 +62,7 @@ export const ScheduleView: React.FC = () => {
   const [schedule, setSchedule] = useState<Day[]>([]);
   const [filteredSchedule, setFilteredSchedule] = useState<Day[]>([]);
   const [loading, setLoading] = useState(true);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [dateFilter, setDateFilter] = useState('');
   const [activeWeekStart, setActiveWeekStart] = useState<Date>(getMonday(new Date()));
@@ -68,6 +83,14 @@ export const ScheduleView: React.FC = () => {
     };
   }, [selectedGroup]);
   
+  useEffect(() => {
+    fetchHealth().then(data => setHealthData(data)).catch(console.error);
+    const interval = setInterval(() => {
+      fetchHealth().then(data => setHealthData(data)).catch(console.error);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const entityID = parseInt(id || '0');
   const entityType = type || 'group';
   
@@ -196,29 +219,48 @@ export const ScheduleView: React.FC = () => {
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+      setToastMessage('Ссылка скопирована!');
+      setShowToast(true);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
+  };
+
   const handleShare = async () => {
     const url = window.location.href;
     const shareData = {
       title: `Расписание: ${entityName}`,
-      text: `Посмотри расписание для ${entityName} в ОмГУ Зеркало`,
+      text: `Посмотри расписание для ${entityName} в Setka`,
       url: url
     };
     
-    if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
-      try {
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
-      } catch (err) {
-        console.error('Error sharing:', err);
+      } else {
+        await copyToClipboard(url);
       }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setToastMessage('Ссылка скопирована!');
-      setShowToast(true);
+    } catch (err) {
+      if ((err as any).name !== 'AbortError') {
+        await copyToClipboard(url);
+      }
     }
-  };
-  
-  const handlePrint = () => {
-    window.print();
   };
 
   const isCurrentLesson = (timeNum: number, isToday: boolean) => {
@@ -289,7 +331,6 @@ export const ScheduleView: React.FC = () => {
           <nav className={styles.nav}>
             <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
             <div className={styles.navActions}>
-              <button onClick={handlePrint} className={styles.actionBtn} title="Печать"><Printer size={20} /></button>
               <div className={styles.viewToggle}>
                 <button 
                   onClick={() => setViewMode('day')} 
@@ -374,10 +415,28 @@ export const ScheduleView: React.FC = () => {
 
                   return Object.entries(grouped || {})
                     .sort(([a], [b]) => Number(a) - Number(b))
-                    .map(([timeStr, lessons]) => {
+                    .map(([timeStr, rawLessons]) => {
                       const time = Number(timeStr);
                       const active = isCurrentLesson(time, isToday);
                       const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
+                      
+                      // Merging logic: group by unique key (lesson + type + teacher + auditory)
+                      const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
+                      rawLessons.forEach(l => {
+                        const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
+                        if (mergedMap.has(key)) {
+                          const existing = mergedMap.get(key)!;
+                          if (l.group && existing.groups && !existing.groups.includes(l.group)) {
+                            existing.groups.push(l.group);
+                          } else if (l.group && !existing.groups) {
+                            existing.groups = [existing.group || '', l.group];
+                          }
+                        } else {
+                          mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] });
+                        }
+                      });
+
+                      const lessons = Array.from(mergedMap.values());
                       const isMultiple = lessons.length > 1;
 
                       return (
@@ -476,40 +535,56 @@ export const ScheduleView: React.FC = () => {
                       ))}
                     </div>
                   );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-      </div>
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
 
-      {selectedGroup && (
-        <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTimeTitle}>
-                <span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span>
-                <h3>Занятия</h3>
-              </div>
-              <button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button>
-            </div>
-            <div className={styles.modalList}>
-              {selectedGroup.map((lesson, idx) => (
-                <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
-                  <h3 className={styles.discipline}>{lesson.lesson}</h3>
-                  <div className={styles.meta}>
-                    <span className={styles.type}>{lesson.type_work}</span>
-                    {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
-                    {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
-                    {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
-                    {lesson.group && <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>}
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
+      {healthData && !healthData.upstream.healthy && (
+        <div className={styles.statusBar} onClick={() => navigate('/status')}>
+          <div className={styles.statusIndicator}>
+            <div className={`${styles.statusDot} ${styles.unhealthy}`}></div>
+            <span className={styles.statusText}>Источник недоступен</span>
+          </div>
+          <div className={styles.statusTime}>
+            Последнее: {formatRelativeTime(healthData.upstream.last_success || '')}
           </div>
         </div>
       )}
-    </>
-  );
+    </div>
+
+    {selectedGroup && (
+      <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
+        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <div className={styles.modalTimeTitle}>
+              <span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span>
+              <h3>Занятия</h3>
+            </div>
+            <button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button>
+          </div>
+          <div className={styles.modalList}>
+            {selectedGroup.map((lesson, idx) => (
+              <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
+                <h3 className={styles.discipline}>{lesson.lesson}</h3>
+                <div className={styles.meta}>
+                  <span className={styles.type}>{lesson.type_work}</span>
+                  {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
+                  {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
+                  {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
+                  {(lesson as any).groups && (lesson as any).groups.length > 0 ? (
+                    <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as any).groups.join(', ')}</span>
+                  ) : lesson.group && (
+                    <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>
+                  )}
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+);
 };

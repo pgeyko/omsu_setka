@@ -1,23 +1,14 @@
 .header {
-  margin: var(--spacing-xl) 0 var(--spacing-lg);
+  margin: calc(var(--spacing-xl) * 2) 0 var(--spacing-xl);
   text-align: center;
 }
 
 .title {
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.title span {
-  color: var(--accent-color);
-  text-shadow: 0 0 15px var(--accent-glow);
-}
-
-.subtitle {
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin-top: 4px;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  text-transform: lowercase;
+  color: var(--text-primary);
 }
 
 .searchSection {

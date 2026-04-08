@@ -84,7 +84,7 @@ func main() {
 		log.Error().Err(err).Msg("Server forced to shutdown")
 	}
 
-	log.Info().Msg("omsu_mirror stopped")
+	log.Info().Msg("Setka stopped")
 }
 
 func setupLogger(cfg *config.Config) {

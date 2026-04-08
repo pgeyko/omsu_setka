@@ -70,14 +70,21 @@ export const StatusPage: React.FC = () => {
           <div className={`${styles.heroCard} ${isHealthy ? styles.heroHealthy : styles.heroUnhealthy}`}>
             <div className={styles.heroHeader}>
               <div className={`${styles.statusDot} ${isHealthy ? styles.healthy : styles.unhealthy}`}></div>
-              <h2>{isHealthy ? 'Все системы работают' : 'Сбой на стороне ОмГУ'}</h2>
+              <h2>{isHealthy ? 'Все системы работают' : 'Сбой источника данных'}</h2>
             </div>
+            
+            {!isHealthy && health?.upstream?.last_error && (
+              <div className={styles.lastErrorBox}>
+                <div className={styles.errorLabel}>Текущая ошибка:</div>
+                <div className={styles.errorText}>{health.upstream.last_error}</div>
+              </div>
+            )}
             
             <div className={styles.statsGrid}>
               <div className={styles.statBox}>
                 <Clock size={16} />
                 <div>
-                  <div className={styles.statLabel}>Последнее обмновление</div>
+                  <div className={styles.statLabel}>Последнее обновление</div>
                   <div className={styles.statValue}>
                     {health?.last_sync?.schedules ? new Date(health.last_sync.schedules).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—'}
                   </div>

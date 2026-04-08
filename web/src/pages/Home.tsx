@@ -98,8 +98,7 @@ export const Home: React.FC = () => {
   return (
     <div className="app-container animate-fade-in">
       <header className={styles.header}>
-        <h1 className={styles.title}>ОмГУ <span>Зеркало</span></h1>
-        <p className={styles.subtitle}>Расписание, которое не тормозит</p>
+        <h1 className={styles.title}>setka</h1>
       </header>
 
       <section className={styles.searchSection}>
@@ -179,7 +178,7 @@ export const Home: React.FC = () => {
           <div className={styles.statusIndicator}>
             <div className={`${styles.statusDot} ${healthData.upstream.healthy ? styles.healthy : styles.unhealthy}`}></div>
             <span className={styles.statusText}>
-              {healthData.upstream.healthy ? 'Данные актуальны' : 'Сервер ОмГУ недоступен'}
+              {healthData.upstream.healthy ? 'Данные актуальны' : 'Источник недоступен'}
             </span>
           </div>
           <div className={styles.statusTime}>

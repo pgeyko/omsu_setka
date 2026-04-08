@@ -477,6 +477,11 @@
   margin-top: 4px;
 }
 
+.groupsList {
+  color: var(--accent-color) !important;
+  font-weight: 600 !important;
+}
+
 .multiCard {
   cursor: pointer;
   position: relative;
@@ -628,7 +633,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  z-index: 1001;
   pointer-events: none;
 }
 
@@ -658,9 +663,60 @@
   to { opacity: 1; }
 }
 
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+.statusBar {
+  position: fixed;
+  bottom: var(--spacing-md);
+  left: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 600px;
+  margin: 0 auto;
+  z-index: 1000;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.statusBar:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-color);
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.unhealthy {
+  background-color: #ef4444;
+  color: #ef4444;
+}
+
+.statusText {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusTime {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 @media (min-width: 768px) {

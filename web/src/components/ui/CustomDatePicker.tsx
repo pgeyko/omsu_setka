@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
 import styles from './CustomDatePicker.module.css';
 
 interface CustomDatePickerProps {
@@ -71,11 +71,19 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
           <>
             <div className={styles.overlay} onClick={() => setIsOpen(false)} />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className={styles.dropdown}
             >
+              <div className={styles.drawerHeader}>
+                <h3>Выбор даты</h3>
+                <button onClick={() => setIsOpen(false)} className={styles.closeBtn}>
+                  <X size={24} />
+                </button>
+              </div>
+
               <div className={styles.header}>
                 <button onClick={() => changeMonth(-1)} className={styles.navBtn}><ChevronLeft size={18} /></button>
                 <div className={styles.currentMonth}>
