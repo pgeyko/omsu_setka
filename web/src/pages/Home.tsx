@@ -66,7 +66,9 @@ export const Home: React.FC = () => {
       'auditory': 'Аудитория'
     };
     const prefix = prefixes[item.type] || '';
-    const descriptiveName = prefix ? `${prefix}: ${item.name}` : item.name;
+    // Очищаем имя от существующих префиксов перед добавлением нового
+    const cleanName = item.name.replace(/^(Группа|Преподаватель|Аудитория):\s*/i, '');
+    const descriptiveName = prefix ? `${prefix}: ${cleanName}` : cleanName;
     
     addRecent({ ...item, name: descriptiveName });
     navigate(`/schedule/${item.type}/${item.id}`, { state: { name: descriptiveName } });
@@ -99,20 +101,6 @@ export const Home: React.FC = () => {
         <h1 className={styles.title}>ОмГУ <span>Зеркало</span></h1>
         <p className={styles.subtitle}>Расписание, которое не тормозит</p>
       </header>
-
-      {healthData && (
-        <div className={styles.statusBar} onClick={() => navigate('/status')}>
-          <div className={styles.statusIndicator}>
-            <div className={`${styles.statusDot} ${healthData.upstream.healthy ? styles.healthy : styles.unhealthy}`}></div>
-            <span className={styles.statusText}>
-              {healthData.upstream.healthy ? 'Данные актуальны' : 'Сервер ОмГУ недоступен'}
-            </span>
-          </div>
-          <div className={styles.statusTime}>
-            Обновлено {formatRelativeTime(healthData.upstream.healthy ? healthData.last_sync.schedules : healthData.upstream.last_success || '')}
-          </div>
-        </div>
-      )}
 
       <section className={styles.searchSection}>
         <GlassInput 
@@ -183,6 +171,20 @@ export const Home: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {healthData && (
+        <div className={styles.statusBar} onClick={() => navigate('/status')}>
+          <div className={styles.statusIndicator}>
+            <div className={`${styles.statusDot} ${healthData.upstream.healthy ? styles.healthy : styles.unhealthy}`}></div>
+            <span className={styles.statusText}>
+              {healthData.upstream.healthy ? 'Данные актуальны' : 'Сервер ОмГУ недоступен'}
+            </span>
+          </div>
+          <div className={styles.statusTime}>
+            Обновлено {formatRelativeTime(healthData.upstream.healthy ? healthData.last_sync.schedules : healthData.upstream.last_success || '')}
+          </div>
         </div>
       )}
     </div>

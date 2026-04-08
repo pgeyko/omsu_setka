@@ -1,19 +1,65 @@
-.header {
+.stickyHeader {
   position: sticky;
   top: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: 16px 0;
-  background: var(--bg-color);
   z-index: 100;
-  margin-bottom: var(--spacing-lg);
+  background: var(--bg-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0 var(--spacing-md);
+  margin: 0 calc(var(--spacing-md) * -1) var(--spacing-sm);
+  border-bottom: 1px solid var(--surface-border);
 }
 
-.title {
-  font-size: 20px;
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.backBtn, .actionBtn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+}
+
+.backBtn:active, .actionBtn:active {
+  transform: scale(0.9);
+}
+
+.navActions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.viewModeHeader {
+  padding-bottom: var(--spacing-md);
+}
+
+.dateTitle {
+  font-size: 16px;
   font-weight: 700;
-  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  color: var(--text-primary);
+}
+
+.headerSeparator {
+  opacity: 0.4;
+  margin: 0 8px;
+  font-weight: 400;
+}
+
+.entityNameInline {
+  color: var(--accent-color);
 }
 
 .loading {
@@ -21,6 +67,12 @@
   padding: 40px;
   color: var(--text-secondary);
   font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  .nav {
+    padding: var(--spacing-lg) 0;
+  }
 }
 
 .heroCard {

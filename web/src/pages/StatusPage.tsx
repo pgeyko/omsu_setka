@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { fetchHealth, fetchIncidents } from '../api/client';
 import type { HealthData, Incident } from '../api/client';
 import styles from './StatusPage.module.css';
@@ -39,14 +39,29 @@ export const StatusPage: React.FC = () => {
 
   const isHealthy = health?.upstream?.healthy ?? true;
 
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+
   return (
-    <div className="page-container animate-slide-up">
-      <header className={styles.header}>
-        <button className="icon-button" onClick={() => navigate(-1)}>
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className={styles.title}>Мониторинг ОмГУ</h1>
+    <div className="app-container animate-fade-in">
+      <header className={styles.stickyHeader}>
+        <nav className={styles.nav}>
+          <button onClick={() => navigate(-1)} className={styles.backBtn}>
+            <ArrowLeft size={24} />
+          </button>
+          <div className={styles.navActions}>
+             {/* Potential refresh button or other actions */}
+          </div>
+        </nav>
       </header>
+
+      <div className={styles.viewModeHeader}>
+        <h2 className={styles.dateTitle}>
+          {dateStr}
+          <span className={styles.headerSeparator}>•</span>
+          <span className={styles.entityNameInline}>Мониторинг систем</span>
+        </h2>
+      </div>
 
       {loading && !health ? (
         <div className={styles.loading}>Загрузка статуса...</div>

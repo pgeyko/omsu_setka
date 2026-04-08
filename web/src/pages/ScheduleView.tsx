@@ -96,28 +96,32 @@ export const ScheduleView: React.FC = () => {
       
       if (!location.state?.name && sortedData.length > 0) {
          for (const day of sortedData) {
+           let found = false;
            for (const lesson of day.lessons) {
-             if (entityType === 'group' && lesson.group && !entityName.includes(lesson.group)) {
-               setEntityName(`Группа: ${lesson.group}`);
+             if (entityType === 'group' && lesson.group) {
+               const cleanName = lesson.group.replace(/^(Группа|Преподаватель|Аудитория):\s*/gi, '');
+               setEntityName(`${prefixes[entityType] || ''}: ${cleanName}`);
+               found = true;
+               break;
+             }
+             if (entityType === 'tutor' && lesson.teacher) {
+               const cleanName = lesson.teacher.replace(/^(Группа|Преподаватель|Аудитория):\s*/gi, '');
+               setEntityName(`${prefixes[entityType] || ''}: ${cleanName}`);
+               found = true;
                break;
              }
            }
+           if (found) break; 
          }
       }
-
-      if (!isRefresh) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const monday = getMonday(today);
-        setActiveWeekStart(monday);
-      }
+// ... (остальной код функции)
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [entityType, entityID, entityName, location.state?.name]);
+  }, [entityType, entityID, location.state?.name]);
 
   useEffect(() => {
     loadData();
@@ -260,77 +264,79 @@ export const ScheduleView: React.FC = () => {
   const isToday = currentDay ? parseDate(currentDay.day).toDateString() === new Date().toDateString() : false;
 
   return (
-    <div 
-      className="app-container animate-fade-in"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <>
       <div 
-        className={styles.pullToRefresh} 
-        style={{ 
-          transform: `translateY(${pullDistance}px)`, 
-          opacity: pullDistance / 60 
-        }}
+        className="app-container animate-fade-in"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className={`${styles.ptrSpinner} ${refreshing ? styles.spinning : ''}`}>
-           <ArrowLeft size={20} style={{ transform: 'rotate(-90deg)' }}/>
-        </div>
-      </div>
-
-      <nav className={styles.nav}>
-        <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
-        <div className={styles.navActions}>
-          <button onClick={handlePrint} className={styles.actionBtn} title="Печать"><Printer size={20} /></button>
-          <div className={styles.viewToggle}>
-            <button 
-              onClick={() => setViewMode('day')} 
-              className={`${styles.toggleBtn} ${viewMode === 'day' ? styles.toggleActive : ''}`}
-              title="День"
-            >
-              <List size={20} />
-            </button>
-            <button 
-              onClick={() => setViewMode('week')} 
-              className={`${styles.toggleBtn} ${viewMode === 'week' ? styles.toggleActive : ''}`}
-              title="Неделя"
-            >
-              <LayoutGrid size={20} />
-            </button>
+        <div 
+          className={styles.pullToRefresh} 
+          style={{ 
+            transform: `translateY(${pullDistance}px)`, 
+            opacity: pullDistance / 60 
+          }}
+        >
+          <div className={`${styles.ptrSpinner} ${refreshing ? styles.spinning : ''}`}>
+             <ArrowLeft size={20} style={{ transform: 'rotate(-90deg)' }}/>
           </div>
-          <button onClick={toggleFavorite} className={`${styles.actionBtn} ${favorite ? styles.active : ''}`}>
-            <Star size={22} fill={favorite ? 'currentColor' : 'none'} />
-          </button>
-          <button id="shareBtn" onClick={handleShare} className={styles.actionBtn}><Share2 size={22} /></button>
         </div>
-      </nav>
 
-      <div className={styles.weekSelector}>
-        <button className={styles.weekNav} onClick={() => changeWeek(-1)}>←</button>
-        <div className={styles.weekInfo}>
-          <span className={styles.weekLabel}>{formatWeekRange(activeWeekStart)}</span>
+        <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
+
+        <header className={styles.stickyHeader}>
+          <nav className={styles.nav}>
+            <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
+            <div className={styles.navActions}>
+              <button onClick={handlePrint} className={styles.actionBtn} title="Печать"><Printer size={20} /></button>
+              <div className={styles.viewToggle}>
+                <button 
+                  onClick={() => setViewMode('day')} 
+                  className={`${styles.toggleBtn} ${viewMode === 'day' ? styles.toggleActive : ''}`}
+                  title="День"
+                >
+                  <List size={20} />
+                </button>
+                <button 
+                  onClick={() => setViewMode('week')} 
+                  className={`${styles.toggleBtn} ${viewMode === 'week' ? styles.toggleActive : ''}`}
+                  title="Неделя"
+                >
+                  <LayoutGrid size={20} />
+                </button>
+              </div>
+              <button onClick={toggleFavorite} className={`${styles.actionBtn} ${favorite ? styles.active : ''}`}>
+                <Star size={22} fill={favorite ? 'currentColor' : 'none'} />
+              </button>
+              <button id="shareBtn" onClick={handleShare} className={styles.actionBtn}><Share2 size={22} /></button>
+            </div>
+          </nav>
+        </header>
+
+        <div className={styles.weekSelector}>
+          <button className={styles.weekNav} onClick={() => changeWeek(-1)}>←</button>
+          <div className={styles.weekInfo}>
+            <span className={styles.weekLabel}>{formatWeekRange(activeWeekStart)}</span>
+          </div>
+          <button className={styles.weekNav} onClick={() => changeWeek(1)}>→</button>
+          <CustomDatePicker value={dateFilter} onChange={setDateFilter} />
         </div>
-        <button className={styles.weekNav} onClick={() => changeWeek(1)}>→</button>
-        <CustomDatePicker value={dateFilter} onChange={setDateFilter} />
-      </div>
 
-      <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
-
-      <div className={styles.viewModeHeader}>
-        <div className={styles.headerTitleRow}>
-          <h2 className={styles.dateTitle}>
-            {viewMode === 'day' 
-              ? (currentDay ? `${getDayName(parseDate(currentDay.day))}, ${formatDate(parseDate(currentDay.day))}` : 'Нет данных')
-              : `Неделя: ${formatWeekRange(activeWeekStart)}`
-            }
-            <span className={styles.headerSeparator}>•</span>
-            <span className={styles.entityNameInline}>{entityName}</span>
-          </h2>
+        <div className={styles.viewModeHeader}>
+          <div className={styles.headerTitleRow}>
+            <h2 className={styles.dateTitle}>
+              {viewMode === 'day' 
+                ? (currentDay ? `${getDayName(parseDate(currentDay.day))}, ${formatDate(parseDate(currentDay.day))}` : 'Нет данных')
+                : `Неделя: ${formatWeekRange(activeWeekStart)}`
+              }
+              <span className={styles.headerSeparator}>•</span>
+              <span className={styles.entityNameInline}>{entityName}</span>
+            </h2>
+          </div>
         </div>
-      </div>
 
-      {viewMode === 'day' ? (
-        <>
+        {viewMode === 'day' && (
           <div className={styles.daySelector}>
             {filteredSchedule.map((day, idx) => {
               const date = parseDate(day.day);
@@ -351,7 +357,9 @@ export const ScheduleView: React.FC = () => {
               <div className={styles.noFilterResults}>На этой неделе занятий нет</div>
             )}
           </div>
+        )}
 
+        {viewMode === 'day' ? (
           <main className={styles.content}>
             <div className={styles.lessonList}>
               {currentDay?.lessons.length === 0 ? (
@@ -423,57 +431,57 @@ export const ScheduleView: React.FC = () => {
               )}
             </div>
           </main>
-        </>
-      ) : (
-        <div className={styles.weeklyGrid}>
-          <div className={styles.gridHeader}>Время</div>
-          {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(dayName => (
-            <div key={dayName} className={styles.gridHeader}>{dayName}</div>
-          ))}
-          
-          {Object.entries(TIME_SLOTS).map(([slotIdx, times]) => (
-            <React.Fragment key={slotIdx}>
-              <div className={styles.gridRowLabel}>
-                <span>{times.start}</span>
-                <span>{times.end}</span>
-              </div>
-              {[1, 2, 3, 4, 5, 6].map(dayOffset => {
-                const dayDate = new Date(activeWeekStart);
-                dayDate.setDate(activeWeekStart.getDate() + dayOffset - 1);
-                const dayData = filteredSchedule.find(d => parseDate(d.day).toDateString() === dayDate.toDateString());
-                const slotLessons = dayData?.lessons.filter(l => l.time === Number(slotIdx)) || [];
-                
-                return (
-                  <div key={dayOffset} className={styles.gridCell}>
-                    {slotLessons.length > 1 ? (
-                      <div 
-                        className={styles.gridLesson}
-                        onClick={() => setSelectedGroup(slotLessons)}
-                        style={{ borderLeftColor: 'var(--accent-color)', background: 'rgba(170, 59, 255, 0.1)', cursor: 'pointer' }}
-                      >
-                        <span className={styles.gridLessonType}>Несколько</span>
-                        Занятий ({slotLessons.length})
-                        <div style={{ opacity: 0.8, fontSize: '9px', marginTop: '4px', textTransform: 'uppercase', fontStyle: 'italic' }}>Нажмите, чтобы открыть</div>
-                      </div>
-                    ) : slotLessons.map((l, i) => (
-                      <div 
-                        key={i} 
-                        className={styles.gridLesson}
-                        onClick={() => setSelectedGroup([l])}
-                        style={{ borderLeftColor: l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981', cursor: 'pointer' }}
-                      >
-                        <span className={styles.gridLessonType}>{l.type_work}</span>
-                        {l.lesson}
-                        <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
+        ) : (
+          <div className={styles.weeklyGrid}>
+            <div className={styles.gridHeader}>Время</div>
+            {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(dayName => (
+              <div key={dayName} className={styles.gridHeader}>{dayName}</div>
+            ))}
+            
+            {Object.entries(TIME_SLOTS).map(([slotIdx, times]) => (
+              <React.Fragment key={slotIdx}>
+                <div className={styles.gridRowLabel}>
+                  <span>{times.start}</span>
+                  <span>{times.end}</span>
+                </div>
+                {[1, 2, 3, 4, 5, 6].map(dayOffset => {
+                  const dayDate = new Date(activeWeekStart);
+                  dayDate.setDate(activeWeekStart.getDate() + dayOffset - 1);
+                  const dayData = filteredSchedule.find(d => parseDate(d.day).toDateString() === dayDate.toDateString());
+                  const slotLessons = dayData?.lessons.filter(l => l.time === Number(slotIdx)) || [];
+                  
+                  return (
+                    <div key={dayOffset} className={styles.gridCell}>
+                      {slotLessons.length > 1 ? (
+                        <div 
+                          className={styles.gridLesson}
+                          onClick={() => setSelectedGroup(slotLessons)}
+                          style={{ borderLeftColor: 'var(--accent-color)', background: 'rgba(170, 59, 255, 0.1)', cursor: 'pointer' }}
+                        >
+                          <span className={styles.gridLessonType}>Несколько</span>
+                          Занятий ({slotLessons.length})
+                          <div style={{ opacity: 0.8, fontSize: '9px', marginTop: '4px', textTransform: 'uppercase', fontStyle: 'italic' }}>Нажмите, чтобы открыть</div>
+                        </div>
+                      ) : slotLessons.map((l, i) => (
+                        <div 
+                          key={i} 
+                          className={styles.gridLesson}
+                          onClick={() => setSelectedGroup([l])}
+                          style={{ borderLeftColor: l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981', cursor: 'pointer' }}
+                        >
+                          <span className={styles.gridLessonType}>{l.type_work}</span>
+                          {l.lesson}
+                          <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+      </div>
 
       {selectedGroup && (
         <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
@@ -502,6 +510,6 @@ export const ScheduleView: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

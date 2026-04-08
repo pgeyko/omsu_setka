@@ -41,12 +41,25 @@
   margin-top: var(--spacing-sm);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: blur(20px);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
   box-shadow: var(--shadow-md);
   animation: fadeIn 200ms ease;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-color) transparent;
+}
+
+.resultsDropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.resultsDropdown::-webkit-scrollbar-thumb {
+  background-color: var(--accent-color);
+  border-radius: 20px;
 }
 
 .resultItem {
@@ -179,26 +192,31 @@
 }
 
 .statusBar {
+  position: fixed;
+  bottom: var(--spacing-md);
+  left: var(--spacing-md);
+  right: var(--spacing-md);
   background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-xl);
   max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  z-index: 1000;
   cursor: pointer;
-  transition: transform var(--transition-fast), background var(--transition-fast);
+  transition: all var(--transition-fast);
+  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .statusBar:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-color);
 }
 
 .statusIndicator {

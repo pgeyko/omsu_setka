@@ -1,13 +1,31 @@
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0 var(--spacing-md);
+  margin: 0 calc(var(--spacing-md) * -1) var(--spacing-sm);
+  border-bottom: 1px solid var(--surface-border);
+}
+
 .nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) 0 var(--spacing-lg);
+  padding: var(--spacing-sm) 0;
+}
+
+.navActions {
+  display: flex;
+  gap: 4px;
 }
 
 .backBtn, .actionBtn {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,13 +35,18 @@
   transition: all var(--transition-base);
 }
 
-.backBtn:active, .actionBtn:active {
-  transform: scale(0.9);
+@media (min-width: 380px) {
+  .navActions {
+    gap: var(--spacing-sm);
+  }
+  .backBtn, .actionBtn {
+    width: 44px;
+    height: 44px;
+  }
 }
 
-.navActions {
-  display: flex;
-  gap: var(--spacing-sm);
+.backBtn:active, .actionBtn:active {
+  transform: scale(0.9);
 }
 
 .active {
@@ -61,11 +84,11 @@
 
 .daySelector {
   display: flex;
-  justify-content: center;
-  gap: var(--spacing-sm);
+  justify-content: flex-start;
+  gap: 10px;
   overflow-x: auto;
-  padding: var(--spacing-lg) 0 var(--spacing-xl);
-  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xl);
+  margin: 0 calc(var(--spacing-md) * -1);
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
 }
@@ -75,8 +98,8 @@
 }
 
 .dayTab {
-  min-width: 50px;
-  height: 64px;
+  min-width: 46px;
+  height: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
