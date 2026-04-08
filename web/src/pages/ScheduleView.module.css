@@ -119,7 +119,7 @@
   justify-content: flex-start;
   gap: 10px;
   overflow-x: auto;
-  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xl);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-lg);
   margin: 0 calc(var(--spacing-md) * -1);
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
@@ -167,7 +167,7 @@
 }
 
 .headerTitleRow {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
 }
 
 .dateTitle {

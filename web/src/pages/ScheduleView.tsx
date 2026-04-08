@@ -38,14 +38,6 @@ const getMonday = (d: Date) => {
   return monday;
 };
 
-const getDayName = (date: Date) => {
-  return date.toLocaleDateString('ru-RU', { weekday: 'long' });
-};
-
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-};
-
 const formatWeekRange = (monday: Date) => {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
@@ -411,11 +403,6 @@ export const ScheduleView: React.FC = () => {
         <div className={styles.viewModeHeader}>
           <div className={styles.headerTitleRow}>
             <h2 className={styles.dateTitle}>
-              {viewMode === 'day' 
-                ? (currentDay ? `${getDayName(parseDate(currentDay.day))}, ${formatDate(parseDate(currentDay.day))}` : 'Нет данных')
-                : `Неделя: ${formatWeekRange(activeWeekStart)}`
-              }
-              <span className={styles.headerSeparator}>•</span>
               <span className={styles.entityNameInline}>{entityName}</span>
             </h2>
           </div>
