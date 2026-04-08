@@ -1,0 +1,21 @@
+# Binaries
+omsu_mirror
+
+# Dependencies
+vendor/
+
+# Environment
+.env
+
+# Project specific
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# IDEs
+.idea/
+.vscode/
+
+# System
+.DS_Store

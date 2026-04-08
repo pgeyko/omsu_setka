@@ -1,0 +1,391 @@
+basePath: /api/v1
+definitions:
+  models.Auditory:
+    properties:
+      building:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.BFFResponse:
+    properties:
+      cached_at:
+        type: string
+      data: {}
+      source:
+        description: '"cache", "upstream", "stale"'
+        type: string
+      success:
+        type: boolean
+    type: object
+  models.Day:
+    properties:
+      day:
+        type: string
+      lessons:
+        items:
+          $ref: '#/definitions/models.Lesson'
+        type: array
+    type: object
+  models.Group:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      real_group_id:
+        type: integer
+    type: object
+  models.Lesson:
+    properties:
+      auditCorps:
+        type: string
+      faculty:
+        type: string
+      group:
+        type: string
+      id:
+        type: integer
+      lesson:
+        type: string
+      publishDate:
+        type: string
+      subgroupName:
+        type: string
+      teacher:
+        type: string
+      time:
+        type: integer
+      type_work:
+        type: string
+    type: object
+  models.Tutor:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: High-performance BFF for Omsu university schedule.
+  title: Omsu Schedule Mirror API
+  version: "1.0"
+paths:
+  /auditories:
+    get:
+      description: Returns a list of all auditories and buildings.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Auditory'
+                  type: array
+              type: object
+      summary: Get all auditories
+      tags:
+      - Dictionaries
+  /auditories/{id}:
+    get:
+      description: Returns a single auditory by its ID.
+      parameters:
+      - description: Auditory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Auditory'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get auditory by ID
+      tags:
+      - Dictionaries
+  /groups:
+    get:
+      description: Returns a list of all study groups.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Group'
+                  type: array
+              type: object
+      summary: Get all groups
+      tags:
+      - Dictionaries
+  /groups/{id}:
+    get:
+      description: Returns a single group by its ID.
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Group'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get group by ID
+      tags:
+      - Dictionaries
+  /health:
+    get:
+      description: Returns service uptime and cache statistics.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+      summary: Get health status
+      tags:
+      - Meta
+  /schedule/auditory/{id}:
+    get:
+      description: Returns the schedule for a specific auditory. Lazy-fetches if not
+        in cache.
+      parameters:
+      - description: Auditory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Day'
+                  type: array
+              type: object
+      summary: Get auditory schedule
+      tags:
+      - Schedules
+  /schedule/group/{id}:
+    get:
+      description: Returns the schedule for a specific group. Lazy-fetches if not
+        in cache.
+      parameters:
+      - description: Group ID (real_group_id)
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Day'
+                  type: array
+              type: object
+      summary: Get group schedule
+      tags:
+      - Schedules
+  /schedule/tutor/{id}:
+    get:
+      description: Returns the schedule for a specific tutor. Lazy-fetches if not
+        in cache.
+      parameters:
+      - description: Tutor ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Day'
+                  type: array
+              type: object
+      summary: Get tutor schedule
+      tags:
+      - Schedules
+  /search:
+    get:
+      description: Prefix search with autocomplete.
+      parameters:
+      - description: Query string (min 2 chars)
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: all
+        description: 'Filter type: group, tutor, auditory, all'
+        in: query
+        name: type
+        type: string
+      - default: 20
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+      summary: Search groups, tutors, or auditories
+      tags:
+      - Search
+  /sync/status:
+    get:
+      description: Returns the last synchronization timestamps for dictionaries and
+        schedules.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+      summary: Get sync status
+      tags:
+      - Meta
+  /sync/trigger:
+    post:
+      description: Forces a background synchronization of dictionaries and active
+        schedules. (Admin only)
+      parameters:
+      - description: Admin Secret Key
+        in: header
+        name: X-Admin-Key
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Trigger manual sync
+      tags:
+      - Meta
+  /tutors:
+    get:
+      description: Returns a list of all teachers.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Tutor'
+                  type: array
+              type: object
+      summary: Get all tutors
+      tags:
+      - Dictionaries
+  /tutors/{id}:
+    get:
+      description: Returns a single teacher by their ID.
+      parameters:
+      - description: Tutor ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Tutor'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get tutor by ID
+      tags:
+      - Dictionaries
+swagger: "2.0"
