@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   backend:
+    image: ghcr.io/pgeyko/omsu_setka/backend:latest
     build: 
       context: .
       dockerfile: Dockerfile
@@ -24,6 +25,7 @@ services:
       retries: 3
 
   frontend:
+    image: ghcr.io/pgeyko/omsu_setka/frontend:latest
     build:
       context: .
       dockerfile: web/Dockerfile
