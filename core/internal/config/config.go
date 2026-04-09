@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	// Server
+	AppEnv             string        `env:"APP_ENV" envDefault:"development"`
 	ServerPort         string        `env:"SERVER_PORT" envDefault:"8080"`
 	ServerReadTimeout  time.Duration `env:"SERVER_READ_TIMEOUT" envDefault:"5s"`
 	ServerWriteTimeout time.Duration `env:"SERVER_WRITE_TIMEOUT" envDefault:"5s"`
@@ -41,8 +42,8 @@ type Config struct {
 	LogFormat  string `env:"LOG_FORMAT" envDefault:"json"`
 
 	// Security
-	AdminKey            string        `env:"ADMIN_KEY" envDefault:"admin-secret"`
-	CORSAllowedOrigins  string        `env:"CORS_ALLOWED_ORIGINS" envDefault:"*"`
+	AdminKey            string        `env:"ADMIN_KEY" envDefault:""`
+	CORSAllowedOrigins  string        `env:"CORS_ALLOWED_ORIGINS" envDefault:""`
 
 	// Rate Limiting
 	RateLimitGeneral int           `env:"RATE_LIMIT_GENERAL" envDefault:"120"`

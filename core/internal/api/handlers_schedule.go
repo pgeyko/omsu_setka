@@ -97,7 +97,11 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 			CachedAt: time.Now(),
 			Source:   "upstream",
 		}
-		jsonData, _ := json.Marshal(resp)
+		jsonData, err := json.Marshal(resp)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to marshal schedule response")
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+		}
 		
 		// Update persistent L2
 		if err := s.ScheduleRepo.PutSchedule(c.Context(), key, entityType, id, jsonData, "", s.Cfg.CacheScheduleTTL); err != nil {

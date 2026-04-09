@@ -45,6 +45,7 @@ func NewServer(
 		CaseSensitive: true,
 		BodyLimit:     1024,         // 1 KB — API doesn't accept large bodies
 		ReadBufferSize: 4096,
+		ProxyHeader:    "X-Real-IP",  // Correctly detect client IP behind Nginx
 	})
 
 	// Global Middleware
@@ -74,7 +75,10 @@ func NewServer(
 }
 
 func (s *Server) setupRoutes() {
-	s.App.Get("/swagger/*", swagger.HandlerDefault)
+	// Hide Swagger in production
+	if s.Cfg.AppEnv != "production" {
+		s.App.Get("/swagger/*", AdminAuth(s.Cfg), swagger.HandlerDefault)
+	}
 
 	v1 := s.App.Group("/api/v1")
 

@@ -233,3 +233,26 @@
 - [x] 16.3 Backend: Интеграционные тесты API (Rate Limiting, Security Headers)
 - [x] 16.4 Frontend: Тесты Zustand-хранилищ (Favorites, Settings)
 - [x] 16.5 QA: Нагрузочное тестирование (P99 < 5ms под нагрузкой)
+
+---
+
+## Этап 17: Безопасность и Production Hardening (Audit)
+- [x] 17.1 Backend: Использовать `subtle.ConstantTimeCompare` для проверки `AdminKey` (защита от timing attack)
+- [x] 17.2 Backend: Установить строгий CORS по умолчанию (вместо `*`) в конфиге
+- [x] 17.3 Backend: Убрать дефолтное значение `admin-secret` для `ADMIN_KEY` в коде
+- [x] 17.4 Backend: Настроить `ProxyHeader: "X-Real-IP"` в Fiber для корректного rate-limiting за Nginx
+- [x] 17.5 Backend: Скрыть Swagger UI в продакшне или защитить его через `AdminAuth`
+- [x] 17.6 Backend: Добавить `Content-Security-Policy` и `HSTS` заголовки в `SecurityHeadersMiddleware`
+- [x] 17.7 Frontend: Исключить копирование `.env` в Docker-образ (использовать build-args для `VITE_*`)
+- [x] 17.8 Frontend: Добавить `encodeURIComponent` для поисковых запросов в API-клиенте
+
+---
+
+## Этап 18: Исправление багов и оптимизация (Audit)
+- [x] 18.1 Backend: Добавить валидацию и проверку границ для ID в `handlers_dict.go`
+- [x] 18.2 Backend: Ограничить максимальное значение `offset` в эндпоинте `/incidents`
+- [x] 18.3 Backend: Реализовать TTL-expiration для L1 (MemoryCache) или механизм очистки
+- [x] 18.4 Backend: Исправить асинхронный инкремент hit_count (использовать контекст или очередь)
+- [x] 18.5 Backend: Обработка ошибок `json.Marshal` в хэндлерах (не игнорировать `_`)
+- [x] 18.6 Backend: Перенести `loadtest.go` в `core/cmd/loadtest/` или `core/tools/`
+- [x] 18.7 Backend: Синхронизировать `BodyLimit` в Fiber с `client_max_body_size` в Nginx

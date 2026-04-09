@@ -79,7 +79,10 @@ func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (inter
 		Source:   "cache",
 	}
 	
-	jsonData, _ := json.Marshal(resp)
+	jsonData, err := json.Marshal(resp)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to marshal response"})
+	}
 	s.MemoryCache.Set(key, jsonData)
 
 	c.Set("X-Cache-Status", "MISS")
@@ -95,7 +98,11 @@ func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (inter
 // @Failure 404 {object} map[string]string
 // @Router /groups/{id} [get]
 func (s *Server) handleGetGroupByID(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id < 1 || id > 999999 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid group id"})
+	}
+
 	group, err := s.DictRepo.GetGroupByID(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -115,7 +122,11 @@ func (s *Server) handleGetGroupByID(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]string
 // @Router /auditories/{id} [get]
 func (s *Server) handleGetAuditoryByID(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id < 1 || id > 999999 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid auditory id"})
+	}
+
 	aud, err := s.DictRepo.GetAuditoryByID(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -135,7 +146,11 @@ func (s *Server) handleGetAuditoryByID(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]string
 // @Router /tutors/{id} [get]
 func (s *Server) handleGetTutorByID(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id < 1 || id > 999999 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid tutor id"})
+	}
+
 	tutor, err := s.DictRepo.GetTutorByID(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

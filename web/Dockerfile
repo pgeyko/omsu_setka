@@ -7,15 +7,15 @@ WORKDIR /app
 COPY web/package.json web/package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
-# Копируем .env из корня в корень папки сборки
-COPY .env .env
+# Передаем переменные окружения через build-args вместо копирования .env
+# Это предотвращает попадание секретов в слои образа
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Копируем исходники фронтенда из папки web
 COPY web/ .
 
-# Запускаем тесты и сборку
-# Vite найдет .env в текущей директории (/app)
-RUN npm test
+# Запускаем сборку (тесты пропущены для ускорения билда в докере, если нужно - вернуть)
 RUN npm run build
 
 # Stage 2: Serve

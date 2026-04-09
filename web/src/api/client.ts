@@ -75,7 +75,7 @@ export interface GroupedSearchResult {
 }
 
 export const fetchSearch = async (query: string, type: string = 'all'): Promise<SearchResult[] | GroupedSearchResult> => {
-  const { data } = await apiClient.get<BFFResponse<SearchResult[] | GroupedSearchResult>>(`/search?q=${query}&type=${type}`);
+  const { data } = await apiClient.get<BFFResponse<SearchResult[] | GroupedSearchResult>>(`/search?q=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}`);
   return data.data;
 };
 

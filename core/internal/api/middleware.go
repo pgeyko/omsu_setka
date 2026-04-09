@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/subtle"
 	"omsu_mirror/internal/config"
 	"time"
 
@@ -30,7 +31,9 @@ func LoggerMiddleware() fiber.Handler {
 func AdminAuth(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		key := c.Get("X-Admin-Key")
-		if key == "" || key != cfg.AdminKey {
+		
+		// subtle.ConstantTimeCompare prevents timing attacks
+		if key == "" || subtle.ConstantTimeCompare([]byte(key), []byte(cfg.AdminKey)) != 1 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "unauthorized: invalid admin key",
 			})
@@ -63,6 +66,11 @@ func SecurityHeadersMiddleware() fiber.Handler {
 		c.Set("X-Frame-Options", "DENY")
 		c.Set("X-XSS-Protection", "1; mode=block")
 		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		
+		// 17.6 Add CSP and HSTS
+		c.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';")
+		c.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+		
 		return c.Next()
 	}
 }
