@@ -61,6 +61,7 @@
 
 @media (max-width: 480px) {
   .footer {
-    padding-bottom: 110px; /* Space for fixed status bar on mobile */
+    padding-bottom: 110px;
+    /* Space for fixed status bar on mobile */
   }
 }

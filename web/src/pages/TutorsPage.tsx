@@ -18,9 +18,8 @@ export const TutorsPage: React.FC = () => {
   const [tutorSubjects, setTutorSubjects] = useState<Record<number, string[]>>({});
   const [loadingSubjects, setLoadingSubjects] = useState<Record<number, boolean>>({});
   const [isFocused, setIsFocused] = useState(false);
-  
-  const { recent, addRecent } = useFavoritesStore();
-  const recentTutors = recent.filter(r => r.type === 'tutor');
+
+  const { recentTutors, addRecent } = useFavoritesStore();
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
@@ -38,7 +37,7 @@ export const TutorsPage: React.FC = () => {
             .filter(t => t.name && t.name.trim().length > 3)
             .map(t => [t.name, t])
         ).values());
-        
+
         setTutors(unique.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
         setLoading(false);
       })
@@ -58,7 +57,7 @@ export const TutorsPage: React.FC = () => {
     try {
       const schedule = await fetchSchedule('tutor', tutorId);
       const subjects = new Set<string>();
-      
+
       schedule.forEach(day => {
         day.lessons.forEach(lesson => {
           if (lesson.lesson) subjects.add(lesson.lesson);
@@ -79,7 +78,7 @@ export const TutorsPage: React.FC = () => {
     } else {
       setExpandedTutor(tutorId);
       loadTutorDetails(tutorId);
-      
+
       const tutor = tutors.find(t => t.id === tutorId);
       if (tutor) {
         addRecent({ id: tutor.id, name: tutor.name, type: 'tutor' });
@@ -100,43 +99,43 @@ export const TutorsPage: React.FC = () => {
       <div className={styles.loading}>Загрузка списка преподавателей...</div>
     </div>
   );
-return (
-  <div className="app-container animate-fade-in">
-    <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
+  return (
+    <div className="app-container animate-fade-in">
+      <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
 
-    <header className={styles.stickyHeader}>
-      <nav className={styles.nav}>
-        <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
-        <div className={styles.navTitle}>Преподаватели</div>
-        <div className={styles.navActions}></div>
-      </nav>
-    </header>
+      <header className={styles.stickyHeader}>
+        <nav className={styles.nav}>
+          <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
+          <div className={styles.navTitle}>Преподаватели</div>
+          <div className={styles.navActions}></div>
+        </nav>
+      </header>
 
-    <main className={styles.container}>
-      <div className={styles.searchWrapper}>
-        <GlassInput 
-          icon={<Search size={20} />}
-          placeholder="Поиск по ФИО..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-        />
-        
-        {isFocused && searchQuery.length < 2 && recentTutors.length > 0 && (
-          <div className={styles.resultsDropdown}>
-            <div className={styles.dropdownHeader}>Недавние преподаватели</div>
-            {recentTutors.map(rec => (
-              <div key={rec.id} className={styles.resultItem} onClick={() => handleSelectRecent(rec)}>
-                <User size={18} className={styles.resultIcon} />
-                <div className={styles.resultInfo}>
-                  <div className={styles.resultLabel}>{rec.name}</div>
+      <main className={styles.container}>
+        <div className={styles.searchWrapper}>
+          <GlassInput
+            icon={<Search size={20} />}
+            placeholder="Поиск по ФИО..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+          />
+
+          {isFocused && searchQuery.length < 2 && recentTutors.length > 0 && (
+            <div className={styles.resultsDropdown}>
+              <div className={styles.dropdownHeader}>Недавние преподаватели</div>
+              {recentTutors.map(rec => (
+                <div key={rec.id} className={styles.resultItem} onClick={() => handleSelectRecent(rec)}>
+                  <User size={18} className={styles.resultIcon} />
+                  <div className={styles.resultInfo}>
+                    <div className={styles.resultLabel}>{rec.name}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className={styles.tutorList}>
           {filteredTutors.map(tutor => {
@@ -145,8 +144,8 @@ return (
             const isLoading = loadingSubjects[tutor.id];
 
             return (
-              <GlassCard 
-                key={tutor.id} 
+              <GlassCard
+                key={tutor.id}
                 className={styles.tutorCard}
                 onClick={() => handleExpand(tutor.id)}
               >
@@ -174,7 +173,7 @@ return (
                             <span className={styles.empty}>Предметы не найдены</span>
                           )}
                         </div>
-                        <button 
+                        <button
                           className={styles.viewScheduleBtn}
                           onClick={() => navigate(`/schedule/tutor/${tutor.id}`, { state: { name: `Преподаватель: ${tutor.name}` } })}
                         >
@@ -192,3 +191,4 @@ return (
     </div>
   );
 };
+

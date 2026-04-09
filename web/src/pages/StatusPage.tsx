@@ -23,7 +23,7 @@ export const StatusPage: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     loadData();
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
@@ -50,7 +50,7 @@ export const StatusPage: React.FC = () => {
             <ArrowLeft size={24} />
           </button>
           <div className={styles.navActions}>
-             {/* Potential refresh button or other actions */}
+            {/* Potential refresh button or other actions */}
           </div>
         </nav>
       </header>
@@ -72,21 +72,21 @@ export const StatusPage: React.FC = () => {
               <div className={`${styles.statusDot} ${isHealthy ? styles.healthy : styles.unhealthy}`}></div>
               <h2>{isHealthy ? 'Все системы работают' : 'Сбой источника данных'}</h2>
             </div>
-            
+
             {!isHealthy && health?.upstream?.last_error && (
               <div className={styles.lastErrorBox}>
                 <div className={styles.errorLabel}>Текущая ошибка:</div>
                 <div className={styles.errorText}>{health.upstream.last_error}</div>
               </div>
             )}
-            
+
             <div className={styles.statsGrid}>
               <div className={styles.statBox}>
                 <Clock size={16} />
                 <div>
                   <div className={styles.statLabel}>Последнее обновление</div>
                   <div className={styles.statValue}>
-                    {health?.last_sync?.schedules ? new Date(health.last_sync.schedules).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—'}
+                    {health?.last_sync?.schedules ? new Date(health.last_sync.schedules).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                   </div>
                 </div>
               </div>
@@ -115,7 +115,7 @@ export const StatusPage: React.FC = () => {
                       <div className={styles.timelineHeader}>
                         <span className={styles.timelineTitle}>{incident.message}</span>
                         <span className={styles.timelineTime}>
-                          {new Date(incident.created_at).toLocaleDateString([], {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}
+                          {new Date(incident.created_at).toLocaleDateString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       {incident.error_text && (

@@ -11,10 +11,10 @@ export const Footer: React.FC = () => {
           <span className={styles.separator}>•</span>
           <span className={styles.copyright}>© {new Date().getFullYear()}</span>
         </div>
-        <a 
-          href="https://eservice.omsu.ru/schedule/" 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href="https://eservice.omsu.ru/schedule/"
+          target="_blank"
+          rel="noopener noreferrer"
           className={styles.link}
         >
           Оригинальное расписание <ExternalLink size={14} />
@@ -23,3 +23,4 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+

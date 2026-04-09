@@ -6,7 +6,9 @@
 }
 
 .input {
-  width: 100%;
+  width: 100%; /* Fallback */
+  flex: 1;
+  min-width: 0;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);

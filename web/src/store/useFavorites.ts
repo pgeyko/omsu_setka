@@ -8,7 +8,10 @@ interface FavoritesState {
   removeFavorite: (id: number, type: string) => void;
   isFavorite: (id: number, type: string) => boolean;
   recent: SearchResult[];
+  recentTutors: SearchResult[];
+  recentAuditories: SearchResult[];
   addRecent: (item: SearchResult) => void;
+  updateItemName: (id: number, type: string, newName: string) => void;
   subgroup: string | null;
   setSubgroup: (subgroup: string | null) => void;
 }
@@ -25,14 +28,40 @@ export const useFavoritesStore = create<FavoritesState>()(
       })),
       isFavorite: (id, type) => get().favorites.some(f => f.id === id && f.type === type),
       recent: [],
-      addRecent: (item) => set((state) => ({
-        recent: [item, ...state.recent.filter(r => !(r.id === item.id && r.type === item.type))].slice(0, 5)
-      })),
+      recentTutors: [],
+      recentAuditories: [],
+      addRecent: (item) => set((state) => {
+        if (item.type === 'group') {
+          return {
+            recent: [item, ...state.recent.filter(r => !(r.id === item.id && r.type === item.type))].slice(0, 5)
+          };
+        } else if (item.type === 'tutor') {
+          return {
+            recentTutors: [item, ...state.recentTutors.filter(r => !(r.id === item.id && r.type === item.type))].slice(0, 5)
+          };
+        } else if (item.type === 'auditory') {
+          return {
+            recentAuditories: [item, ...state.recentAuditories.filter(r => !(r.id === item.id && r.type === item.type))].slice(0, 5)
+          };
+        }
+        return state;
+      }),
+      updateItemName: (id, type, newName) => set((state) => {
+        const update = (list: SearchResult[]) => list.map(item => 
+          (item.id === id && item.type === type) ? { ...item, name: newName } : item
+        );
+        return {
+          favorites: update(state.favorites),
+          recent: update(state.recent),
+          recentTutors: update(state.recentTutors),
+          recentAuditories: update(state.recentAuditories),
+        };
+      }),
       subgroup: null,
       setSubgroup: (subgroup) => set({ subgroup }),
     }),
     {
-      name: 'omsu-setka-favorites',
+      name: 'omsu-setka-favorites', // Keep the current persist name to avoid clearing user data if possible, but structure must match
     }
   )
 );

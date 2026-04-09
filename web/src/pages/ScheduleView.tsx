@@ -17,10 +17,10 @@ const formatRelativeTime = (dateString: string) => {
 
   if (diffInMinutes < 1) return 'только что';
   if (diffInMinutes < 60) return `${diffInMinutes} мин назад`;
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours} ч назад`;
-  
+
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 };
 
@@ -67,13 +67,13 @@ export const ScheduleView: React.FC = () => {
 
   const isLessonForSubgroup = (lesson: Lesson) => {
     if (!subgroup || entityType !== 'group') return true;
-    
+
     const getSubgroupFromText = (text: string | undefined) => {
       if (!text) return null;
       // 1. Look for /X at the end (e.g. "МБС-501-О-01/1")
       const slashMatch = text.match(/\/(\d+)$/);
       if (slashMatch) return slashMatch[1];
-      
+
       // 2. Look for "X подгруппа" or "X п/г"
       const wordMatch = text.match(/(\d+)\s*(?:подгруппа|подгр|п\/г)/i);
       if (wordMatch) return wordMatch[1];
@@ -87,7 +87,7 @@ export const ScheduleView: React.FC = () => {
     if (lessonSubgroup) {
       return lessonSubgroup === subgroup;
     }
-    
+
     // If no subgroup info found in the lesson, it's a common lesson for all
     return true;
   };
@@ -97,12 +97,9 @@ export const ScheduleView: React.FC = () => {
     if (type.includes('Экзамен')) return styles.examHighlight;
     if (type.includes('Консультация')) return styles.consultHighlight;
     if (type.includes('Зачет')) return styles.testHighlight;
-    if (type.includes('Прак')) return styles.practiceHighlight;
-    if (type.includes('Лаб')) return styles.labHighlight;
-    if (type.includes('Лек')) return styles.lectureHighlight;
     return '';
   };
-  
+
   useEffect(() => {
     if (selectedGroup) {
       document.body.style.overflow = 'hidden';
@@ -113,7 +110,7 @@ export const ScheduleView: React.FC = () => {
       document.body.style.overflow = 'unset';
     };
   }, [selectedGroup]);
-  
+
   useEffect(() => {
     fetchHealth().then(data => setHealthData(data)).catch(console.error);
     const interval = setInterval(() => {
@@ -124,12 +121,12 @@ export const ScheduleView: React.FC = () => {
 
   const entityID = parseInt(id || '0');
   const entityType = type || 'group';
-  
-  const prefixes = React.useMemo<Record<string, string>>(() => ({
+
+  const prefixes: Record<string, string> = {
     'group': 'Группа',
     'tutor': 'Преподаватель',
     'auditory': 'Аудитория'
-  }), []);
+  };
   const prefix = prefixes[entityType] || '';
   const initialName = location.state?.name || (prefix ? `${prefix}: ID ${id}` : `ID ${id}`);
   const [entityName, setEntityName] = useState(initialName);
@@ -142,31 +139,31 @@ export const ScheduleView: React.FC = () => {
   const loadData = React.useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-    
+
     try {
       const data = await fetchSchedule(entityType, entityID);
       const sortedData = [...data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
       setSchedule(sortedData);
-      
+
       if (!location.state?.name && sortedData.length > 0) {
-         for (const day of sortedData) {
-           let found = false;
-           for (const lesson of day.lessons) {
-             if (entityType === 'group' && lesson.group) {
-               const cleanName = lesson.group.replace(/^(Группа|Преподаватель|Аудитория):\s*/gi, '');
-               setEntityName(`${prefixes[entityType] || ''}: ${cleanName}`);
-               found = true;
-               break;
-             }
-             if (entityType === 'tutor' && lesson.teacher) {
-               const cleanName = lesson.teacher.replace(/^(Группа|Преподаватель|Аудитория):\s*/gi, '');
-               setEntityName(`${prefixes[entityType] || ''}: ${cleanName}`);
-               found = true;
-               break;
-             }
-           }
-           if (found) break; 
-         }
+        for (const day of sortedData) {
+          let found = false;
+          for (const lesson of day.lessons) {
+            if (entityType === 'group' && lesson.group) {
+              const cleanName = lesson.group.replace(/^(Группа|Преподаватель|Аудитория):\s*/gi, '');
+              setEntityName(`${prefixes[entityType] || ''}: ${cleanName}`);
+              found = true;
+              break;
+            }
+            if (entityType === 'tutor' && lesson.teacher) {
+              const cleanName = lesson.teacher.replace(/^(Группа|Преподаватель|Аудитория):\s*/gi, '');
+              setEntityName(`${prefixes[entityType] || ''}: ${cleanName}`);
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
       }
     } catch (err) {
       console.error(err);
@@ -174,7 +171,7 @@ export const ScheduleView: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [entityType, entityID, location.state?.name, prefixes]);
+  }, [entityType, entityID, location.state?.name]);
 
   useEffect(() => {
     loadData();
@@ -206,7 +203,7 @@ export const ScheduleView: React.FC = () => {
   // Handle filtering by week or specific date
   useEffect(() => {
     let weekStart = activeWeekStart;
-    
+
     if (dateFilter) {
       weekStart = getMonday(new Date(dateFilter));
       setActiveWeekStart(weekStart);
@@ -245,7 +242,7 @@ export const ScheduleView: React.FC = () => {
     if (favorite) {
       removeFavorite(entityID, entityType);
     } else {
-      addFavorite({ id: entityID, type: entityType as 'group' | 'tutor' | 'auditory', name: entityName });
+      addFavorite({ id: entityID, type: entityType as any, name: entityName });
     }
   };
 
@@ -279,7 +276,7 @@ export const ScheduleView: React.FC = () => {
       text: `Посмотри расписание для ${entityName} в Setka`,
       url: url
     };
-    
+
     try {
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
@@ -287,7 +284,7 @@ export const ScheduleView: React.FC = () => {
         await copyToClipboard(url);
       }
     } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
+      if ((err as any).name !== 'AbortError') {
         await copyToClipboard(url);
       }
     }
@@ -314,11 +311,11 @@ export const ScheduleView: React.FC = () => {
         <div className={styles.skeletonTitle}></div>
       </div>
       <div className={styles.daySelector}>
-        {[1,2,3,4,5,6].map(i => <div key={i} className={styles.skeletonDayTab}></div>)}
+        {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className={styles.skeletonDayTab}></div>)}
       </div>
       <main className={styles.content}>
         <div className={styles.lessonList}>
-          {[1,2,3].map(i => (
+          {[1, 2, 3].map(i => (
             <GlassCard key={i} className={`${styles.lessonCard} ${styles.skeletonCard}`}>
               <div className={styles.skeletonTime}></div>
               <div className={styles.lessonInfo}>
@@ -337,21 +334,21 @@ export const ScheduleView: React.FC = () => {
 
   return (
     <>
-      <div 
+      <div
         className="app-container animate-fade-in"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div 
-          className={styles.pullToRefresh} 
-          style={{ 
-            transform: `translateY(${pullDistance}px)`, 
-            opacity: pullDistance / 60 
+        <div
+          className={styles.pullToRefresh}
+          style={{
+            transform: `translateY(${pullDistance}px)`,
+            opacity: pullDistance / 60
           }}
         >
           <div className={`${styles.ptrSpinner} ${refreshing ? styles.spinning : ''}`}>
-             <ArrowLeft size={20} style={{ transform: 'rotate(-90deg)' }}/>
+            <ArrowLeft size={20} style={{ transform: 'rotate(-90deg)' }} />
           </div>
         </div>
 
@@ -362,15 +359,15 @@ export const ScheduleView: React.FC = () => {
             <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
             <div className={styles.navActions}>
               <div className={styles.viewToggle}>
-                <button 
-                  onClick={() => setViewMode('day')} 
+                <button
+                  onClick={() => setViewMode('day')}
                   className={`${styles.toggleBtn} ${viewMode === 'day' ? styles.toggleActive : ''}`}
                   title="День"
                 >
                   <List size={20} />
                 </button>
-                <button 
-                  onClick={() => setViewMode('week')} 
+                <button
+                  onClick={() => setViewMode('week')}
                   className={`${styles.toggleBtn} ${viewMode === 'week' ? styles.toggleActive : ''}`}
                   title="Неделя"
                 >
@@ -378,8 +375,8 @@ export const ScheduleView: React.FC = () => {
                 </button>
               </div>
               {entityType === 'group' && (
-                <button 
-                  onClick={() => setShowSubgroupDrawer(true)} 
+                <button
+                  onClick={() => setShowSubgroupDrawer(true)}
                   className={`${styles.actionBtn} ${subgroup ? styles.filterActive : ''}`}
                   title="Выбор подгруппы"
                 >
@@ -416,8 +413,8 @@ export const ScheduleView: React.FC = () => {
             {filteredSchedule.map((day, idx) => {
               const date = parseDate(day.day);
               return (
-                <button 
-                  key={day.day} 
+                <button
+                  key={day.day}
                   className={`${styles.dayTab} ${activeDayIdx === idx ? styles.activeTab : ''}`}
                   onClick={() => setActiveDayIdx(idx)}
                 >
@@ -441,108 +438,89 @@ export const ScheduleView: React.FC = () => {
                 <div className={styles.empty}>Пар нет, можно отдыхать! 🥳</div>
               ) : (
                 (() => {
-                  const filteredLessons = currentDay?.lessons.filter(isLessonForSubgroup) || [];
-                  const maxTime = filteredLessons.length > 0 
-                    ? Math.max(...filteredLessons.map(l => l.time)) 
-                    : 0;
-
-                  if (maxTime === 0) return <div className={styles.empty}>Пар нет, можно отдыхать! 🥳</div>;
-
-                  const grouped = filteredLessons.reduce((acc, lesson) => {
+                  const grouped = currentDay?.lessons.reduce((acc, lesson) => {
                     if (!acc[lesson.time]) acc[lesson.time] = [];
                     acc[lesson.time].push(lesson);
                     return acc;
                   }, {} as Record<number, Lesson[]>);
 
-                  const slots = [];
-                  for (let time = 1; time <= maxTime; time++) {
-                    const rawLessons = grouped[time] || [];
-                    const active = isCurrentLesson(time, isToday);
-                    const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
+                  return Object.entries(grouped || {})
+                    .sort(([a], [b]) => Number(a) - Number(b))
+                    .map(([timeStr, rawLessons]) => {
+                      const time = Number(timeStr);
+                      const active = isCurrentLesson(time, isToday);
+                      const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
 
-                    if (rawLessons.length === 0) {
-                      slots.push(
-                        <GlassCard key={time} className={`${styles.lessonCard} ${styles.emptySlotCard}`}>
+                      // Merging logic: group by unique key (lesson + type + teacher + auditory)
+                      const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
+                      rawLessons.forEach(l => {
+                        // Filter by subgroup if applicable
+                        if (!isLessonForSubgroup(l)) return;
+
+                        const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
+                        if (mergedMap.has(key)) {
+                          const existing = mergedMap.get(key)!;
+                          if (l.group && existing.groups && !existing.groups.includes(l.group)) {
+                            existing.groups.push(l.group);
+                          } else if (l.group && !existing.groups) {
+                            existing.groups = [existing.group || '', l.group];
+                          }
+                        } else {
+                          mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] });
+                        }
+                      });
+
+                      const lessons = Array.from(mergedMap.values());
+                      if (lessons.length === 0) return null;
+                      const isMultiple = lessons.length > 1;
+
+                      return (
+                        <GlassCard
+                          key={time}
+                          className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`}
+                          glow={active}
+                          onClick={() => isMultiple && setSelectedGroup(lessons)}
+                        >
                           <div className={styles.lessonTime}>
                             <div className={styles.timeStart}>{times.start}</div>
                             <div className={styles.timeDivider}>–</div>
                             <div className={styles.timeEnd}>{times.end}</div>
                           </div>
                           <div className={styles.lessonInfo}>
-                            <h3 className={styles.discipline} style={{ opacity: 0.5 }}>Нет занятия</h3>
+                            {isMultiple ? (
+                              <>
+                                <h3 className={styles.discipline}>Несколько занятий ({lessons.length})</h3>
+                                <div className={styles.meta}>
+                                  {lessons.slice(0, 3).map((l, i) => (
+                                    <span key={i} className={styles.multiTitle}>
+                                      {l.lesson.length > 30 ? l.lesson.slice(0, 30) + '...' : l.lesson}
+                                    </span>
+                                  ))}
+                                  {lessons.length > 3 && <span className={styles.more}>и еще {lessons.length - 3}...</span>}
+                                  <div className={styles.clickToView}>Нажмите, чтобы посмотреть все</div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <h3 className={styles.discipline}>{lessons[0].lesson}</h3>
+                                <div className={styles.meta}>
+                                  <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
+                                  {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
+                                  {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
+                                  {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
+                                </div>
+                              </>
+                            )}
+                            {active && (
+                              <div className={styles.status}>
+                                <Clock size={12} /> Сейчас идет
+                              </div>
+                            )}
                           </div>
+                          {isMultiple && <div className={styles.stacks}></div>}
                         </GlassCard>
                       );
-                      continue;
-                    }
-
-                    // Merging logic: group by unique key (lesson + type + teacher + auditory)
-                    const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
-                    rawLessons.forEach(l => {
-                      const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
-                      if (mergedMap.has(key)) {
-                        const existing = mergedMap.get(key)!;
-                        if (l.group && existing.groups && !existing.groups.includes(l.group)) {
-                          existing.groups.push(l.group);
-                        } else if (l.group && !existing.groups) {
-                          existing.groups = [existing.group || '', l.group];
-                        }
-                      } else {
-                        mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] });
-                      }
                     });
-
-                    const lessons = Array.from(mergedMap.values());
-                    const isMultiple = lessons.length > 1;
-
-                    slots.push(
-                      <GlassCard 
-                        key={time} 
-                        className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} 
-                        glow={active}
-                        onClick={() => isMultiple && setSelectedGroup(lessons)}
-                      >
-                        <div className={styles.lessonTime}>
-                          <div className={styles.timeStart}>{times.start}</div>
-                          <div className={styles.timeDivider}>–</div>
-                          <div className={styles.timeEnd}>{times.end}</div>
-                        </div>
-                        <div className={styles.lessonInfo}>
-                          {isMultiple ? (
-                            <>
-                              <h3 className={styles.discipline}>Несколько занятий ({lessons.length})</h3>
-                              <div className={styles.meta}>
-                                {lessons.slice(0, 3).map((l, i) => (
-                                  <span key={i} className={styles.multiTitle}>
-                                    {l.lesson.length > 30 ? l.lesson.slice(0, 30) + '...' : l.lesson}
-                                  </span>
-                                ))}
-                                {lessons.length > 3 && <span className={styles.more}>и еще {lessons.length - 3}...</span>}
-                                <div className={styles.clickToView}>Нажмите, чтобы посмотреть все</div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <h3 className={styles.discipline}>{lessons[0].lesson}</h3>
-                              <div className={styles.meta}>
-                                <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
-                                {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
-                                {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
-                                {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
-                              </div>
-                            </>
-                          )}
-                          {active && (
-                            <div className={styles.status}>
-                              <Clock size={12} /> Сейчас идет
-                            </div>
-                          )}
-                        </div>
-                        {isMultiple && <div className={styles.stacks}></div>}
-                      </GlassCard>
-                    );
-                  }
-                  return slots;
                 })()
               )}
             </div>
@@ -553,7 +531,7 @@ export const ScheduleView: React.FC = () => {
             {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map(dayName => (
               <div key={dayName} className={styles.gridHeader}>{dayName}</div>
             ))}
-            
+
             {Object.entries(TIME_SLOTS).map(([slotIdx, times]) => (
               <React.Fragment key={slotIdx}>
                 <div className={styles.gridRowLabel}>
@@ -566,11 +544,11 @@ export const ScheduleView: React.FC = () => {
                   const dayData = filteredSchedule.find(d => parseDate(d.day).toDateString() === dayDate.toDateString());
                   const slotLessons = (dayData?.lessons.filter(l => l.time === Number(slotIdx)) || [])
                     .filter(isLessonForSubgroup);
-                  
+
                   return (
                     <div key={dayOffset} className={styles.gridCell}>
                       {slotLessons.length > 1 ? (
-                        <div 
+                        <div
                           className={styles.gridLesson}
                           onClick={() => setSelectedGroup(slotLessons)}
                           style={{ borderLeftColor: 'var(--accent-color)', background: 'rgba(170, 59, 255, 0.1)', cursor: 'pointer' }}
@@ -580,49 +558,41 @@ export const ScheduleView: React.FC = () => {
                           <div style={{ opacity: 0.8, fontSize: '9px', marginTop: '4px', textTransform: 'uppercase', fontStyle: 'italic' }}>Нажмите, чтобы открыть</div>
                         </div>
                       ) : slotLessons.map((l, i) => (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           className={styles.gridLesson}
                           onClick={() => setSelectedGroup([l])}
-                          style={{ 
-                            borderLeftColor: l.type_work.includes('Экзамен') ? '#f59e0b' : l.type_work.includes('Консультация') ? '#10b981' : l.type_work.includes('Зачет') ? '#ef4444' : 'var(--accent-color)', 
+                          style={{
+                            borderLeftColor: l.type_work.includes('Экзамен') ? '#f59e0b' : l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981',
                             background: l.type_work.includes('Экзамен') ? 'rgba(245, 158, 11, 0.1)' : undefined,
-                            cursor: 'pointer' 
+                            cursor: 'pointer'
                           }}
                         >
-                          <span 
-                            className={styles.gridLessonType}
-                            style={{ 
-                              color: l.type_work.includes('Прак') ? '#ef4444' : l.type_work.includes('Лаб') ? '#10b981' : 'var(--accent-color)',
-                              opacity: 1
-                            }}
-                          >
-                            {l.type_work}
-                          </span>
+                          <span className={styles.gridLessonType}>{l.type_work}</span>
                           {l.lesson}
                           <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
                         </div>
                       ))}
                     </div>
                   );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
-      {healthData && !healthData.upstream.healthy && (
-        <div className={styles.statusBar} onClick={() => navigate('/status')}>
-          <div className={styles.statusIndicator}>
-            <div className={`${styles.statusDot} ${styles.unhealthy}`}></div>
-            <span className={styles.statusText}>Источник недоступен</span>
+        {healthData && !healthData.upstream.healthy && (
+          <div className={styles.statusBar} onClick={() => navigate('/status')}>
+            <div className={styles.statusIndicator}>
+              <div className={`${styles.statusDot} ${styles.unhealthy}`}></div>
+              <span className={styles.statusText}>Источник недоступен</span>
+            </div>
+            <div className={styles.statusTime}>
+              Последнее: {formatRelativeTime(healthData.upstream.last_success || '')}
+            </div>
           </div>
-          <div className={styles.statusTime}>
-            Последнее: {formatRelativeTime(healthData.upstream.last_success || '')}
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
 
       {showSubgroupDrawer && (
         <div className={styles.modalOverlay} onClick={() => setShowSubgroupDrawer(false)}>
@@ -634,16 +604,16 @@ export const ScheduleView: React.FC = () => {
               <button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn}><X size={24} /></button>
             </div>
             <div className={styles.subgroupOptions}>
-              <button 
-                onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }} 
+              <button
+                onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }}
                 className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}
               >
                 Все занятия
               </button>
               {['1', '2'].map(num => (
-                <button 
+                <button
                   key={num}
-                  onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }} 
+                  onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }}
                   className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}
                 >
                   {num} подгруппа
@@ -655,36 +625,36 @@ export const ScheduleView: React.FC = () => {
       )}
 
       {selectedGroup && (
-      <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
-        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-          <div className={styles.modalHeader}>
-            <div className={styles.modalTimeTitle}>
-              <span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span>
-              <h3>Занятия</h3>
+        <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTimeTitle}>
+                <span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span>
+                <h3>Занятия</h3>
+              </div>
+              <button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button>
             </div>
-            <button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button>
-          </div>
-          <div className={styles.modalList}>
-            {selectedGroup.map((lesson, idx) => (
-              <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
-                <h3 className={styles.discipline}>{lesson.lesson}</h3>
-                <div className={styles.meta}>
-                  <span className={styles.type}>{lesson.type_work}</span>
-                  {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
-                  {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
-                  {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
-                  {(lesson as Lesson & { groups?: string[] }).groups && (lesson as Lesson & { groups?: string[] }).groups!.length > 0 ? (
-                    <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as Lesson & { groups?: string[] }).groups!.join(', ')}</span>
-                  ) : lesson.group && (
-                    <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>
-                  )}
-                </div>
-              </GlassCard>
-            ))}
+            <div className={styles.modalList}>
+              {selectedGroup.map((lesson, idx) => (
+                <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
+                  <h3 className={styles.discipline}>{lesson.lesson}</h3>
+                  <div className={styles.meta}>
+                    <span className={styles.type}>{lesson.type_work}</span>
+                    {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
+                    {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
+                    {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
+                    {(lesson as any).groups && (lesson as any).groups.length > 0 ? (
+                      <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as any).groups.join(', ')}</span>
+                    ) : lesson.group && (
+                      <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>
+                    )}
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    )}
-  </>
-);
+      )}
+    </>
+  );
 };
