@@ -26,7 +26,7 @@ func (s *Server) handleHealth(c *fiber.Ctx) error {
 
 	health := fiber.Map{
 		"status": "ok",
-		"uptime": time.Since(startTime).String(),
+		"uptime": time.Since(startTime).Truncate(time.Second).String(),
 		"upstream": s.Syncer.GetUpstreamStatus(),
 		"last_sync": fiber.Map{
 			"dictionaries": dictSync,
@@ -38,7 +38,7 @@ func (s *Server) handleHealth(c *fiber.Ctx) error {
 	return c.JSON(models.BFFResponse{
 		Success:  true,
 		Data:     health,
-		CachedAt: time.Now(),
+		CachedAt: startTime, // Stable timestamp
 		Source:   "upstream",
 	})
 }
@@ -61,7 +61,7 @@ func (s *Server) handleSyncStatus(c *fiber.Ctx) error {
 	return c.JSON(models.BFFResponse{
 		Success:  true,
 		Data:     status,
-		CachedAt: time.Now(),
+		CachedAt: startTime, // Stable timestamp
 		Source:   "cache",
 	})
 }
@@ -84,7 +84,7 @@ func (s *Server) handleGetIncidents(c *fiber.Ctx) error {
 	return c.JSON(models.BFFResponse{
 		Success:  true,
 		Data:     incidents,
-		CachedAt: time.Now(),
+		CachedAt: startTime, // Stable timestamp
 		Source:   "database",
 	})
 }

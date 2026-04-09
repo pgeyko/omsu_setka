@@ -13,6 +13,9 @@ RUN cd core && go mod download
 # Copy source code
 COPY core/ ./core/
 
+# Run tests
+RUN cd core && go test ./...
+
 # Build the application
 RUN cd core && CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ../omsu_mirror ./cmd/server
 

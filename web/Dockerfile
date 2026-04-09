@@ -3,19 +3,28 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+# Копируем конфиги npm из папки web
+COPY web/package.json web/package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
-COPY . .
+# Копируем .env из корня в корень папки сборки
+COPY .env .env
+
+# Копируем исходники фронтенда из папки web
+COPY web/ .
+
+# Запускаем тесты и сборку
+# Vite найдет .env в текущей директории (/app)
+RUN npm test
 RUN npm run build
 
 # Stage 2: Serve
 FROM nginx:stable-alpine
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Копируем конфиг nginx
+COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built assets from builder stage
+# Копируем собранные файлы
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80

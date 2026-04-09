@@ -32,7 +32,7 @@ export const Home: React.FC = () => {
   const { favorites, recent, addRecent } = useFavoritesStore();
   const { theme, toggleTheme } = useSettingsStore();
 
-  const githubUrl = (import.meta as any).env.VITE_GITHUB_URL || '#';
+  const githubUrl = 'https://github.com/pgeyko/omsu_setka';
 
   useEffect(() => {
     fetchHealth().then(setHealthData).catch(console.error);

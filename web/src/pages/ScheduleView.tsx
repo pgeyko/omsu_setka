@@ -125,11 +125,11 @@ export const ScheduleView: React.FC = () => {
   const entityID = parseInt(id || '0');
   const entityType = type || 'group';
   
-  const prefixes: Record<string, string> = {
+  const prefixes = React.useMemo<Record<string, string>>(() => ({
     'group': 'Группа',
     'tutor': 'Преподаватель',
     'auditory': 'Аудитория'
-  };
+  }), []);
   const prefix = prefixes[entityType] || '';
   const initialName = location.state?.name || (prefix ? `${prefix}: ID ${id}` : `ID ${id}`);
   const [entityName, setEntityName] = useState(initialName);
@@ -174,7 +174,7 @@ export const ScheduleView: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [entityType, entityID, location.state?.name]);
+  }, [entityType, entityID, location.state?.name, prefixes]);
 
   useEffect(() => {
     loadData();
@@ -245,7 +245,7 @@ export const ScheduleView: React.FC = () => {
     if (favorite) {
       removeFavorite(entityID, entityType);
     } else {
-      addFavorite({ id: entityID, type: entityType as any, name: entityName });
+      addFavorite({ id: entityID, type: entityType as 'group' | 'tutor' | 'auditory', name: entityName });
     }
   };
 
@@ -287,7 +287,7 @@ export const ScheduleView: React.FC = () => {
         await copyToClipboard(url);
       }
     } catch (err) {
-      if ((err as any).name !== 'AbortError') {
+      if (err instanceof Error && err.name !== 'AbortError') {
         await copyToClipboard(url);
       }
     }
@@ -673,8 +673,8 @@ export const ScheduleView: React.FC = () => {
                   {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
                   {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
                   {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
-                  {(lesson as any).groups && (lesson as any).groups.length > 0 ? (
-                    <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as any).groups.join(', ')}</span>
+                  {(lesson as Lesson & { groups?: string[] }).groups && (lesson as Lesson & { groups?: string[] }).groups!.length > 0 ? (
+                    <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as Lesson & { groups?: string[] }).groups!.join(', ')}</span>
                   ) : lesson.group && (
                     <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>
                   )}

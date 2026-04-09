@@ -86,11 +86,11 @@ func (idx *SearchIndex) insert(root *node, key string, res SearchResult) {
 }
 
 func (idx *SearchIndex) Search(query string, filterType string, limit int) []SearchResult {
-	if len(query) < 2 {
+	query = normalize(query)
+	if len([]rune(query)) < 2 {
 		return nil
 	}
 
-	query = normalize(query)
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 

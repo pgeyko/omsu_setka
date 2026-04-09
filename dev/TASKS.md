@@ -224,3 +224,12 @@
 - [ ] 15.2 Frontend: Маршрутизация `/auditories` в `App.tsx`
 - [ ] 15.3 Frontend: Интеграция с `fetchSchedule('auditory', id)` для отображения занятости кабинетов
 - [ ] 15.4 Frontend: Добавление карточки «Аудитории» в навигацию на главной странице
+
+---
+
+## Этап 16: Тестирование и QA (→ [TESTING_PLAN.md](./TESTING_PLAN.md))
+- [x] 16.1 Backend: Реализация Unit-тестов для парсера Upstream API
+- [x] 16.2 Backend: Тестирование поискового индекса Trie (нормализация ё/е, регистр)
+- [x] 16.3 Backend: Интеграционные тесты API (Rate Limiting, Security Headers)
+- [x] 16.4 Frontend: Тесты Zustand-хранилищ (Favorites, Settings)
+- [x] 16.5 QA: Нагрузочное тестирование (P99 < 5ms под нагрузкой)

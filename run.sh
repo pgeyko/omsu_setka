@@ -8,7 +8,13 @@ NC='\033[0m'
 
 echo -e "${BLUE}Building omsu_mirror Project...${NC}"
 
-# 1. Build Frontend
+# 1. Run Tests
+echo -e "${BLUE}Running Tests...${NC}"
+cd core && GOTOOLCHAIN=local go test ./...
+cd ../web && npm test
+cd ..
+
+# 2. Build Frontend
 echo -e "${BLUE}Building Frontend...${NC}"
 cd web
 npm install --legacy-peer-deps
