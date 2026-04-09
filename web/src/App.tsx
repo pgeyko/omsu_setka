@@ -4,6 +4,7 @@ import { Home } from './pages/Home';
 import { ScheduleView } from './pages/ScheduleView';
 import { StatusPage } from './pages/StatusPage';
 import { TutorsPage } from './pages/TutorsPage';
+import { Footer } from './components/ui/Footer';
 import { useSettingsStore } from './store/useSettings';
 import './styles/global.css';
 
@@ -43,6 +44,7 @@ function App() {
         <Route path="/tutors" element={<TutorsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }
