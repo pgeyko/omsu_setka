@@ -97,6 +97,9 @@ export const ScheduleView: React.FC = () => {
     if (type.includes('Экзамен')) return styles.examHighlight;
     if (type.includes('Консультация')) return styles.consultHighlight;
     if (type.includes('Зачет')) return styles.testHighlight;
+    if (type.includes('Прак')) return styles.practiceHighlight;
+    if (type.includes('Лаб')) return styles.labHighlight;
+    if (type.includes('Лек')) return styles.lectureHighlight;
     return '';
   };
   
@@ -563,12 +566,20 @@ export const ScheduleView: React.FC = () => {
                           className={styles.gridLesson}
                           onClick={() => setSelectedGroup([l])}
                           style={{ 
-                            borderLeftColor: l.type_work.includes('Экзамен') ? '#f59e0b' : l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981', 
+                            borderLeftColor: l.type_work.includes('Экзамен') ? '#f59e0b' : l.type_work.includes('Консультация') ? '#10b981' : l.type_work.includes('Зачет') ? '#ef4444' : 'var(--accent-color)', 
                             background: l.type_work.includes('Экзамен') ? 'rgba(245, 158, 11, 0.1)' : undefined,
                             cursor: 'pointer' 
                           }}
                         >
-                          <span className={styles.gridLessonType}>{l.type_work}</span>
+                          <span 
+                            className={styles.gridLessonType}
+                            style={{ 
+                              color: l.type_work.includes('Прак') ? '#ef4444' : l.type_work.includes('Лаб') ? '#10b981' : 'var(--accent-color)',
+                              opacity: 1
+                            }}
+                          >
+                            {l.type_work}
+                          </span>
                           {l.lesson}
                           <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
                         </div>

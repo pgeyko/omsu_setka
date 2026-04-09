@@ -248,6 +248,18 @@
   color: #ef4444 !important;
 }
 
+.lectureHighlight .type {
+  color: var(--accent-color) !important;
+}
+
+.practiceHighlight .type {
+  color: #ef4444 !important;
+}
+
+.labHighlight .type {
+  color: #10b981 !important;
+}
+
 .lessonTime {
   display: flex;
   flex-direction: column;
