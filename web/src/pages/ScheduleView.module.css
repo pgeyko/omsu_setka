@@ -221,6 +221,11 @@
   border-color: var(--accent-color);
 }
 
+.emptySlotCard {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
 .examHighlight {
   border-color: #f59e0b !important;
   background: rgba(245, 158, 11, 0.08) !important;

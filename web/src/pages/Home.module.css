@@ -1,6 +1,40 @@
 .header {
-  margin: calc(var(--spacing-xl) * 1.5) 0 var(--spacing-xl);
+  margin: var(--spacing-lg) 0 var(--spacing-xl);
   text-align: left;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.actionBtn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  border-color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.actionBtn:active {
+  transform: scale(0.9);
 }
 
 .title {

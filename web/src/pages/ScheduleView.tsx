@@ -441,89 +441,108 @@ export const ScheduleView: React.FC = () => {
                 <div className={styles.empty}>Пар нет, можно отдыхать! 🥳</div>
               ) : (
                 (() => {
-                  const grouped = currentDay?.lessons.reduce((acc, lesson) => {
+                  const filteredLessons = currentDay?.lessons.filter(isLessonForSubgroup) || [];
+                  const maxTime = filteredLessons.length > 0 
+                    ? Math.max(...filteredLessons.map(l => l.time)) 
+                    : 0;
+
+                  if (maxTime === 0) return <div className={styles.empty}>Пар нет, можно отдыхать! 🥳</div>;
+
+                  const grouped = filteredLessons.reduce((acc, lesson) => {
                     if (!acc[lesson.time]) acc[lesson.time] = [];
                     acc[lesson.time].push(lesson);
                     return acc;
                   }, {} as Record<number, Lesson[]>);
 
-                  return Object.entries(grouped || {})
-                    .sort(([a], [b]) => Number(a) - Number(b))
-                    .map(([timeStr, rawLessons]) => {
-                      const time = Number(timeStr);
-                      const active = isCurrentLesson(time, isToday);
-                      const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
-                      
-                      // Merging logic: group by unique key (lesson + type + teacher + auditory)
-                      const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
-                      rawLessons.forEach(l => {
-                        // Filter by subgroup if applicable
-                        if (!isLessonForSubgroup(l)) return;
+                  const slots = [];
+                  for (let time = 1; time <= maxTime; time++) {
+                    const rawLessons = grouped[time] || [];
+                    const active = isCurrentLesson(time, isToday);
+                    const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
 
-                        const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
-                        if (mergedMap.has(key)) {
-                          const existing = mergedMap.get(key)!;
-                          if (l.group && existing.groups && !existing.groups.includes(l.group)) {
-                            existing.groups.push(l.group);
-                          } else if (l.group && !existing.groups) {
-                            existing.groups = [existing.group || '', l.group];
-                          }
-                        } else {
-                          mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] });
-                        }
-                      });
-
-                      const lessons = Array.from(mergedMap.values());
-                      if (lessons.length === 0) return null;
-                      const isMultiple = lessons.length > 1;
-
-                      return (
-                        <GlassCard 
-                          key={time} 
-                          className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} 
-                          glow={active}
-                          onClick={() => isMultiple && setSelectedGroup(lessons)}
-                        >
+                    if (rawLessons.length === 0) {
+                      slots.push(
+                        <GlassCard key={time} className={`${styles.lessonCard} ${styles.emptySlotCard}`}>
                           <div className={styles.lessonTime}>
                             <div className={styles.timeStart}>{times.start}</div>
                             <div className={styles.timeDivider}>–</div>
                             <div className={styles.timeEnd}>{times.end}</div>
                           </div>
                           <div className={styles.lessonInfo}>
-                            {isMultiple ? (
-                              <>
-                                <h3 className={styles.discipline}>Несколько занятий ({lessons.length})</h3>
-                                <div className={styles.meta}>
-                                  {lessons.slice(0, 3).map((l, i) => (
-                                    <span key={i} className={styles.multiTitle}>
-                                      {l.lesson.length > 30 ? l.lesson.slice(0, 30) + '...' : l.lesson}
-                                    </span>
-                                  ))}
-                                  {lessons.length > 3 && <span className={styles.more}>и еще {lessons.length - 3}...</span>}
-                                  <div className={styles.clickToView}>Нажмите, чтобы посмотреть все</div>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <h3 className={styles.discipline}>{lessons[0].lesson}</h3>
-                                <div className={styles.meta}>
-                                  <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
-                                  {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
-                                  {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
-                                  {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
-                                </div>
-                              </>
-                            )}
-                            {active && (
-                              <div className={styles.status}>
-                                <Clock size={12} /> Сейчас идет
-                              </div>
-                            )}
+                            <h3 className={styles.discipline} style={{ opacity: 0.5 }}>Нет занятия</h3>
                           </div>
-                          {isMultiple && <div className={styles.stacks}></div>}
                         </GlassCard>
                       );
+                      continue;
+                    }
+
+                    // Merging logic: group by unique key (lesson + type + teacher + auditory)
+                    const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
+                    rawLessons.forEach(l => {
+                      const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
+                      if (mergedMap.has(key)) {
+                        const existing = mergedMap.get(key)!;
+                        if (l.group && existing.groups && !existing.groups.includes(l.group)) {
+                          existing.groups.push(l.group);
+                        } else if (l.group && !existing.groups) {
+                          existing.groups = [existing.group || '', l.group];
+                        }
+                      } else {
+                        mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] });
+                      }
                     });
+
+                    const lessons = Array.from(mergedMap.values());
+                    const isMultiple = lessons.length > 1;
+
+                    slots.push(
+                      <GlassCard 
+                        key={time} 
+                        className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} 
+                        glow={active}
+                        onClick={() => isMultiple && setSelectedGroup(lessons)}
+                      >
+                        <div className={styles.lessonTime}>
+                          <div className={styles.timeStart}>{times.start}</div>
+                          <div className={styles.timeDivider}>–</div>
+                          <div className={styles.timeEnd}>{times.end}</div>
+                        </div>
+                        <div className={styles.lessonInfo}>
+                          {isMultiple ? (
+                            <>
+                              <h3 className={styles.discipline}>Несколько занятий ({lessons.length})</h3>
+                              <div className={styles.meta}>
+                                {lessons.slice(0, 3).map((l, i) => (
+                                  <span key={i} className={styles.multiTitle}>
+                                    {l.lesson.length > 30 ? l.lesson.slice(0, 30) + '...' : l.lesson}
+                                  </span>
+                                ))}
+                                {lessons.length > 3 && <span className={styles.more}>и еще {lessons.length - 3}...</span>}
+                                <div className={styles.clickToView}>Нажмите, чтобы посмотреть все</div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h3 className={styles.discipline}>{lessons[0].lesson}</h3>
+                              <div className={styles.meta}>
+                                <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
+                                {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
+                                {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
+                                {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
+                              </div>
+                            </>
+                          )}
+                          {active && (
+                            <div className={styles.status}>
+                              <Clock size={12} /> Сейчас идет
+                            </div>
+                          )}
+                        </div>
+                        {isMultiple && <div className={styles.stacks}></div>}
+                      </GlassCard>
+                    );
+                  }
+                  return slots;
                 })()
               )}
             </div>

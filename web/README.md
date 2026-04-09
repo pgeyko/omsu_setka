@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# omsu_setka Web (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Фронтенд проекта `omsu_setka` — это современное веб-приложение на React, предоставляющее удобный интерфейс для просмотра расписания ОмГУ с поддержкой PWA.
 
-Currently, two official plugins are available:
+## Особенности фронтенда
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Дизайн Glassmorphism**: Современный интерфейс с использованием эффектов размытия, прозрачности и мягкого свечения.
+- **Поддержка PWA**: Возможность установки на телефон как нативное приложение с полноценной работой в офлайн-режиме (кэширование данных).
+- **Мгновенный поиск**: Автодополнение с использованием префиксного дерева (Trie) на бэкенде.
+- **Интерактивное расписание**: Переключение дней и недель, поддержка подгрупп и умные заглушки для свободных периодов (окон).
+- **Смена тем**: Поддержка светлой и темной тем оформления.
 
-## React Compiler
+## Технологический стек
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Язык**: TypeScript
+- **Фреймворк**: React 19
+- **Сборщик**: Vite
+- **Управление состоянием**: Zustand (хранение избранного и настроек)
+- **Запросы данных**: React Query (интеллектуальное кэширование)
+- **Анимации**: Framer Motion
+- **Иконки**: Lucide React
 
-## Expanding the ESLint configuration
+## Структура проекта
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- `src/api/`: Типизированный клиент для взаимодействия с бэкендом.
+- `src/components/`: Многоразовые UI-компоненты (карточки, инпуты, индикаторы).
+- `src/pages/`: Основные страницы приложения (Главная, Расписание, Преподаватели, Статус).
+- `src/store/`: Локальные хранилища состояния (избранное, настройки темы).
+- `src/styles/`: Глобальные стили и переменные CSS для тем оформления.
+- `src/utils/`: Вспомогательные функции для форматирования дат и времени.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Запуск
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Установите зависимости:
+   ```bash
+   npm install
+   ```
+2. Запустите в режиме разработки:
+   ```bash
+   npm run dev
+   ```
+3. Соберите для продакшена:
+   ```bash
+   npm run build
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Подробная информация о разработке доступна в `docs/web/DEVELOPMENT.md`.

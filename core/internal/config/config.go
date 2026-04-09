@@ -18,7 +18,7 @@ type Config struct {
 	UpstreamBaseURL   string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
 	UpstreamTimeout   time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
 	UpstreamRateLimit int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
-	UpstreamUserAgent string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu-mirror/1.0"`
+	UpstreamUserAgent string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
 
 	// Synchronization
 	SyncDictInterval     time.Duration `env:"SYNC_DICT_INTERVAL" envDefault:"12h"`

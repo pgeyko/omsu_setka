@@ -4,6 +4,7 @@ import { Home } from './pages/Home';
 import { ScheduleView } from './pages/ScheduleView';
 import { StatusPage } from './pages/StatusPage';
 import { TutorsPage } from './pages/TutorsPage';
+import { useSettingsStore } from './store/useSettings';
 import './styles/global.css';
 
 const ScrollToTop = () => {
@@ -15,6 +16,12 @@ const ScrollToTop = () => {
 };
 
 function App() {
+  const { theme } = useSettingsStore();
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   useEffect(() => {
     const setAppHeight = () => {
       const vh = window.innerHeight * 0.01;

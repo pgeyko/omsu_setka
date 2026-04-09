@@ -304,9 +304,9 @@ omsu_mirror/
 │       ├── handlers_search.go   # Хэндлер поиска
 │       ├── handlers_meta.go     # Health, sync status
 │       └── middleware.go        # CORS, логирование, rate-limit
-├── data.md                      # Документация API upstream
+├── API_DATA.md                  # Документация API upstream
 ├── SPEC.md                      # Это ТЗ
-├── TASK.md                      # Чеклист задач
+├── TASKS.md                     # Чеклист задач
 ├── go.mod
 ├── go.sum
 ├── Dockerfile
@@ -329,7 +329,7 @@ SERVER_PREFORK=false          # true для multi-core
 UPSTREAM_BASE_URL=https://eservice.omsu.ru/schedule/backend
 UPSTREAM_TIMEOUT=10s
 UPSTREAM_RATE_LIMIT=2         # запросов/сек к upstream
-UPSTREAM_USER_AGENT=omsu-mirror/1.0
+UPSTREAM_USER_AGENT=omsu_setka/1.0
 
 # Синхронизация
 SYNC_DICT_INTERVAL=12h        # Справочники

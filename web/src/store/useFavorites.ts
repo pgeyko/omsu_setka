@@ -32,7 +32,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       setSubgroup: (subgroup) => set({ subgroup }),
     }),
     {
-      name: 'omsu-mirror-favorites',
+      name: 'omsu-setka-favorites',
     }
   )
 );

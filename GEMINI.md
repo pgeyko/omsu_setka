@@ -1,6 +1,6 @@
-# Project Overview: omsu-mirror
+# Project Overview: omsu_setka
 
-`omsu-mirror` is a high-performance **BFF (Backend-for-Frontend)** designed to mirror and cache the Omsu University schedule. It prioritizes minimal resource usage (RAM < 50MB, CPU ~0%), sub-millisecond response times for cached data, and background synchronization to reduce load on the original server.
+`omsu_setka` is a high-performance **BFF (Backend-for-Frontend)** designed to mirror and cache the Omsu University schedule. It prioritizes minimal resource usage (RAM < 50MB, CPU ~0%), sub-millisecond response times for cached data, and background synchronization to reduce load on the original server.
 
 ## Architecture
 
@@ -44,8 +44,14 @@ This script builds the frontend, compiles the Go backend, and starts the server.
     ```
 
 ### Testing
--   Currently, the project relies on manual testing as described in `TASK.md` (Stage 8).
--   There are no automated tests (`*_test.go` or `.test.tsx`) in the current codebase.
+-   Currently, the project relies on manual testing.
+-   Automated tests are planned but not yet implemented.
+
+## UI & UX Features (Recent Updates)
+-   **Desktop Optimization:** Content width is limited to 1100px for better readability.
+-   **Activity Type Coloring:** Session types have distinct colors for their labels (Indigo for Lectures, Red for Practice, Green for Labs).
+-   **Search Consistency:** Both Home and Tutors pages feature a centered search bar (600px max-width) and share a unified "Recent" search history limited to 5 items.
+-   **Enhanced Schedule View:** Lifted day buttons with overflow fixes, vertical time indicators, and support for subgroup filtering.
 
 ## Development Conventions
 
@@ -65,8 +71,10 @@ This script builds the frontend, compiles the Go backend, and starts the server.
 
 ## Key Files
 -   `SPEC.md`: Detailed technical specification and architecture.
--   `TASK.md`: Current implementation status and checklist.
+-   `TASKS.md`: Current implementation status and checklist.
+-   `BACKEND_PLAN.md`: Backend development plan and roadmap.
+-   `FRONTEND_PLAN.md`: Frontend development plan and roadmap.
+-   `API_DATA.md`: Documentation for the upstream API.
 -   `core/`: Backend source code.
 -   `web/`: Frontend source code.
--   `data.md`: Documentation for the upstream API.
 -   `docker-compose.yml`: Orchestration for backend and frontend.

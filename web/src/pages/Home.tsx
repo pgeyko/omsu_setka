@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, School, User, MapPin } from 'lucide-react';
+import { Search, Star, School, User, MapPin, Moon, Sun,GitFork } from 'lucide-react';
 import { GlassInput } from '../components/ui/GlassInput';
 import { fetchSearch, fetchHealth } from '../api/client';
 import type { SearchResult, GroupedSearchResult, HealthData } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
+import { useSettingsStore } from '../store/useSettings';
 import styles from './Home.module.css';
 
 const formatRelativeTime = (dateString: string) => {
@@ -29,6 +30,9 @@ export const Home: React.FC = () => {
   const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
   const { favorites, recent, addRecent } = useFavoritesStore();
+  const { theme, toggleTheme } = useSettingsStore();
+
+  const githubUrl = (import.meta as any).env.VITE_GITHUB_URL || '#';
 
   useEffect(() => {
     fetchHealth().then(setHealthData).catch(console.error);
@@ -99,7 +103,17 @@ export const Home: React.FC = () => {
   return (
     <div className="app-container animate-fade-in">
       <header className={styles.header}>
-        <h1 className={styles.title}>setka</h1>
+        <div className={styles.headerTop}>
+          <h1 className={styles.title}>setka</h1>
+          <div className={styles.headerActions}>
+            <a href={githubUrl} target="_blank" rel="noopener noreferrer" className={styles.actionBtn} title="Code on GitHub">
+              <GitFork size={20} />
+            </a>
+            <button onClick={toggleTheme} className={styles.actionBtn} title="Переключить тему">
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
+        </div>
       </header>
 
       <section className={styles.searchSection}>
@@ -155,7 +169,7 @@ export const Home: React.FC = () => {
             <div className={styles.banner}>
               <div className={styles.bannerTitle}>Быстрый доступ к расписанию</div>
               <div className={styles.bannerText}>
-                Добавьте группы, преподавателей или аудитории в избранное (нажав на ⭐), чтобы они всегда были под рукой на этой странице.
+                Добавьте группы в избранное (нажав на ⭐), чтобы они всегда были под рукой на этой странице.
               </div>
             </div>
           ) : (
