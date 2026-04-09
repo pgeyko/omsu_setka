@@ -45,7 +45,9 @@ func NewServer(
 		CaseSensitive: true,
 		BodyLimit:     1024,         // 1 KB — API doesn't accept large bodies
 		ReadBufferSize: 4096,
-		ProxyHeader:    "X-Real-IP",  // Correctly detect client IP behind Nginx
+		ProxyHeader:    fiber.HeaderXForwardedFor, // Correctly detect client IP behind Nginx
+		// 19.3 Enable trusted proxies (Docker bridge subnet by default)
+		TrustedProxies: []string{"172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"},
 	})
 
 	// Global Middleware
@@ -98,10 +100,8 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/tutor/:id", s.handleGetSchedule("tutor"))
 	v1.Get("/schedule/auditory/:id", s.handleGetSchedule("auditory"))
 
-	// Search — stricter rate limit
-	search := v1.Group("/search")
-	search.Use(RateLimitMiddleware(s.Cfg.RateLimitSearch, s.Cfg.RateLimitWindow))
-	search.Get("/", s.handleSearch)
+	// Search — use stricter rate limit directly
+	v1.Get("/search", RateLimitMiddleware(s.Cfg.RateLimitSearch, s.Cfg.RateLimitWindow), s.handleSearch)
 
 	// Meta
 	v1.Get("/health", s.handleHealth)

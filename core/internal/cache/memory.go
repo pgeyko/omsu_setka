@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const MaxCacheItems = 5000 // 20.3 Upper bound for MemoryCache items
+
 type cacheItem struct {
 	data      []byte
 	expiresAt time.Time
@@ -24,11 +26,18 @@ func NewMemoryCache() *MemoryCache {
 }
 
 func (c *MemoryCache) Set(key string, data []byte) {
-	// 18.3 Simple TTL for L1 (e.g., 5 minutes) to ensure freshness
+	// 20.3 Prevent cache growth beyond MaxCacheItems
+	if atomic.LoadInt64(&c.itemCount) >= MaxCacheItems {
+		// Simple eviction: clear everything if limit reached (could be improved to LRU)
+		c.Clear()
+	}
+
 	expiresAt := time.Now().Add(5 * time.Minute)
 	item := cacheItem{data: data, expiresAt: expiresAt}
 	
-	if _, loaded := c.data.LoadOrStore(key, item); !loaded {
+	// 20.6 Fix race in itemCount by checking if item was actually stored
+	_, loaded := c.data.LoadOrStore(key, item)
+	if !loaded {
 		atomic.AddInt64(&c.itemCount, 1)
 	} else {
 		c.data.Store(key, item)

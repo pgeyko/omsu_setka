@@ -4,6 +4,7 @@ import { Home } from './pages/Home';
 import { ScheduleView } from './pages/ScheduleView';
 import { StatusPage } from './pages/StatusPage';
 import { TutorsPage } from './pages/TutorsPage';
+import { Footer } from './components/ui/Footer';
 import { useSettingsStore } from './store/useSettings';
 import './styles/global.css';
 
@@ -36,13 +37,16 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/schedule/:type/:id" element={<ScheduleView />} />
-        <Route path="/status" element={<StatusPage />} />
-        <Route path="/tutors" element={<TutorsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/schedule/:type/:id" element={<ScheduleView />} />
+          <Route path="/status" element={<StatusPage />} />
+          <Route path="/tutors" element={<TutorsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Footer />
+      </div>
     </BrowserRouter>
   );
 }

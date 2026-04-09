@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 // @Summary Get all groups
@@ -68,7 +69,8 @@ func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (inter
 	// 2. Fetch from DB
 	data, err := fetcher()
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		log.Error().Err(err).Str("collection", key).Msg("Database fetch failed")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
 	// 3. Wrap and Cache
@@ -81,6 +83,7 @@ func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (inter
 	
 	jsonData, err := json.Marshal(resp)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to marshal response")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to marshal response"})
 	}
 	s.MemoryCache.Set(key, jsonData)
@@ -105,7 +108,8 @@ func (s *Server) handleGetGroupByID(c *fiber.Ctx) error {
 
 	group, err := s.DictRepo.GetGroupByID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		log.Error().Err(err).Int("id", id).Msg("Failed to fetch group by ID")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 	if group == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "group not found"})
@@ -129,7 +133,8 @@ func (s *Server) handleGetAuditoryByID(c *fiber.Ctx) error {
 
 	aud, err := s.DictRepo.GetAuditoryByID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		log.Error().Err(err).Int("id", id).Msg("Failed to fetch auditory by ID")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 	if aud == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "auditory not found"})
@@ -153,7 +158,8 @@ func (s *Server) handleGetTutorByID(c *fiber.Ctx) error {
 
 	tutor, err := s.DictRepo.GetTutorByID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		log.Error().Err(err).Int("id", id).Msg("Failed to fetch tutor by ID")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 	if tutor == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "tutor not found"})

@@ -248,11 +248,24 @@
 
 ---
 
-## Этап 18: Исправление багов и оптимизация (Audit)
-- [x] 18.1 Backend: Добавить валидацию и проверку границ для ID в `handlers_dict.go`
-- [x] 18.2 Backend: Ограничить максимальное значение `offset` в эндпоинте `/incidents`
-- [x] 18.3 Backend: Реализовать TTL-expiration для L1 (MemoryCache) или механизм очистки
-- [x] 18.4 Backend: Исправить асинхронный инкремент hit_count (использовать контекст или очередь)
-- [x] 18.5 Backend: Обработка ошибок `json.Marshal` в хэндлерах (не игнорировать `_`)
-- [x] 18.6 Backend: Перенести `loadtest.go` в `core/cmd/loadtest/` или `core/tools/`
-- [x] 18.7 Backend: Синхронизировать `BodyLimit` в Fiber с `client_max_body_size` в Nginx
+---
+
+## Этап 19: Продвинутая безопасность и Инфраструктура (Audit v2)
+- [x] 19.1 Backend: Валидация `ADMIN_KEY` при старте (запрет пустой строки в production)
+- [x] 19.2 Backend: Скрыть детали ошибок SQLite в `handlers_dict.go` (Information Disclosure)
+- [x] 19.3 Backend: Настроить `TrustedProxies` в Fiber для защиты от подмены IP
+- [x] 19.4 Docker: Запуск бэкенда от не-root пользователя (безопасность контейнера)
+- [x] 19.5 Docker: Зафиксировать версию `alpine:3.19` вместо `latest`
+- [x] 19.6 Nginx: Отключить `server_tokens` (скрытие версии сервера)
+- [x] 19.7 Frontend: Оптимизация PWA-кэша (7 дней, `StaleWhileRevalidate` для API)
+
+---
+
+## Этап 20: Рефакторинг и исправление логики (Audit v2)
+- [x] 20.1 Backend: Вынести сетевые запросы из-под мьютекса в `SyncDictionaries`
+- [x] 20.2 Backend: Устранить двойной rate-limit на эндпоинте `/search`
+- [x] 20.3 Backend: Ограничить размер `MemoryCache` (предотвращение утечки памяти)
+- [x] 20.4 Backend: Оптимизировать инкремент хитов (использовать worker pool или батчинг)
+- [x] 20.5 Backend: Убрать холостой тикер `auditTicker` или реализовать его
+- [x] 20.6 Backend: Исправить race condition при инкременте `itemCount` в `MemoryCache`
+- [x] 20.7 Backend: Консолидировать валидацию `limit/offset` в хэндлерах

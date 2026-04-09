@@ -129,12 +129,10 @@ func (s *Syncer) Run(ctx context.Context) {
 
 	dictTicker := time.NewTicker(s.cfg.SyncDictInterval)
 	schedTicker := time.NewTicker(s.cfg.SyncScheduleInterval)
-	auditTicker := time.NewTicker(s.cfg.SyncAuditInterval)
 	cleanTicker := time.NewTicker(1 * time.Hour) // Cleanup old cache and incidents periodically
 
 	defer dictTicker.Stop()
 	defer schedTicker.Stop()
-	defer auditTicker.Stop()
 	defer cleanTicker.Stop()
 
 	for {
@@ -151,12 +149,6 @@ func (s *Syncer) Run(ctx context.Context) {
 			log.Info().Msg("Starting periodic active schedules synchronization...")
 			if err := s.SyncActiveSchedules(ctx); err != nil {
 				log.Error().Err(err).Msg("Periodic active schedules sync failed")
-			}
-		case <-auditTicker.C:
-			log.Info().Msg("Starting periodic auditory schedule synchronization...")
-			// Here we should sync schedules for auditories, not the dictionary itself
-			if err := s.SyncAuditorySchedules(ctx); err != nil {
-				log.Error().Err(err).Msg("Periodic auditory schedules sync failed")
 			}
 		case <-cleanTicker.C:
 			log.Info().Msg("Running periodic cleanup tasks...")

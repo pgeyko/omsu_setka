@@ -65,7 +65,7 @@ input {
   min-height: 100vh;
   min-height: calc(var(--vh, 1vh) * 100);
   padding: var(--spacing-md);
-  padding-bottom: 90px;
+  padding-bottom: var(--spacing-xl);
   position: relative;
 }
 

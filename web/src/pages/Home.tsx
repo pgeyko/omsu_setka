@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, School, User, MapPin, Moon, Sun,GitFork } from 'lucide-react';
+import { Search, Star, School, User, MapPin, Moon, Sun } from 'lucide-react';
 import { GlassInput } from '../components/ui/GlassInput';
 import { fetchSearch, fetchHealth } from '../api/client';
 import type { SearchResult, GroupedSearchResult, HealthData } from '../api/client';
@@ -9,6 +9,7 @@ import { useSettingsStore } from '../store/useSettings';
 import styles from './Home.module.css';
 
 const formatRelativeTime = (dateString: string) => {
+  if (!dateString) return 'неизвестно';
   const date = new Date(dateString);
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
@@ -18,7 +19,7 @@ const formatRelativeTime = (dateString: string) => {
   
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours} ч назад`;
-  
+
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 };
 
@@ -31,8 +32,6 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { favorites, recent, addRecent } = useFavoritesStore();
   const { theme, toggleTheme } = useSettingsStore();
-
-  const githubUrl = 'https://github.com/pgeyko/omsu_setka';
 
   useEffect(() => {
     fetchHealth().then(setHealthData).catch(console.error);
@@ -48,48 +47,37 @@ export const Home: React.FC = () => {
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setLoading(true);
+    setLoading(true);
+    const debounce = setTimeout(async () => {
       try {
         const data = await fetchSearch(query);
         setResults(data);
       } catch (err) {
-        console.error(err);
+        console.error('Search error:', err);
       } finally {
         setLoading(false);
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(debounce);
   }, [query]);
 
-  const handleSelect = (item: SearchResult) => {
-    const prefixes: Record<string, string> = {
-      'group': 'Группа',
-      'tutor': 'Преподаватель',
-      'auditory': 'Аудитория'
-    };
-    const prefix = prefixes[item.type] || '';
-    // Очищаем имя от существующих префиксов перед добавлением нового
-    const cleanName = item.name.replace(/^(Группа|Преподаватель|Аудитория):\s*/i, '');
-    const descriptiveName = prefix ? `${prefix}: ${cleanName}` : cleanName;
-    
-    addRecent({ ...item, name: descriptiveName });
-    navigate(`/schedule/${item.type}/${item.id}`, { state: { name: descriptiveName } });
+  const handleResultClick = (res: SearchResult) => {
+    addRecent(res);
+    navigate(`/schedule/${res.type}/${res.id}`);
   };
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'group': return <School size={16} />;
-      case 'tutor': return <User size={16} />;
-      case 'auditory': return <MapPin size={16} />;
-      default: return <Search size={16} />;
-    }
-  };
-
-  const renderResultItem = (res: SearchResult) => (
-    <div key={`${res.type}-${res.id}`} className={styles.resultItem} onClick={() => handleSelect(res)}>
-      <span className={styles.resultIcon}>{getIcon(res.type)}</span>
+  const renderResult = (res: SearchResult) => (
+    <div 
+      key={`${res.type}-${res.id}`} 
+      className={styles.resultItem}
+      onClick={() => handleResultClick(res)}
+    >
+      <div className={`${styles.resultIcon} ${styles[res.type]}`}>
+        {res.type === 'group' && <School size={18} />}
+        {res.type === 'tutor' && <User size={18} />}
+        {res.type === 'auditory' && <MapPin size={18} />}
+      </div>
       <div className={styles.resultInfo}>
         <span className={styles.resultLabel}>{res.name}</span>
         {res.building && <span className={styles.resultSub}>{res.building}</span>}
@@ -106,9 +94,6 @@ export const Home: React.FC = () => {
         <div className={styles.headerTop}>
           <h1 className={styles.title}>setka</h1>
           <div className={styles.headerActions}>
-            <a href={githubUrl} target="_blank" rel="noopener noreferrer" className={styles.actionBtn} title="Code on GitHub">
-              <GitFork size={20} />
-            </a>
             <button onClick={toggleTheme} className={styles.actionBtn} title="Переключить тему">
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -117,87 +102,79 @@ export const Home: React.FC = () => {
       </header>
 
       <section className={styles.searchSection}>
-        <GlassInput 
+        <GlassInput
           icon={<Search size={20} />}
           placeholder="Группа, преподаватель или ауд..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+          loading={loading}
         />
-        
-        {loading && <div className={styles.loader}>Searching...</div>}
-        
-        {(hasResults || showRecent) && (
-          <div className={styles.resultsDropdown}>
-            {showRecent ? (
-              <div className={styles.dropdownSection}>
-                <div className={styles.dropdownHeader}>Недавнее</div>
-                {recent.map(renderResultItem)}
-              </div>
-            ) : Array.isArray(results) ? (
-              results.map(renderResultItem)
+
+        {showRecent && (
+          <div className={`${styles.resultsContainer} animate-slide-up`}>
+            <h3 className={styles.sectionTitle}>Недавние</h3>
+            {recent.map(renderResult)}
+          </div>
+        )}
+
+        {query.length >= 2 && hasResults && (
+          <div className={`${styles.resultsContainer} animate-slide-up`}>
+            {Array.isArray(results) ? (
+              results.map(renderResult)
             ) : (
               <>
                 {results.groups.length > 0 && (
-                  <div className={styles.dropdownSection}>
-                    <div className={styles.dropdownHeader}>Группы</div>
-                    {results.groups.map(renderResultItem)}
-                  </div>
+                  <>
+                    <h3 className={styles.sectionTitle}>Группы</h3>
+                    {results.groups.map(renderResult)}
+                  </>
                 )}
                 {results.tutors.length > 0 && (
-                  <div className={styles.dropdownSection}>
-                    <div className={styles.dropdownHeader}>Преподаватели</div>
-                    {results.tutors.map(renderResultItem)}
-                  </div>
+                  <>
+                    <h3 className={styles.sectionTitle}>Преподаватели</h3>
+                    {results.tutors.map(renderResult)}
+                  </>
                 )}
                 {results.auditories.length > 0 && (
-                  <div className={styles.dropdownSection}>
-                    <div className={styles.dropdownHeader}>Аудитории</div>
-                    {results.auditories.map(renderResultItem)}
-                  </div>
+                  <>
+                    <h3 className={styles.sectionTitle}>Аудитории</h3>
+                    {results.auditories.map(renderResult)}
+                  </>
                 )}
               </>
             )}
           </div>
         )}
+
+        {query.length >= 2 && !hasResults && !loading && (
+          <div className={styles.noResults}>Ничего не найдено</div>
+        )}
       </section>
 
-      {query.length < 2 && (
-        <div className={styles.quickAccess}>
-          {favorites.length === 0 ? (
-            <div className={styles.banner}>
-              <div className={styles.bannerTitle}>Быстрый доступ к расписанию</div>
-              <div className={styles.bannerText}>
-                Добавьте группы в избранное (нажав на ⭐), чтобы они всегда были под рукой на этой странице.
+      {query.length < 2 && favorites.length > 0 && (
+        <section className={styles.favoritesSection}>
+          <h2 className={styles.sectionTitle}>
+            <Star size={18} fill="currentColor" /> Избранное
+          </h2>
+          <div className={styles.favoritesGrid}>
+            {favorites.map((fav) => (
+              <div 
+                key={`${fav.type}-${fav.id}`}
+                className={styles.favCard}
+                onClick={() => navigate(`/schedule/${fav.type}/${fav.id}`)}
+              >
+                <div className={`${styles.favIcon} ${styles[fav.type]}`}>
+                  {fav.type === 'group' && <School size={20} />}
+                  {fav.type === 'tutor' && <User size={20} />}
+                  {fav.type === 'auditory' && <MapPin size={20} />}
+                </div>
+                <div className={styles.favName}>{fav.name}</div>
               </div>
-            </div>
-          ) : (
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}><Star size={16} /> Избранное</h2>
-              <div className={styles.grid}>
-                {favorites.map(fav => (
-                  <div key={`${fav.type}-${fav.id}`} className={styles.actionCard} onClick={() => handleSelect(fav)}>
-                    <div className={styles.actionIcon}>
-                      {fav.type === 'group' ? <School size={24} /> : fav.type === 'tutor' ? <User size={24} /> : <MapPin size={24} />}
-                    </div>
-                    <span className={styles.actionLabel}>{fav.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Навигация</h2>
-            <div className={styles.grid}>
-              <div className={styles.actionCard} onClick={() => navigate('/tutors')}>
-                <div className={styles.actionIcon}><User size={24} /></div>
-                <span className={styles.actionLabel}>Преподаватели</span>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
+        </section>
       )}
 
       {healthData && (

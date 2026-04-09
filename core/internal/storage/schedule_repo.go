@@ -7,11 +7,28 @@ import (
 )
 
 type ScheduleRepo struct {
-	db *SQLite
+	db      *SQLite
+	hitChan chan string
 }
 
 func NewScheduleRepo(db *SQLite) *ScheduleRepo {
-	return &ScheduleRepo{db: db}
+	repo := &ScheduleRepo{
+		db:      db,
+		hitChan: make(chan string, 1000), // Buffered channel for hits
+	}
+
+	// 20.4 Start a single worker for hit count updates
+	go repo.processHits()
+
+	return repo
+}
+
+func (r *ScheduleRepo) processHits() {
+	for key := range r.hitChan {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_, _ = r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key)
+		cancel()
+	}
 }
 
 type CacheMeta struct {
@@ -54,17 +71,12 @@ func (r *ScheduleRepo) GetSchedule(ctx context.Context, key string) ([]byte, *Ca
 		return nil, nil, err
 	}
 
-	// Async increment hit count
-	go func() {
-		// 18.4 Use background context with timeout for async task
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-
-		_, err := r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key)
-		if err != nil {
-			// No way to return error here, but we can log it
-		}
-	}()
+	// 20.4 Async increment hit count via channel
+	select {
+	case r.hitChan <- key:
+	default:
+		// Drop hit if channel is full to prevent blocking
+	}
 
 	return data, &meta, nil
 }

@@ -26,6 +26,11 @@ func main() {
 	// 1. Load config
 	cfg := config.Load()
 
+	// 19.1 Validate ADMIN_KEY in production
+	if cfg.AppEnv == "production" && cfg.AdminKey == "" {
+		log.Fatal().Msg("ADMIN_KEY must be set when APP_ENV is 'production'")
+	}
+
 	// 2. Setup logging
 	setupLogger(cfg)
 	log.Info().Msg("Starting omsu_mirror BFF...")

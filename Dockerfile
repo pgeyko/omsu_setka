@@ -4,33 +4,36 @@ FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache gcc musl-dev
 
-# Copy dependency files
-COPY core/go.mod core/go.sum* ./core/
-RUN cd core && go mod download
+# Copy go.mod and go.sum from core folder
+COPY core/go.mod core/go.sum ./
+RUN go mod download
 
-# Copy source code
-COPY core/ ./core/
-
-# Run tests
-RUN cd core && go test ./...
+# Copy backend source from core folder
+COPY core/ ./
 
 # Build the application
-RUN cd core && CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ../omsu_mirror ./cmd/server
+RUN go test ./...
+RUN CGO_ENABLED=0 GOOS=linux go build -o omsu_mirror ./cmd/server/main.go
 
 # Stage 2: Final image
-FROM alpine:latest
-RUN apk add --no-cache ca-certificates tzdata
+FROM alpine:3.19
+
 WORKDIR /app
 
-# Import CA certificates for HTTPS requests to upstream
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# 19.4 Create non-root user
+RUN adduser -D -g '' appuser
 
-# Copy the binary
-COPY --from=builder /app/omsu_mirror /app/omsu_mirror
+# Copy the binary from builder
+COPY --from=builder /app/omsu_mirror .
 
-# Runtime configuration
+# Ensure appuser owns the app directory (especially important for SQLite data folder)
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
 EXPOSE 8080
 
 ENTRYPOINT ["/app/omsu_mirror"]

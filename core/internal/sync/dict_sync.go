@@ -14,60 +14,64 @@ import (
 // ... (SyncDictionaries remains unchanged, so we specify StartLine right at the top and include cacheCollection)
 
 func (s *Syncer) SyncDictionaries(ctx context.Context) error {
+	// 20.1 Move network calls out of the mutex lock
+	log.Debug().Msg("Syncing groups from upstream...")
+	upGroups, errGroups := s.client.FetchGroups(ctx)
+
+	log.Debug().Msg("Syncing auditories from upstream...")
+	upAuds, errAuds := s.client.FetchAuditories(ctx)
+
+	log.Debug().Msg("Syncing tutors from upstream...")
+	upTutors, errTutors := s.client.FetchTutors(ctx)
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Load current state from DB as fallback
+	// Load current state from DB as fallback if upstream failed
 	groups, _ := s.dictRepo.GetAllGroups(ctx)
 	auds, _ := s.dictRepo.GetAllAuditories(ctx)
 	tutors, _ := s.dictRepo.GetAllTutors(ctx)
 
-	log.Debug().Msg("Syncing groups...")
-	upGroups, err := s.client.FetchGroups(ctx)
-	if err == nil && len(upGroups) > 0 {
+	hasChanges := false
+
+	if errGroups == nil && len(upGroups) > 0 {
 		groups = upGroups
 		if err := s.dictRepo.UpsertGroups(ctx, groups); err != nil {
 			log.Error().Err(err).Msg("Failed to upsert groups")
 		}
 		s.cacheCollection("groups", groups)
-	} else if err != nil {
-		s.recordFailure(ctx, "sync_groups", err)
+		hasChanges = true
+	} else if errGroups != nil {
+		s.recordFailure(ctx, "sync_groups", errGroups)
 	}
 
-	log.Debug().Msg("Syncing auditories...")
-	upAuds, err := s.client.FetchAuditories(ctx)
-	if err == nil && len(upAuds) > 0 {
+	if errAuds == nil && len(upAuds) > 0 {
 		auds = upAuds
 		if err := s.dictRepo.UpsertAuditories(ctx, auds); err != nil {
 			log.Error().Err(err).Msg("Failed to upsert auditories")
 		}
 		s.cacheCollection("auditories", auds)
 		log.Info().Msgf("Successfully synced %d auditories", len(auds))
-	} else {
-		if err != nil {
-			s.recordFailure(ctx, "sync_auditories", err)
-		}
-		// If we have nothing in DB, and upstream failed, auds is still empty
-		if len(auds) > 0 {
-			s.cacheCollection("auditories", auds)
-			log.Info().Msgf("Using %d auditories from DB (upstream returned nothing)", len(auds))
-		}
+		hasChanges = true
+	} else if errAuds != nil {
+		s.recordFailure(ctx, "sync_auditories", errAuds)
 	}
 
-	log.Debug().Msg("Syncing tutors...")
-	upTutors, err := s.client.FetchTutors(ctx)
-	if err == nil && len(upTutors) > 0 {
+	if errTutors == nil && len(upTutors) > 0 {
 		tutors = upTutors
 		if err := s.dictRepo.UpsertTutors(ctx, tutors); err != nil {
 			log.Error().Err(err).Msg("Failed to upsert tutors")
 		}
 		s.cacheCollection("tutors", tutors)
-	} else if err != nil {
-		s.recordFailure(ctx, "sync_tutors", err)
+		hasChanges = true
+	} else if errTutors != nil {
+		s.recordFailure(ctx, "sync_tutors", errTutors)
 	}
 
-	log.Debug().Msg("Rebuilding search index...")
-	s.searchIndex.Build(groups, tutors, auds)
+	if hasChanges || len(groups)+len(tutors)+len(auds) > 0 {
+		log.Debug().Msg("Rebuilding search index...")
+		s.searchIndex.Build(groups, tutors, auds)
+	}
 
 	if err := s.scheduleRepo.PutSyncMeta(ctx, "last_dict_sync", time.Now().Format(time.RFC3339)); err != nil {
 		log.Warn().Err(err).Msg("Failed to update sync metadata")

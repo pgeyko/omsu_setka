@@ -15,7 +15,8 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 # Копируем исходники фронтенда из папки web
 COPY web/ .
 
-# Запускаем сборку (тесты пропущены для ускорения билда в докере, если нужно - вернуть)
+# Запускаем сборку
+RUN npm test
 RUN npm run build
 
 # Stage 2: Serve

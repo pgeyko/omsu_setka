@@ -1,0 +1,66 @@
+.footer {
+  width: 100%;
+  padding: var(--spacing-xl) 0;
+  margin-top: auto;
+  border-top: 1px solid var(--surface-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  z-index: 5;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  max-width: var(--app-max-width);
+  width: 100%;
+  padding: 0 var(--spacing-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.brand {
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.separator {
+  opacity: 0.4;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-color);
+  transition: all var(--transition-fast);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.link:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.link svg {
+  opacity: 0.7;
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding-bottom: 110px; /* Space for fixed status bar on mobile */
+  }
+}
