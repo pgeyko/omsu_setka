@@ -70,7 +70,7 @@
   - [x] 4.1.6 `Stats() CacheStats` — количество записей, hit/miss
 - [x] 4.2 `internal/cache/search.go` — поисковый индекс
   - [x] 4.2.1 Trie-структура для prefix-поиска
-  - [x] 4.2.2 Нормализация ввода (lowercase, ё→е, trim)
+  - [x] 4.2.2 Нормализация ввода (lowercase, ё→е, удаление дефисов/пробелов/точек)
   - [x] 4.2.3 `Build(groups, tutors, auditories)` — построение индекса
   - [x] 4.2.4 `Search(query, type, limit) []SearchResult` — поиск с фильтром
   - [x] 4.2.5 `Rebuild()` — пересборка индекса при обновлении справочников

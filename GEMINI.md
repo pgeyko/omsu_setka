@@ -44,13 +44,15 @@ This script builds the frontend, compiles the Go backend, and starts the server.
     ```
 
 ### Testing
--   Currently, the project relies on manual testing.
--   Automated tests are planned but not yet implemented.
+-   Automated unit tests are implemented for the backend (Search Trie, Parsers).
+-   Manual verification is used for the frontend.
+-   Run tests using `go test ./...` in the `core` directory.
 
 ## UI & UX Features (Recent Updates)
 -   **Desktop Optimization:** Content width is limited to 1100px for better readability.
 -   **Activity Type Coloring:** Session types have distinct colors for their labels (Indigo for Lectures, Red for Practice, Green for Labs).
 -   **Search Consistency:** Both Home and Tutors pages feature a centered search bar (600px max-width) and share a unified "Recent" search history limited to 5 items.
+-   **Flexible Search:** Search normalization ignores punctuation and spaces (e.g., 'мбс 501' matches 'МБС-501-О-01').
 -   **Enhanced Schedule View:** Lifted day buttons with overflow fixes, vertical time indicators, and support for subgroup filtering.
 
 ## Development Conventions
@@ -70,11 +72,11 @@ This script builds the frontend, compiles the Go backend, and starts the server.
 -   **UI Patterns:** Modern Glassmorphism aesthetic with `framer-motion` for interactions.
 
 ## Key Files
--   `SPEC.md`: Detailed technical specification and architecture.
--   `TASKS.md`: Current implementation status and checklist.
--   `BACKEND_PLAN.md`: Backend development plan and roadmap.
--   `FRONTEND_PLAN.md`: Frontend development plan and roadmap.
--   `API_DATA.md`: Documentation for the upstream API.
+-   `dev/SPEC.md`: Detailed technical specification and architecture.
+-   `dev/TASKS.md`: Current implementation status and checklist.
+-   `dev/BACKEND_PLAN.md`: Backend development plan and roadmap.
+-   `dev/FRONTEND_PLAN.md`: Frontend development plan and roadmap.
+-   `dev/API_DATA.md`: Documentation for the upstream API.
 -   `core/`: Backend source code.
 -   `web/`: Frontend source code.
 -   `docker-compose.yml`: Orchestration for backend and frontend.
