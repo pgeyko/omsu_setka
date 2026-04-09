@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Star, Share2, MapPin, User, Clock, LayoutGrid, List, Layers } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -630,67 +631,99 @@ export const ScheduleView: React.FC = () => {
         )}
       </div>
 
-      {showSubgroupDrawer && (
-        <div className={styles.modalOverlay} onClick={() => setShowSubgroupDrawer(false)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTimeTitle}>
-                <h3>Выбор подгруппы</h3>
+      <AnimatePresence>
+        {showSubgroupDrawer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className={styles.modalOverlay}
+            onClick={() => setShowSubgroupDrawer(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className={styles.modalContent}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <div className={styles.modalTimeTitle}>
+                  <h3>Выбор подгруппы</h3>
+                </div>
+                <button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn}><X size={24} /></button>
               </div>
-              <button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn}><X size={24} /></button>
-            </div>
-            <div className={styles.subgroupOptions}>
-              <button
-                onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }}
-                className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}
-              >
-                Все занятия
-              </button>
-              {['1', '2'].map(num => (
+              <div className={styles.subgroupOptions}>
                 <button
-                  key={num}
-                  onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }}
-                  className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}
+                  onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }}
+                  className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}
                 >
-                  {num} подгруппа
+                  Все занятия
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedGroup && (
-        <div className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTimeTitle}>
-                <span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span>
-                <h3>Занятия</h3>
+                {['1', '2'].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }}
+                    className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}
+                  >
+                    {num} подгруппа
+                  </button>
+                ))}
               </div>
-              <button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button>
-            </div>
-            <div className={styles.modalList}>
-              {selectedGroup.map((lesson, idx) => (
-                <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
-                  <h3 className={styles.discipline}>{lesson.lesson}</h3>
-                  <div className={styles.meta}>
-                    <span className={`${styles.type} ${getTypeColorClass(lesson.type_work)}`}>{lesson.type_work}</span>
-                    {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
-                    {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
-                    {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
-                    {(lesson as any).groups && (lesson as any).groups.length > 0 ? (
-                      <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as any).groups.join(', ')}</span>
-                    ) : lesson.group && (
-                      <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>
-                    )}
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedGroup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className={styles.modalOverlay}
+            onClick={() => setSelectedGroup(null)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className={styles.modalContent}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <div className={styles.modalTimeTitle}>
+                  <span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span>
+                  <h3>Занятия</h3>
+                </div>
+                <button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button>
+              </div>
+              <div className={styles.modalList}>
+                {selectedGroup.map((lesson, idx) => (
+                  <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
+                    <h3 className={styles.discipline}>{lesson.lesson}</h3>
+                    <div className={styles.meta}>
+                      <span className={`${styles.type} ${getTypeColorClass(lesson.type_work)}`}>{lesson.type_work}</span>
+                      {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
+                      {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
+                      {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
+                      {(lesson as any).groups && (lesson as any).groups.length > 0 ? (
+                        <span className={styles.lessonGroup}><User size={12} /> Группы: {(lesson as any).groups.join(', ')}</span>
+                      ) : lesson.group && (
+                        <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>
+                      )}
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

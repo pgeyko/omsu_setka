@@ -68,14 +68,21 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
 
       <AnimatePresence>
         {isOpen && (
-          <>
-            <div className={styles.overlay} onClick={() => setIsOpen(false)} />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className={styles.modalOverlay}
+            onClick={() => setIsOpen(false)}
+          >
             <motion.div
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className={styles.dropdown}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className={styles.modalContent}
+              onClick={e => e.stopPropagation()}
             >
               <div className={styles.drawerHeader}>
                 <h3>Выбор даты</h3>
@@ -102,7 +109,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
                 {renderCalendar()}
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
