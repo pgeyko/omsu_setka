@@ -28,7 +28,7 @@ export const Home: React.FC = () => {
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
-  const { favorites, recent, recentTutors, recentAuditories, addRecent } = useFavoritesStore();
+  const { favorites, recent, addRecent } = useFavoritesStore();
 
   useEffect(() => {
     fetchHealth().then(setHealthData).catch(console.error);
@@ -94,7 +94,7 @@ export const Home: React.FC = () => {
   );
 
   const hasResults = Array.isArray(results) ? results.length > 0 : (results.groups.length > 0 || results.tutors.length > 0 || results.auditories.length > 0);
-  const showRecent = isFocused && query.length < 2 && (recent.length > 0 || recentTutors.length > 0 || recentAuditories.length > 0);
+  const showRecent = isFocused && query.length < 2 && recent.length > 0;
 
   return (
     <div className="app-container animate-fade-in">
@@ -117,26 +117,10 @@ export const Home: React.FC = () => {
         {(hasResults || showRecent) && (
           <div className={styles.resultsDropdown}>
             {showRecent ? (
-              <>
-                {recent.length > 0 && (
-                  <div className={styles.dropdownSection}>
-                    <div className={styles.dropdownHeader}>Недавние группы</div>
-                    {recent.map(renderResultItem)}
-                  </div>
-                )}
-                {recentTutors.length > 0 && (
-                  <div className={styles.dropdownSection}>
-                    <div className={styles.dropdownHeader}>Недавние преподаватели</div>
-                    {recentTutors.map(renderResultItem)}
-                  </div>
-                )}
-                {recentAuditories.length > 0 && (
-                  <div className={styles.dropdownSection}>
-                    <div className={styles.dropdownHeader}>Недавние аудитории</div>
-                    {recentAuditories.map(renderResultItem)}
-                  </div>
-                )}
-              </>
+              <div className={styles.dropdownSection}>
+                <div className={styles.dropdownHeader}>Недавнее</div>
+                {recent.map(renderResultItem)}
+              </div>
             ) : Array.isArray(results) ? (
               results.map(renderResultItem)
             ) : (
@@ -190,10 +174,13 @@ export const Home: React.FC = () => {
             </div>
           )}
 
-          <div className={styles.mainActions}>
-            <div className={styles.actionCard} onClick={() => navigate('/tutors')}>
-              <div className={styles.actionIcon}><User size={24} /></div>
-              <span className={styles.actionLabel}>Преподаватели</span>
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Навигация</h2>
+            <div className={styles.grid}>
+              <div className={styles.actionCard} onClick={() => navigate('/tutors')}>
+                <div className={styles.actionIcon}><User size={24} /></div>
+                <span className={styles.actionLabel}>Преподаватели</span>
+              </div>
             </div>
           </div>
         </div>

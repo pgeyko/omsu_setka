@@ -43,46 +43,47 @@
 }
 
 .actionCard {
-  padding: 20px;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: center;
+  gap: 16px;
   background: var(--surface-color);
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
+  width: 100%;
 }
 
 .actionCard:hover {
   border-color: var(--accent-color);
-  transform: translateY(-4px);
+  transform: translateX(4px);
   background: rgba(255, 255, 255, 0.05);
 }
 
 .actionIcon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
   background: rgba(170, 59, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--accent-color);
+  flex-shrink: 0;
 }
 
 .actionLabel {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 @media (max-width: 480px) {
-  .mainActions {
-    grid-template-columns: 1fr;
+  .actionCard {
+    padding: 14px 16px;
+    gap: 12px;
   }
 }
 
@@ -192,6 +193,8 @@
   flex-direction: column;
   gap: var(--spacing-xl);
   width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .sectionTitle {
@@ -208,7 +211,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
 }

@@ -19,7 +19,8 @@ export const TutorsPage: React.FC = () => {
   const [loadingSubjects, setLoadingSubjects] = useState<Record<number, boolean>>({});
   const [isFocused, setIsFocused] = useState(false);
   
-  const { recentTutors, addRecent } = useFavoritesStore();
+  const { recent, addRecent } = useFavoritesStore();
+  const recentTutors = recent.filter(r => r.type === 'tutor');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
