@@ -20,8 +20,9 @@ RUN cd core && go test ./...
 RUN cd core && CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ../omsu_mirror ./cmd/server
 
 # Stage 2: Final image
-FROM alpine:latest
-RUN apk add --no-cache ca-certificates tzdata
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates tzdata && \
+    adduser -D appuser
 WORKDIR /app
 
 # Import CA certificates for HTTPS requests to upstream
@@ -29,6 +30,12 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the binary
 COPY --from=builder /app/omsu_mirror /app/omsu_mirror
+
+# Create data directory and set permissions
+RUN mkdir -p /data && chown -R appuser:appuser /data && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 # Runtime configuration
 EXPOSE 8080

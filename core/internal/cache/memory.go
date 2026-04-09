@@ -1,9 +1,10 @@
 package cache
 
 import (
-	"sync"
 	"sync/atomic"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 type cacheItem struct {
@@ -12,40 +13,38 @@ type cacheItem struct {
 }
 
 type MemoryCache struct {
-	data      sync.Map
-	gzipData  sync.Map
+	data      *lru.Cache[string, cacheItem]
+	gzipData  *lru.Cache[string, cacheItem]
 	hits      uint64
 	misses    uint64
-	itemCount int64
 }
 
 func NewMemoryCache() *MemoryCache {
-	return &MemoryCache{}
-}
+	// Upper capacity set to 10000 items, which seems more than sufficient to bound memory usage
+	cache, _ := lru.New[string, cacheItem](10000)
+	gzipCache, _ := lru.New[string, cacheItem](10000)
 
-func (c *MemoryCache) Set(key string, data []byte) {
-	// 18.3 Simple TTL for L1 (e.g., 5 minutes) to ensure freshness
-	expiresAt := time.Now().Add(5 * time.Minute)
-	item := cacheItem{data: data, expiresAt: expiresAt}
-	
-	if _, loaded := c.data.LoadOrStore(key, item); !loaded {
-		atomic.AddInt64(&c.itemCount, 1)
-	} else {
-		c.data.Store(key, item)
+	return &MemoryCache{
+		data:     cache,
+		gzipData: gzipCache,
 	}
 }
 
+func (c *MemoryCache) Set(key string, data []byte) {
+	expiresAt := time.Now().Add(5 * time.Minute)
+	item := cacheItem{data: data, expiresAt: expiresAt}
+	c.data.Add(key, item)
+}
+
 func (c *MemoryCache) Get(key string) ([]byte, bool) {
-	val, ok := c.data.Load(key)
-	if ok {
-		item := val.(cacheItem)
-		if time.Now().After(item.expiresAt) {
+	if val, ok := c.data.Get(key); ok {
+		if time.Now().After(val.expiresAt) {
 			c.Invalidate(key)
 			atomic.AddUint64(&c.misses, 1)
 			return nil, false
 		}
 		atomic.AddUint64(&c.hits, 1)
-		return item.data, true
+		return val.data, true
 	}
 	atomic.AddUint64(&c.misses, 1)
 	return nil, false
@@ -54,40 +53,29 @@ func (c *MemoryCache) Get(key string) ([]byte, bool) {
 func (c *MemoryCache) SetGzip(key string, data []byte) {
 	expiresAt := time.Now().Add(5 * time.Minute)
 	item := cacheItem{data: data, expiresAt: expiresAt}
-	c.gzipData.Store(key, item)
+	c.gzipData.Add(key, item)
 }
 
 func (c *MemoryCache) GetGzip(key string) ([]byte, bool) {
-	val, ok := c.gzipData.Load(key)
-	if ok {
-		item := val.(cacheItem)
-		if time.Now().After(item.expiresAt) {
-			c.gzipData.Delete(key)
+	if val, ok := c.gzipData.Get(key); ok {
+		if time.Now().After(val.expiresAt) {
+			c.gzipData.Remove(key)
 			return nil, false
 		}
-		return item.data, true
+		return val.data, true
 	}
 	return nil, false
 }
 
 func (c *MemoryCache) Invalidate(key string) {
-	if _, loaded := c.data.LoadAndDelete(key); loaded {
-		atomic.AddInt64(&c.itemCount, -1)
-	}
-	c.gzipData.Delete(key)
+	c.data.Remove(key)
+	c.gzipData.Remove(key)
 }
 
 // Clear removes all entries from the cache
 func (c *MemoryCache) Clear() {
-	c.data.Range(func(key, value interface{}) bool {
-		c.data.Delete(key)
-		return true
-	})
-	c.gzipData.Range(func(key, value interface{}) bool {
-		c.gzipData.Delete(key)
-		return true
-	})
-	atomic.StoreInt64(&c.itemCount, 0)
+	c.data.Purge()
+	c.gzipData.Purge()
 }
 
 type CacheStats struct {
@@ -100,6 +88,6 @@ func (c *MemoryCache) Stats() CacheStats {
 	return CacheStats{
 		Hits:      atomic.LoadUint64(&c.hits),
 		Misses:    atomic.LoadUint64(&c.misses),
-		ItemCount: atomic.LoadInt64(&c.itemCount),
+		ItemCount: int64(c.data.Len()),
 	}
 }

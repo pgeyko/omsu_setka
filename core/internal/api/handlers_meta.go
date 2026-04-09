@@ -76,14 +76,6 @@ func (s *Server) handleGetIncidents(c *fiber.Ctx) error {
 	limit, _ := strconv.Atoi(c.Query("limit", "50"))
 	offset, _ := strconv.Atoi(c.Query("offset", "0"))
 
-	// 18.2 Limit max offset to prevent excessive DB scans
-	if offset > 10000 {
-		offset = 10000
-	}
-	if limit > 100 {
-		limit = 100
-	}
-
 	incidents, err := s.IncidentRepo.GetIncidents(c.Context(), limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve incidents"})

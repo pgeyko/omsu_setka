@@ -33,7 +33,7 @@ func AdminAuth(cfg *config.Config) fiber.Handler {
 		key := c.Get("X-Admin-Key")
 		
 		// subtle.ConstantTimeCompare prevents timing attacks
-		if key == "" || subtle.ConstantTimeCompare([]byte(key), []byte(cfg.AdminKey)) != 1 {
+		if cfg.AdminKey == "" || key == "" || subtle.ConstantTimeCompare([]byte(key), []byte(cfg.AdminKey)) != 1 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "unauthorized: invalid admin key",
 			})

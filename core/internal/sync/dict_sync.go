@@ -14,9 +14,6 @@ import (
 // ... (SyncDictionaries remains unchanged, so we specify StartLine right at the top and include cacheCollection)
 
 func (s *Syncer) SyncDictionaries(ctx context.Context) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	// Load current state from DB as fallback
 	groups, _ := s.dictRepo.GetAllGroups(ctx)
 	auds, _ := s.dictRepo.GetAllAuditories(ctx)

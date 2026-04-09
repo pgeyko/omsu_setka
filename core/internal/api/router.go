@@ -46,6 +46,8 @@ func NewServer(
 		BodyLimit:     1024,         // 1 KB — API doesn't accept large bodies
 		ReadBufferSize: 4096,
 		ProxyHeader:    "X-Real-IP",  // Correctly detect client IP behind Nginx
+		EnableTrustedProxyCheck: true,
+		TrustedProxies: []string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
 	})
 
 	// Global Middleware
@@ -82,21 +84,20 @@ func (s *Server) setupRoutes() {
 
 	v1 := s.App.Group("/api/v1")
 
-	// General rate limit for all API endpoints
-	v1.Use(RateLimitMiddleware(s.Cfg.RateLimitGeneral, s.Cfg.RateLimitWindow))
+	generalLimiter := RateLimitMiddleware(s.Cfg.RateLimitGeneral, s.Cfg.RateLimitWindow)
 
 	// Dictionaries
-	v1.Get("/groups", s.handleGetGroups)
-	v1.Get("/groups/:id", s.handleGetGroupByID)
-	v1.Get("/auditories", s.handleGetAuditories)
-	v1.Get("/auditories/:id", s.handleGetAuditoryByID)
-	v1.Get("/tutors", s.handleGetTutors)
-	v1.Get("/tutors/:id", s.handleGetTutorByID)
+	v1.Get("/groups", generalLimiter, s.handleGetGroups)
+	v1.Get("/groups/:id", generalLimiter, s.handleGetGroupByID)
+	v1.Get("/auditories", generalLimiter, s.handleGetAuditories)
+	v1.Get("/auditories/:id", generalLimiter, s.handleGetAuditoryByID)
+	v1.Get("/tutors", generalLimiter, s.handleGetTutors)
+	v1.Get("/tutors/:id", generalLimiter, s.handleGetTutorByID)
 
 	// Schedules
-	v1.Get("/schedule/group/:id", s.handleGetSchedule("group"))
-	v1.Get("/schedule/tutor/:id", s.handleGetSchedule("tutor"))
-	v1.Get("/schedule/auditory/:id", s.handleGetSchedule("auditory"))
+	v1.Get("/schedule/group/:id", generalLimiter, s.handleGetSchedule("group"))
+	v1.Get("/schedule/tutor/:id", generalLimiter, s.handleGetSchedule("tutor"))
+	v1.Get("/schedule/auditory/:id", generalLimiter, s.handleGetSchedule("auditory"))
 
 	// Search — stricter rate limit
 	search := v1.Group("/search")
@@ -104,10 +105,10 @@ func (s *Server) setupRoutes() {
 	search.Get("/", s.handleSearch)
 
 	// Meta
-	v1.Get("/health", s.handleHealth)
-	v1.Get("/incidents", s.handleGetIncidents)
-	v1.Get("/sync/status", s.handleSyncStatus)
-	v1.Post("/sync/trigger", AdminAuth(s.Cfg), s.handleSyncTrigger)
+	v1.Get("/health", generalLimiter, s.handleHealth)
+	v1.Get("/incidents", generalLimiter, s.handleGetIncidents)
+	v1.Get("/sync/status", generalLimiter, s.handleSyncStatus)
+	v1.Post("/sync/trigger", generalLimiter, AdminAuth(s.Cfg), s.handleSyncTrigger)
 }
 
 func (s *Server) Start() error {

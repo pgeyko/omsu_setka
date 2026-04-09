@@ -54,18 +54,6 @@ func (r *ScheduleRepo) GetSchedule(ctx context.Context, key string) ([]byte, *Ca
 		return nil, nil, err
 	}
 
-	// Async increment hit count
-	go func() {
-		// 18.4 Use background context with timeout for async task
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-
-		_, err := r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key)
-		if err != nil {
-			// No way to return error here, but we can log it
-		}
-	}()
-
 	return data, &meta, nil
 }
 
