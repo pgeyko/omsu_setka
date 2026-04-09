@@ -9,7 +9,7 @@
 - [x] 0.2 Создание структуры каталогов проекта
 - [x] 0.3 Создание `.env.example` с описанием переменных
 - [x] 0.4 Создание `Dockerfile` (multi-stage, scratch)
-- [x] 0.5 Создание `docker-compose.yml`
+- [x] 0.5 Создание `docker-compose.dev.yml` и `docker-compose.prod.yml`
 - [x] 0.6 Создание `.gitignore`
 
 ---
@@ -233,6 +233,7 @@
 - [x] 16.3 Backend: Интеграционные тесты API (Rate Limiting, Security Headers)
 - [x] 16.4 Frontend: Тесты Zustand-хранилищ (Favorites, Settings)
 - [x] 16.5 QA: Нагрузочное тестирование (P99 < 5ms под нагрузкой)
+- [x] 16.6 Backend: Unit-тесты для кэша, SQLite-репозиториев и конфигурации
 
 ---
 

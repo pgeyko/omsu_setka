@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/pgeyko/omsu_setka/backend:latest
+    container_name: omsu_mirror_backend
+    restart: always
+    volumes:
+      - ./data:/data
+    environment:
+      - ADMIN_KEY=${ADMIN_KEY}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - APP_ENV=${APP_ENV:-production}
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      - SQLITE_PATH=/data/mirror.db
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    networks:
+      - nginx-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: ghcr.io/pgeyko/omsu_setka/frontend:latest
+    container_name: omsu_mirror_frontend
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+        reservations:
+          memory: 16M
+    networks:
+      - nginx-network
+
+networks:
+  nginx-network:
+    external: true

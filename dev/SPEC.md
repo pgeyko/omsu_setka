@@ -310,7 +310,8 @@ omsu_mirror/
 ├── go.mod
 ├── go.sum
 ├── Dockerfile
-├── docker-compose.yml
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
 └── .env.example
 ```
 

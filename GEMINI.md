@@ -79,4 +79,4 @@ This script builds the frontend, compiles the Go backend, and starts the server.
 -   `dev/API_DATA.md`: Documentation for the upstream API.
 -   `core/`: Backend source code.
 -   `web/`: Frontend source code.
--   `docker-compose.yml`: Orchestration for backend and frontend.
+-   `docker-compose.dev.yml` & `docker-compose.prod.yml`: Orchestration for backend and frontend.
