@@ -17,6 +17,12 @@
   padding: var(--spacing-sm) 0;
 }
 
+.navTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
 .backBtn, .actionBtn {
   width: 44px;
   height: 44px;

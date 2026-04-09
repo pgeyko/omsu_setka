@@ -363,37 +363,54 @@ export const ScheduleView: React.FC = () => {
 
         <header className={styles.stickyHeader}>
           <nav className={styles.nav}>
-            <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></motion.button>
             <div className={styles.navActions}>
               <div className={styles.viewToggle}>
                 <button
                   onClick={() => setViewMode('day')}
-                  className={`${styles.toggleBtn} ${viewMode === 'day' ? styles.toggleActive : ''}`}
+                  className={styles.toggleBtn}
                   title="День"
+                  style={{ position: 'relative', color: viewMode === 'day' ? 'white' : undefined }}
                 >
-                  <List size={20} />
+                  {viewMode === 'day' && (
+                    <motion.div
+                      layoutId="viewToggle"
+                      style={{ position: 'absolute', inset: 0, background: 'var(--accent-color)', borderRadius: 'var(--radius-sm)', boxShadow: '0 0 15px var(--accent-glow)', zIndex: 0 }}
+                      transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                    />
+                  )}
+                  <span style={{ position: 'relative', zIndex: 1, display: 'flex' }}><List size={20} /></span>
                 </button>
                 <button
                   onClick={() => setViewMode('week')}
-                  className={`${styles.toggleBtn} ${viewMode === 'week' ? styles.toggleActive : ''}`}
+                  className={styles.toggleBtn}
                   title="Неделя"
+                  style={{ position: 'relative', color: viewMode === 'week' ? 'white' : undefined }}
                 >
-                  <LayoutGrid size={20} />
+                  {viewMode === 'week' && (
+                    <motion.div
+                      layoutId="viewToggle"
+                      style={{ position: 'absolute', inset: 0, background: 'var(--accent-color)', borderRadius: 'var(--radius-sm)', boxShadow: '0 0 15px var(--accent-glow)', zIndex: 0 }}
+                      transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                    />
+                  )}
+                  <span style={{ position: 'relative', zIndex: 1, display: 'flex' }}><LayoutGrid size={20} /></span>
                 </button>
               </div>
               {entityType === 'group' && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => setShowSubgroupDrawer(true)}
                   className={`${styles.actionBtn} ${subgroup ? styles.filterActive : ''}`}
                   title="Выбор подгруппы"
                 >
                   <Layers size={22} />
-                </button>
+                </motion.button>
               )}
-              <button onClick={toggleFavorite} className={`${styles.actionBtn} ${favorite ? styles.active : ''}`}>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleFavorite} className={`${styles.actionBtn} ${favorite ? styles.active : ''}`}>
                 <Star size={22} fill={favorite ? 'currentColor' : 'none'} />
-              </button>
-              <button id="shareBtn" onClick={handleShare} className={styles.actionBtn}><Share2 size={22} /></button>
+              </motion.button>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} id="shareBtn" onClick={handleShare} className={styles.actionBtn}><Share2 size={22} /></motion.button>
             </div>
           </nav>
         </header>

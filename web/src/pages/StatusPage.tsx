@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { fetchHealth, fetchIncidents } from '../api/client';
 import type { HealthData, Incident } from '../api/client';
@@ -39,35 +40,24 @@ export const StatusPage: React.FC = () => {
 
   const isHealthy = health?.upstream?.healthy ?? true;
 
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
-
   return (
     <div className="app-container animate-fade-in">
       <header className={styles.stickyHeader}>
         <nav className={styles.nav}>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}>
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate(-1)} className={styles.backBtn}>
             <ArrowLeft size={24} />
-          </button>
-          <div className={styles.navActions}>
-            {/* Potential refresh button or other actions */}
+          </motion.button>
+          <div className={styles.navTitle}>Мониторинг систем</div>
+          <div className={styles.navActions} style={{ width: '44px' }}>
           </div>
         </nav>
       </header>
 
-      <div className={styles.viewModeHeader}>
-        <h2 className={styles.dateTitle}>
-          {dateStr}
-          <span className={styles.headerSeparator}>•</span>
-          <span className={styles.entityNameInline}>Мониторинг систем</span>
-        </h2>
-      </div>
-
       {loading && !health ? (
         <div className={styles.loading}>Загрузка статуса...</div>
       ) : (
-        <>
-          <div className={`${styles.heroCard} ${isHealthy ? styles.heroHealthy : styles.heroUnhealthy}`}>
+        <main className={styles.container}>
+          <div className={`${styles.heroCard} ${isHealthy ? styles.heroHealthy : styles.heroUnhealthy}`} style={{ marginTop: '16px' }}>
             <div className={styles.heroHeader}>
               <div className={`${styles.statusDot} ${isHealthy ? styles.healthy : styles.unhealthy}`}></div>
               <h2>{isHealthy ? 'Все системы работают' : 'Сбой источника данных'}</h2>
@@ -127,7 +117,7 @@ export const StatusPage: React.FC = () => {
               </div>
             )}
           </div>
-        </>
+        </main>
       )}
     </div>
   );
