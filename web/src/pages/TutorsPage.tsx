@@ -112,7 +112,7 @@ export const TutorsPage: React.FC = () => {
       </header>
 
       <main className={styles.container}>
-        <div className={styles.searchWrapper}>
+        <section className={styles.searchWrapper}>
           <GlassInput
             icon={<Search size={20} />}
             placeholder="Поиск по ФИО..."
@@ -135,7 +135,7 @@ export const TutorsPage: React.FC = () => {
               ))}
             </div>
           )}
-        </div>
+        </section>
 
         <div className={styles.tutorList}>
           {filteredTutors.map(tutor => {
