@@ -22,11 +22,18 @@ FROM alpine:3.19
 
 WORKDIR /app
 
+# Install curl for healthchecks and admin CLI
+RUN apk add --no-cache curl
+
 # 19.4 Create non-root user
 RUN adduser -D -g '' appuser
 
 # Copy the binary from builder
 COPY --from=builder /app/omsu_mirror .
+
+# Copy admin script and make it a global command
+COPY admin.sh /usr/local/bin/admin
+RUN chmod +x /usr/local/bin/admin && sed -i 's/\r$//' /usr/local/bin/admin
 
 # Ensure appuser owns the app directory (especially important for SQLite data folder)
 RUN chown -R appuser:appuser /app
