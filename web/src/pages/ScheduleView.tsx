@@ -100,6 +100,12 @@ export const ScheduleView: React.FC = () => {
     return '';
   };
 
+  const getTypeColorClass = (type: string) => {
+    if (type.includes('Лаб')) return styles.labHighlightText;
+    if (type.includes('Прак')) return styles.pracHighlightText;
+    return '';
+  };
+
   useEffect(() => {
     if (selectedGroup) {
       document.body.style.overflow = 'hidden';
@@ -444,12 +450,42 @@ export const ScheduleView: React.FC = () => {
                     return acc;
                   }, {} as Record<number, Lesson[]>);
 
-                  return Object.entries(grouped || {})
-                    .sort(([a], [b]) => Number(a) - Number(b))
-                    .map(([timeStr, rawLessons]) => {
-                      const time = Number(timeStr);
+                  const timesList = Object.keys(grouped || {}).map(Number);
+                  if (timesList.length === 0) return null;
+                  
+                  const maxTime = Math.min(8, Math.max(...timesList));
+                  const slotsToRender = [];
+                  for (let t = 1; t <= maxTime; t++) {
+                    slotsToRender.push({ time: t, rawLessons: grouped[t] });
+                  }
+
+                  return slotsToRender.map(({ time, rawLessons }) => {
                       const active = isCurrentLesson(time, isToday);
                       const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
+
+                      if (!rawLessons || rawLessons.length === 0) {
+                        return (
+                          <GlassCard
+                            key={time}
+                            className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${styles.emptySlotCard}`}
+                            glow={active}
+                          >
+                            <div className={styles.lessonTime}>
+                              <div className={styles.timeStart}>{times.start}</div>
+                              <div className={styles.timeDivider}>–</div>
+                              <div className={styles.timeEnd}>{times.end}</div>
+                            </div>
+                            <div className={styles.lessonInfo}>
+                              <h3 className={styles.discipline} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Нет пары</h3>
+                              {active && (
+                                <div className={styles.status}>
+                                  <Clock size={12} /> Сейчас идет
+                                </div>
+                              )}
+                            </div>
+                          </GlassCard>
+                        );
+                      }
 
                       // Merging logic: group by unique key (lesson + type + teacher + auditory)
                       const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
@@ -504,7 +540,7 @@ export const ScheduleView: React.FC = () => {
                               <>
                                 <h3 className={styles.discipline}>{lessons[0].lesson}</h3>
                                 <div className={styles.meta}>
-                                  <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
+                                  <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)} ${getTypeColorClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
                                   {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
                                   {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
                                   {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
@@ -568,7 +604,7 @@ export const ScheduleView: React.FC = () => {
                             cursor: 'pointer'
                           }}
                         >
-                          <span className={styles.gridLessonType}>{l.type_work}</span>
+                          <span className={`${styles.gridLessonType} ${getTypeColorClass(l.type_work)}`}>{l.type_work}</span>
                           {l.lesson}
                           <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
                         </div>
@@ -639,7 +675,7 @@ export const ScheduleView: React.FC = () => {
                 <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
                   <h3 className={styles.discipline}>{lesson.lesson}</h3>
                   <div className={styles.meta}>
-                    <span className={styles.type}>{lesson.type_work}</span>
+                    <span className={`${styles.type} ${getTypeColorClass(lesson.type_work)}`}>{lesson.type_work}</span>
                     {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
                     {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
                     {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}

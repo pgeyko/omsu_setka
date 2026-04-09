@@ -248,6 +248,18 @@
   color: #ef4444 !important;
 }
 
+.labHighlightText {
+  color: #10b981 !important;
+}
+
+.pracHighlightText {
+  color: #ef4444 !important;
+}
+
+.emptySlotCard {
+  opacity: 0.7;
+}
+
 .lessonTime {
   display: flex;
   flex-direction: column;

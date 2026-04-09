@@ -33,9 +33,9 @@
   --radius-full: 9999px;
 
   /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 300ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-base: 500ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-slow: 700ms cubic-bezier(0.25, 0.1, 0.25, 1);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
