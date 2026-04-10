@@ -20,3 +20,5 @@ data/
 # System
 .DS_Store
 core/main
+other/
+dev/New.md
