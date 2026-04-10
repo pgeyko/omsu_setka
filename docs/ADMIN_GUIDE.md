@@ -73,5 +73,16 @@ curl -X POST http://localhost:8080/api/v1/sync/trigger \
 | :--- | :--- |
 | `ADMIN_KEY` | Ключ администратора для доступа к API. |
 | `CORS_ALLOWED_ORIGINS` | Разрешенные домены для CORS (например, `https://omsu.example.com`). |
+| `VITE_FIREBASE_API_KEY` | API ключ из настроек Firebase. |
+| `VITE_FIREBASE_PROJECT_ID` | Идентификатор проекта Firebase. |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Идентификатор отправителя (Sender ID). |
+| `VITE_FIREBASE_APP_ID` | Идентификатор приложения (App ID). |
+| `VITE_FIREBASE_VAPID_KEY` | Публичный VAPID ключ для Web Push. |
+
+---
+
+## Особенности сборки (FCM)
+
+Для работы Push-уведомлений ключи Firebase должны быть доступны **на этапе сборки** (build-time), так как они вшиваются в Service Worker. CI/CD пайплайн автоматически передает их через `build-args`. При ручной сборке Docker-образа фронтенда используйте аргументы `--build-arg`.
 
 После добавления этих секретов любой пуш в основную ветку приведет к автоматическому обновлению приложения и его конфигурации на сервере без необходимости ручной настройки переменных окружения на хосте.

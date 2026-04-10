@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -77,7 +77,7 @@ export default defineConfig({
               cacheName: 'api-meta-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days — Reduced from 30
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -88,6 +88,7 @@ export default defineConfig({
       }
     })
   ],
+  // @ts-ignore
   test: {
     globals: true,
     environment: 'node',

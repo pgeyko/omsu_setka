@@ -5,6 +5,7 @@ import (
 	"omsu_mirror/internal/api"
 	"omsu_mirror/internal/cache"
 	"omsu_mirror/internal/config"
+	"omsu_mirror/internal/notifications"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/sync"
 	"omsu_mirror/internal/upstream"
@@ -45,19 +46,24 @@ func main() {
 	dictRepo := storage.NewDictRepo(db)
 	scheduleRepo := storage.NewScheduleRepo(db)
 	incidentRepo := storage.NewIncidentRepo(db)
+	changeRepo := storage.NewChangeRepo(db)
+	subscriptionRepo := storage.NewSubscriptionRepo(db)
 
 	// 4. Initialize Upstream Client
 	client := upstream.NewClient(cfg)
 
-	// 5. Initialize Cache & Index
+	// 5. Initialize FCM Client
+	fcm := notifications.NewFCMClient()
+
+	// 6. Initialize Cache & Index
 	memoryCache := cache.NewMemoryCache()
 	searchIndex := cache.NewSearchIndex()
 
-	// 6. Initialize Syncer
-	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo)
+	// 7. Initialize Syncer
+	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, fcm)
 
-	// 7. Initialize API Server
-	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo)
+	// 8. Initialize API Server
+	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, fcm)
 
 	// Context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

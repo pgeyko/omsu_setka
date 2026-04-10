@@ -143,3 +143,24 @@ export const fetchIncidents = async (limit: number = 50, offset: number = 0): Pr
   const { data } = await apiClient.get<BFFResponse<Incident[]>>(`/incidents?limit=${limit}&offset=${offset}`);
   return data.data;
 };
+
+export const fetchChanges = async (type: string, id: number) => {
+  const { data } = await apiClient.get<BFFResponse<any>>(`/changes/${type}/${id}`);
+  return data.data;
+};
+
+export const subscribeToNotifications = async (token: string, type: string, id: number) => {
+  const { data } = await apiClient.post('/subscribe', {
+    fcm_token: token,
+    entity_type: type,
+    entity_id: id,
+  });
+  return data;
+};
+
+export const unsubscribeFromNotifications = async (token: string) => {
+  const { data } = await apiClient.post('/unsubscribe', {
+    fcm_token: token,
+  });
+  return data;
+};

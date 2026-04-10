@@ -270,3 +270,33 @@
 - [x] 20.5 Backend: Убрать холостой тикер `auditTicker` или реализовать его
 - [x] 20.6 Backend: Исправить race condition при инкременте `itemCount` в `MemoryCache`
 - [x] 20.7 Backend: Консолидировать валидацию `limit/offset` в хэндлерах
+
+---
+
+## Этап 21: Логика обнаружения изменений (Schedule Diff Engine) (→ [ENHANCEMENTS_PLAN.md § 1](./ENHANCEMENTS_PLAN.md#1-логика-обнаружения-изменений-schedule-diff))
+- [x] 21.1 Backend: Создать таблицу `schedule_changes` в SQLite
+- [x] 21.2 Backend: Реализовать логику `CompareSchedules` для поиска добавленных/удаленных/измененных пар
+- [x] 21.3 Backend: Интегрировать Diff-логику в фоновый цикл синхронизации
+- [x] 21.4 Backend: Логирование изменений в `upstream_incidents` (тип `schedule_change`)
+
+---
+
+## Этап 22: Умное переключение дат (Smart UI) (→ [ENHANCEMENTS_PLAN.md § 2](./ENHANCEMENTS_PLAN.md#2-умное-переключение-дат-smart-date-switch))
+- [x] 22.1 Frontend: Реализовать логику `getDefaultDate` (завтра после 18:00, понедельник в воскресенье)
+- [x] 22.2 Frontend: Применить `getDefaultDate` для установки начального состояния `activeDayIdx` и `activeWeekStart`
+- [x] 22.3 Frontend: Тестирование переключения дат в граничных условиях (вечер субботы, воскресенье)
+
+---
+
+## Этап 23: Push-уведомления (FCM Backend) (→ [ENHANCEMENTS_PLAN.md § 3](./ENHANCEMENTS_PLAN.md#3-push-уведомления-fcm))
+- [x] 23.1 Backend: Интеграция Firebase Admin SDK
+- [x] 23.2 Backend: Создать таблицу `user_subscriptions` для хранения FCM токенов
+- [x] 23.3 Backend: Реализовать API эндпоинты `/subscribe` и `/unsubscribe`
+- [x] 23.4 Backend: Отправка уведомлений при обнаружении изменений в Diff Engine
+
+---
+
+## Этап 24: Push-уведомления (FCM Frontend) (→ [ENHANCEMENTS_PLAN.md § 3.2](./ENHANCEMENTS_PLAN.md#3-push-уведомления-fcm))
+- [x] 24.1 Frontend: Настройка `firebase-messaging-sw.js` для обработки фоновых Push
+- [x] 24.2 Frontend: Кнопка «Уведомлять об изменениях» на странице расписания
+- [x] 24.3 Frontend: Логика регистрации FCM токена и подписки на топики групп

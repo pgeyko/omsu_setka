@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Star, Share2, MapPin, User, Clock, LayoutGrid, List, Layers, X } from 'lucide-react';
+import { ArrowLeft, Star, Share2, MapPin, User, Clock, LayoutGrid, List, Layers, X, Bell } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { fetchSchedule, fetchHealth, TIME_SLOTS } from '../api/client';
+import { fetchSchedule, fetchHealth, TIME_SLOTS, subscribeToNotifications, unsubscribeFromNotifications, fetchChanges } from '../api/client';
+import { requestForToken, onMessageListener } from '../utils/firebase';
 import type { Day, Lesson, HealthData } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { Toast } from '../components/ui/Toast';
@@ -38,6 +39,22 @@ const getMonday = (d: Date) => {
   return monday;
 };
 
+const getDefaultDate = () => {
+  const now = new Date();
+  const day = now.getDay(); // 0 - Sun, 1 - Mon ... 6 - Sat
+  const hour = now.getHours();
+
+  const defaultDate = new Date(now);
+
+  // 1. Sunday -> Tomorrow (Monday)
+  // 2. Evening (>= 18:00) -> Tomorrow
+  if (day === 0 || hour >= 18) {
+    defaultDate.setDate(now.getDate() + 1);
+  }
+
+  return defaultDate;
+};
+
 const formatWeekRange = (monday: Date) => {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
@@ -62,7 +79,7 @@ export const ScheduleView: React.FC = () => {
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [dateFilter, setDateFilter] = useState('');
-  const [activeWeekStart, setActiveWeekStart] = useState<Date>(getMonday(new Date()));
+  const [activeWeekStart, setActiveWeekStart] = useState<Date>(getMonday(getDefaultDate()));
   const [selectedGroup, setSelectedGroup] = useState<Lesson[] | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -71,6 +88,65 @@ export const ScheduleView: React.FC = () => {
 
   // Favorites Store
   const { addFavorite, removeFavorite, isFavorite, subgroup, setSubgroup } = useFavoritesStore();
+
+  // Notifications state
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [hasNewChanges, setHasNewChanges] = useState(false);
+
+  // Check subscription status on mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem(`fcm_token_${entityType}_${entityID}`);
+    if (savedToken) {
+      setIsSubscribed(true);
+    }
+  }, [entityType, entityID]);
+
+  useEffect(() => {
+    if (entityID > 0) {
+      fetchChanges(entityType, entityID).then(changes => {
+        if (changes && changes.length > 0) {
+          setHasNewChanges(true);
+        }
+      }).catch(console.error);
+    }
+  }, [entityType, entityID]);
+
+  useEffect(() => {
+    onMessageListener().then((payload: any) => {
+      setToastMessage(`Уведомление: ${payload.notification.title}`);
+      setShowToast(true);
+    }).catch(err => console.log('failed: ', err));
+  }, []);
+
+  const toggleNotifications = async () => {
+    try {
+      const storageKey = `fcm_token_${entityType}_${entityID}`;
+      
+      if (isSubscribed) {
+        const token = localStorage.getItem(storageKey);
+        if (token) {
+          await unsubscribeFromNotifications(token);
+          localStorage.removeItem(storageKey);
+        }
+        setIsSubscribed(false);
+        setToastMessage('Уведомления отключены');
+      } else {
+        const token = await requestForToken();
+        if (token) {
+          await subscribeToNotifications(token, entityType, entityID);
+          localStorage.setItem(storageKey, token);
+          setIsSubscribed(true);
+          setToastMessage('Уведомления включены!');
+        } else {
+          setToastMessage('Не удалось получить разрешение на уведомления');
+        }
+      }
+      setShowToast(true);
+    } catch (err) {
+      setToastMessage('Ошибка при настройке уведомлений');
+      setShowToast(true);
+    }
+  };
 
   // Dynamic subgroup detection
   const [detectedSubgroups, setDetectedSubgroups] = useState<string[]>([]);
@@ -260,8 +336,8 @@ export const ScheduleView: React.FC = () => {
       const idx = weekDays.findIndex(d => parseDate(d.day).toDateString() === filterDate.toDateString());
       setActiveDayIdx(idx !== -1 ? idx : 0);
     } else {
-      const today = new Date();
-      const idx = weekDays.findIndex(d => parseDate(d.day).toDateString() === today.toDateString());
+      const defaultDate = getDefaultDate();
+      const idx = weekDays.findIndex(d => parseDate(d.day).toDateString() === defaultDate.toDateString());
       setActiveDayIdx(idx !== -1 ? idx : 0);
     }
   }, [activeWeekStart, dateFilter, schedule]);
@@ -391,6 +467,12 @@ export const ScheduleView: React.FC = () => {
                   <span style={{ position: 'relative', zIndex: 1, display: 'flex' }}><LayoutGrid size={20} /></span>
                 </button>
               </div>
+              {entityType !== 'auditory' && (
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleNotifications} className={`${styles.actionBtn} ${isSubscribed ? styles.active : ''}`} title="Уведомления об изменениях" style={{ position: 'relative' }}>
+                  <Bell size={22} fill={isSubscribed ? 'currentColor' : 'none'} />
+                  {hasNewChanges && <span className={styles.notificationDot}></span>}
+                </motion.button>
+              )}
               {entityType === 'group' && (
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowSubgroupDrawer(true)} className={`${styles.actionBtn} ${subgroup ? styles.filterActive : ''}`} title="Выбор подгруппы">
                   <Layers size={22} />
