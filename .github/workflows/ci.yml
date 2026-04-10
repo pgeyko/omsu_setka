@@ -118,8 +118,7 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           envs: ADMIN_KEY,CORS_ALLOWED_ORIGINS
           script: |
-            mkdir -p ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}/data
-            chmod 777 ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}/data
+            mkdir -p ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
             cd ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
             
             export APP_ENV="production"
