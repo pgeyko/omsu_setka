@@ -6,13 +6,13 @@ services:
     container_name: omsu_mirror_backend
     restart: always
     volumes:
-      - omsu_data:/data
+      - omsu_data:/app/data
     environment:
       - ADMIN_KEY=${ADMIN_KEY}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - APP_ENV=${APP_ENV:-production}
       - SERVER_PORT=${SERVER_PORT:-8080}
-      - SQLITE_PATH=/data/mirror.db
+      - SQLITE_PATH=/app/data/mirror.db
     deploy:
       resources:
         limits:

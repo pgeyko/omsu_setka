@@ -36,7 +36,7 @@ COPY admin.sh /usr/local/bin/admin
 RUN chmod +x /usr/local/bin/admin && sed -i 's/\r$//' /usr/local/bin/admin
 
 # Ensure appuser owns the app directory (especially important for SQLite data folder)
-RUN chown -R appuser:appuser /app
+RUN mkdir -p /app/data && chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
