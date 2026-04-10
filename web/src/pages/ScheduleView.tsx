@@ -53,18 +53,16 @@ export const ScheduleView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [schedule, setSchedule] = useState<Day[]>([]);
-  const [filteredSchedule, setFilteredSchedule] = useState<Day[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [healthData, setHealthData] = useState<HealthData | null>(null);
-  const [activeDayIdx, setActiveDayIdx] = useState(0);
-  const [dateFilter, setDateFilter] = useState('');
-  const [activeWeekStart, setActiveWeekStart] = useState<Date>(getMonday(new Date()));
-  const [selectedGroup, setSelectedGroup] = useState<Lesson[] | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
-  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
-  const [showSubgroupDrawer, setShowSubgroupDrawer] = useState(false);
-  const { addFavorite, removeFavorite, isFavorite, subgroup, setSubgroup } = useFavoritesStore();
+  // ... rest of state ...
+
+  const handleBack = () => {
+    // If location.key is 'default', it means we landed on this page directly
+    if (location.key === 'default') {
+      navigate('/');
+    } else {
+      navigate(-1);
+    }
+  };
 
   const isLessonForSubgroup = (lesson: Lesson) => {
     if (!subgroup || entityType !== 'group') return true;
