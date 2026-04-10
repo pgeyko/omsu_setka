@@ -51,7 +51,10 @@ export const ScheduleView: React.FC = () => {
   const { type, id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  const entityID = parseInt(id || '0');
+  const entityType = type || 'group';
+
   // State
   const [schedule, setSchedule] = useState<Day[]>([]);
   const [filteredSchedule, setFilteredSchedule] = useState<Day[]>([]);
@@ -65,9 +68,40 @@ export const ScheduleView: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [showSubgroupDrawer, setShowSubgroupDrawer] = useState(false);
-  
+
   // Favorites Store
   const { addFavorite, removeFavorite, isFavorite, subgroup, setSubgroup } = useFavoritesStore();
+
+  // Dynamic subgroup detection
+  const [detectedSubgroups, setDetectedSubgroups] = useState<string[]>([]);
+
+  const getSubgroupFromText = (text: string | undefined) => {
+    if (!text) return null;
+    // 1. Look for /X at the end (e.g. "МБС-501-О-01/1")
+    const slashMatch = text.match(/\/(\d+)$/);
+    if (slashMatch) return slashMatch[1];
+
+    // 2. Look for "X подгруппа" or "X п/г"
+    const wordMatch = text.match(/(\d+)\s*(?:подгруппа|подгр|п\/г)/i);
+    if (wordMatch) return wordMatch[1];
+
+    return null;
+  };
+
+  useEffect(() => {
+    if (schedule.length > 0 && entityType === 'group') {
+      const subs = new Set<string>();
+      schedule.forEach(day => {
+        day.lessons.forEach(lesson => {
+          const s1 = getSubgroupFromText(lesson.subgroupName);
+          const s2 = getSubgroupFromText(lesson.group);
+          if (s1) subs.add(s1);
+          if (s2) subs.add(s2);
+        });
+      });
+      setDetectedSubgroups(Array.from(subs).sort());
+    }
+  }, [schedule, entityType]);
 
   const handleBack = () => {
     if (location.key === 'default') {
@@ -128,8 +162,7 @@ export const ScheduleView: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const entityID = parseInt(id || '0');
-  const entityType = type || 'group';
+
 
   const prefixes: Record<string, string> = {
     'group': 'Группа',
@@ -433,7 +466,7 @@ export const ScheduleView: React.FC = () => {
                       const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
                       if (mergedMap.has(key)) {
                         const existing = mergedMap.get(key)!;
-                        if (l.group && existing.groups && !existing.groups.includes(l.group)) { existing.groups.push(l.group); } 
+                        if (l.group && existing.groups && !existing.groups.includes(l.group)) { existing.groups.push(l.group); }
                         else if (l.group && !existing.groups) { existing.groups = [existing.group || '', l.group]; }
                       } else { mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] }); }
                     });
@@ -522,7 +555,7 @@ export const ScheduleView: React.FC = () => {
               <div className={styles.modalHeader}><div className={styles.modalTimeTitle}><h3>Выбор подгруппы</h3></div><button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn}><X size={24} /></button></div>
               <div className={styles.subgroupOptions}>
                 <button onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }} className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}>Все занятия</button>
-                {['1', '2'].map(num => (
+                {detectedSubgroups.map(num => (
                   <button key={num} onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }} className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}>{num} подгруппа</button>
                 ))}
               </div>
