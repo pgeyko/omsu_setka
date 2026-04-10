@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"strings"
+
 	"omsu_mirror/internal/models"
 )
 
@@ -15,27 +17,42 @@ func NewDictRepo(db *SQLite) *DictRepo {
 }
 
 func (r *DictRepo) UpsertGroups(ctx context.Context, groups []models.Group) error {
+	if len(groups) == 0 {
+		return nil
+	}
+
 	tx, err := r.db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO dict_groups (id, name, real_group_id, updated_at)
-		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-		ON CONFLICT(id) DO UPDATE SET
+	chunkSize := 500
+	for i := 0; i < len(groups); i += chunkSize {
+		end := i + chunkSize
+		if end > len(groups) {
+			end = len(groups)
+		}
+		chunk := groups[i:end]
+
+		var b strings.Builder
+		b.WriteString("INSERT INTO dict_groups (id, name, real_group_id, updated_at) VALUES ")
+		args := make([]interface{}, 0, len(chunk)*3)
+
+		for j, g := range chunk {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString("(?, ?, ?, CURRENT_TIMESTAMP)")
+			args = append(args, g.ID, g.Name, g.RealGroupID)
+		}
+
+		b.WriteString(` ON CONFLICT(id) DO UPDATE SET
 			name = excluded.name,
 			real_group_id = excluded.real_group_id,
-			updated_at = excluded.updated_at
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+			updated_at = excluded.updated_at`)
 
-	for _, g := range groups {
-		if _, err := stmt.ExecContext(ctx, g.ID, g.Name, g.RealGroupID); err != nil {
+		if _, err := tx.ExecContext(ctx, b.String(), args...); err != nil {
 			return err
 		}
 	}
@@ -62,27 +79,42 @@ func (r *DictRepo) GetAllGroups(ctx context.Context) ([]models.Group, error) {
 }
 
 func (r *DictRepo) UpsertAuditories(ctx context.Context, auds []models.Auditory) error {
+	if len(auds) == 0 {
+		return nil
+	}
+
 	tx, err := r.db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO dict_auditories (id, name, building, updated_at)
-		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-		ON CONFLICT(id) DO UPDATE SET
+	chunkSize := 500
+	for i := 0; i < len(auds); i += chunkSize {
+		end := i + chunkSize
+		if end > len(auds) {
+			end = len(auds)
+		}
+		chunk := auds[i:end]
+
+		var b strings.Builder
+		b.WriteString("INSERT INTO dict_auditories (id, name, building, updated_at) VALUES ")
+		args := make([]interface{}, 0, len(chunk)*3)
+
+		for j, a := range chunk {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString("(?, ?, ?, CURRENT_TIMESTAMP)")
+			args = append(args, a.ID, a.Name, a.Building)
+		}
+
+		b.WriteString(` ON CONFLICT(id) DO UPDATE SET
 			name = excluded.name,
 			building = excluded.building,
-			updated_at = excluded.updated_at
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+			updated_at = excluded.updated_at`)
 
-	for _, a := range auds {
-		if _, err := stmt.ExecContext(ctx, a.ID, a.Name, a.Building); err != nil {
+		if _, err := tx.ExecContext(ctx, b.String(), args...); err != nil {
 			return err
 		}
 	}
@@ -109,26 +141,41 @@ func (r *DictRepo) GetAllAuditories(ctx context.Context) ([]models.Auditory, err
 }
 
 func (r *DictRepo) UpsertTutors(ctx context.Context, tutors []models.Tutor) error {
+	if len(tutors) == 0 {
+		return nil
+	}
+
 	tx, err := r.db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO dict_tutors (id, name, updated_at)
-		VALUES (?, ?, CURRENT_TIMESTAMP)
-		ON CONFLICT(id) DO UPDATE SET
-			name = excluded.name,
-			updated_at = excluded.updated_at
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+	chunkSize := 500
+	for i := 0; i < len(tutors); i += chunkSize {
+		end := i + chunkSize
+		if end > len(tutors) {
+			end = len(tutors)
+		}
+		chunk := tutors[i:end]
 
-	for _, t := range tutors {
-		if _, err := stmt.ExecContext(ctx, t.ID, t.Name); err != nil {
+		var b strings.Builder
+		b.WriteString("INSERT INTO dict_tutors (id, name, updated_at) VALUES ")
+		args := make([]interface{}, 0, len(chunk)*2)
+
+		for j, t := range chunk {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString("(?, ?, CURRENT_TIMESTAMP)")
+			args = append(args, t.ID, t.Name)
+		}
+
+		b.WriteString(` ON CONFLICT(id) DO UPDATE SET
+			name = excluded.name,
+			updated_at = excluded.updated_at`)
+
+		if _, err := tx.ExecContext(ctx, b.String(), args...); err != nil {
 			return err
 		}
 	}
