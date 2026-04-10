@@ -4,6 +4,7 @@ import (
 	"context"
 	"omsu_mirror/internal/cache"
 	"omsu_mirror/internal/config"
+	"omsu_mirror/internal/notifications"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/upstream"
 	"sync"
@@ -26,9 +27,12 @@ type Syncer struct {
 	cfg          *config.Config
 	client       *upstream.Client
 	dictRepo     *storage.DictRepo
-	scheduleRepo *storage.ScheduleRepo
-	incidentRepo *storage.IncidentRepo
-	memoryCache  *cache.MemoryCache
+	scheduleRepo     *storage.ScheduleRepo
+	incidentRepo     *storage.IncidentRepo
+	changeRepo       *storage.ChangeRepo
+	subscriptionRepo *storage.SubscriptionRepo
+	fcm              *notifications.FCMClient
+	memoryCache      *cache.MemoryCache
 	searchIndex  *cache.SearchIndex
 	mu           sync.Mutex
 	status       *UpstreamStatus
@@ -42,15 +46,21 @@ func NewSyncer(
 	memoryCache *cache.MemoryCache,
 	searchIndex *cache.SearchIndex,
 	incidentRepo *storage.IncidentRepo,
+	changeRepo *storage.ChangeRepo,
+	subscriptionRepo *storage.SubscriptionRepo,
+	fcm *notifications.FCMClient,
 ) *Syncer {
 	return &Syncer{
-		cfg:          cfg,
-		client:       client,
-		dictRepo:     dictRepo,
-		scheduleRepo: scheduleRepo,
-		incidentRepo: incidentRepo,
-		memoryCache:  memoryCache,
-		searchIndex:  searchIndex,
+		cfg:              cfg,
+		client:           client,
+		dictRepo:         dictRepo,
+		scheduleRepo:     scheduleRepo,
+		incidentRepo:     incidentRepo,
+		changeRepo:       changeRepo,
+		subscriptionRepo: subscriptionRepo,
+		fcm:              fcm,
+		memoryCache:      memoryCache,
+		searchIndex:      searchIndex,
 		status: &UpstreamStatus{
 			IsHealthy: true, // Optimistically assume healthy until proven otherwise
 		},

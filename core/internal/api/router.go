@@ -4,6 +4,7 @@ import (
 	_ "omsu_mirror/docs"
 	"omsu_mirror/internal/cache"
 	"omsu_mirror/internal/config"
+	"omsu_mirror/internal/notifications"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/sync"
 	"omsu_mirror/internal/upstream"
@@ -16,15 +17,18 @@ import (
 )
 
 type Server struct {
-	App          *fiber.App
-	Cfg          *config.Config
-	Client       *upstream.Client
-	DictRepo     *storage.DictRepo
-	ScheduleRepo *storage.ScheduleRepo
-	MemoryCache   *cache.MemoryCache
-	SearchIndex  *cache.SearchIndex
-	Syncer       *sync.Syncer
-	IncidentRepo *storage.IncidentRepo
+	App              *fiber.App
+	Cfg              *config.Config
+	Client           *upstream.Client
+	DictRepo         *storage.DictRepo
+	ScheduleRepo     *storage.ScheduleRepo
+	ChangeRepo       *storage.ChangeRepo
+	SubscriptionRepo *storage.SubscriptionRepo
+	FCM              *notifications.FCMClient
+	MemoryCache      *cache.MemoryCache
+	SearchIndex      *cache.SearchIndex
+	Syncer           *sync.Syncer
+	IncidentRepo     *storage.IncidentRepo
 }
 
 func NewServer(
@@ -36,6 +40,9 @@ func NewServer(
 	searchIndex *cache.SearchIndex,
 	syncer *sync.Syncer,
 	incidentRepo *storage.IncidentRepo,
+	changeRepo *storage.ChangeRepo,
+	subscriptionRepo *storage.SubscriptionRepo,
+	fcm *notifications.FCMClient,
 ) *Server {
 	app := fiber.New(fiber.Config{
 		Prefork:       cfg.ServerPrefork,
@@ -60,15 +67,18 @@ func NewServer(
 	app.Use(LoggerMiddleware())
 
 	s := &Server{
-		App:          app,
-		Cfg:          cfg,
-		Client:       client,
-		DictRepo:     dictRepo,
-		ScheduleRepo: scheduleRepo,
-		MemoryCache:   memoryCache,
-		SearchIndex:  searchIndex,
-		Syncer:       syncer,
-		IncidentRepo: incidentRepo,
+		App:              app,
+		Cfg:              cfg,
+		Client:           client,
+		DictRepo:         dictRepo,
+		ScheduleRepo:     scheduleRepo,
+		ChangeRepo:       changeRepo,
+		SubscriptionRepo: subscriptionRepo,
+		FCM:              fcm,
+		MemoryCache:      memoryCache,
+		SearchIndex:      searchIndex,
+		Syncer:           syncer,
+		IncidentRepo:     incidentRepo,
 	}
 
 	s.setupRoutes()
@@ -99,6 +109,13 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/group/:id", s.handleGetSchedule("group"))
 	v1.Get("/schedule/tutor/:id", s.handleGetSchedule("tutor"))
 	v1.Get("/schedule/auditory/:id", s.handleGetSchedule("auditory"))
+
+	// Changes
+	v1.Get("/changes/:type/:id", s.handleGetChanges)
+
+	// Notifications
+	v1.Post("/subscribe", s.handleSubscribe)
+	v1.Post("/unsubscribe", s.handleUnsubscribe)
 
 	// Search — use stricter rate limit directly
 	v1.Get("/search", RateLimitMiddleware(s.Cfg.RateLimitSearch, s.Cfg.RateLimitWindow), s.handleSearch)

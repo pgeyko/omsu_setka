@@ -51,16 +51,23 @@ This script builds the frontend, compiles the Go backend, and starts the server.
 ## UI & UX Features (Recent Updates)
 -   **Desktop Optimization:** Content width is limited to 1100px for better readability.
 -   **Activity Type Coloring:** Session types have distinct colors for their labels (Indigo for Lectures, Red for Practice, Green for Labs).
+-   **Smart Day Switching:** Automatically switches to "Tomorrow" after 18:00 or to "Monday" on Sundays.
+-   **Schedule Change Tracking:** Detects added, removed, or modified lessons by comparing history.
+-   **Push Notifications:** Integration with Firebase Cloud Messaging (FCM) for real-time alerts.
 -   **Search Consistency:** Both Home and Tutors pages feature a centered search bar (600px max-width) and share a unified "Recent" search history limited to 5 items.
--   **Flexible Search:** Search normalization ignores punctuation and spaces (e.g., 'мбс 501' matches 'МБС-501-О-01').
--   **Enhanced Schedule View:** Lifted day buttons with overflow fixes, vertical time indicators, and support for subgroup filtering.
 
 ## Development Conventions
 
 ### Backend (Go)
 -   **Zero-Allocation:** Prefer pre-rendered JSON blobs (`[]byte`) stored in memory to avoid repeated serialization.
+-   **Schedule Diff Engine:** Tracks history in `schedule_changes` table and logs incidents.
+-   **FCM Integration:** Supports token-based subscriptions for groups and tutors.
 -   **GZIP Caching:** Store and serve gzipped content directly when supported by the client.
--   **Pure Go SQLite:** Use `modernc.org/sqlite` to avoid CGO dependencies for easier cross-compilation and scratch-based Docker images.
+
+### Frontend (React)
+-   **Firebase PWA:** Uses Service Worker (`firebase-messaging-sw.js`) for background notifications.
+-   **Secure Build:** Secrets are injected into the Service Worker during Docker build via `sed` to prevent leaks in Git.
+-   **Styling:** Use **Vanilla CSS** with variables for themes. Avoid utility-first CSS frameworks like Tailwind.
 -   **Logging:** Use `zerolog` for structured, high-performance logging.
 -   **Configuration:** All configuration is managed via Environment Variables (see `.env.example`).
 

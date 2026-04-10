@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"omsu_mirror/internal/models"
+	"omsu_mirror/internal/storage"
 	"strconv"
 	"time"
 
@@ -114,4 +115,61 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		c.Set("X-Cache-Status", "MISS")
 		return c.JSON(resp)
 	}
+}
+
+func (s *Server) handleGetChanges(c *fiber.Ctx) error {
+	entityType := c.Params("type")
+	idStr := c.Params("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID"})
+	}
+
+	changes, err := s.ChangeRepo.GetChanges(c.Context(), entityType, id, 20)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch changes"})
+	}
+
+	return c.JSON(models.BFFResponse{
+		Success:  true,
+		Data:     changes,
+		CachedAt: time.Now(),
+		Source:   "cache",
+	})
+}
+
+func (s *Server) handleSubscribe(c *fiber.Ctx) error {
+	var sub storage.Subscription
+	if err := c.BodyParser(&sub); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	if sub.FCMToken == "" || sub.EntityType == "" || sub.EntityID == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing required fields"})
+	}
+
+	if err := s.SubscriptionRepo.Subscribe(c.Context(), sub); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to subscribe"})
+	}
+
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func (s *Server) handleUnsubscribe(c *fiber.Ctx) error {
+	var body struct {
+		Token string `json:"fcm_token"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	if body.Token == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing fcm_token"})
+	}
+
+	if err := s.SubscriptionRepo.Unsubscribe(c.Context(), body.Token); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to unsubscribe"})
+	}
+
+	return c.JSON(fiber.Map{"success": true})
 }

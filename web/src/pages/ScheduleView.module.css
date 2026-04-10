@@ -788,6 +788,18 @@
   color: var(--text-secondary);
 }
 
+.notificationDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-color);
+  border-radius: 50%;
+  border: 2px solid var(--surface-color);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
 @media (min-width: 768px) {
   .modalOverlay {
     align-items: center;

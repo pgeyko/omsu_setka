@@ -107,6 +107,26 @@ func (s *SQLite) migrate() error {
 			created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_incidents_created ON upstream_incidents(created_at DESC);`,
+
+		`CREATE TABLE IF NOT EXISTS schedule_changes (
+			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			entity_type  TEXT NOT NULL,
+			entity_id    INTEGER NOT NULL,
+			change_type  TEXT NOT NULL,
+			lesson_id    INTEGER NOT NULL,
+			old_data     TEXT,
+			new_data     TEXT,
+			created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_changes_entity ON schedule_changes(entity_type, entity_id);`,
+
+		`CREATE TABLE IF NOT EXISTS user_subscriptions (
+			fcm_token    TEXT PRIMARY KEY,
+			entity_type  TEXT NOT NULL,
+			entity_id    INTEGER NOT NULL,
+			created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_sub_entity ON user_subscriptions(entity_type, entity_id);`,
 	}
 
 	for _, q := range queries {
