@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"strings"
+
 	"omsu_mirror/internal/models"
 )
 
@@ -15,27 +17,44 @@ func NewDictRepo(db *SQLite) *DictRepo {
 }
 
 func (r *DictRepo) UpsertGroups(ctx context.Context, groups []models.Group) error {
+	if len(groups) == 0 {
+		return nil
+	}
+
 	tx, err := r.db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO dict_groups (id, name, real_group_id, updated_at)
-		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+	batchSize := 500
+	for i := 0; i < len(groups); i += batchSize {
+		end := i + batchSize
+		if end > len(groups) {
+			end = len(groups)
+		}
+		batch := groups[i:end]
+
+		var b strings.Builder
+		b.WriteString("INSERT INTO dict_groups (id, name, real_group_id, updated_at) VALUES ")
+
+		vals := make([]interface{}, 0, len(batch)*3)
+		for j, g := range batch {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString("(?, ?, ?, CURRENT_TIMESTAMP)")
+			vals = append(vals, g.ID, g.Name, g.RealGroupID)
+		}
+
+		b.WriteString(`
 		ON CONFLICT(id) DO UPDATE SET
 			name = excluded.name,
 			real_group_id = excluded.real_group_id,
 			updated_at = excluded.updated_at
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+		`)
 
-	for _, g := range groups {
-		if _, err := stmt.ExecContext(ctx, g.ID, g.Name, g.RealGroupID); err != nil {
+		if _, err := tx.ExecContext(ctx, b.String(), vals...); err != nil {
 			return err
 		}
 	}

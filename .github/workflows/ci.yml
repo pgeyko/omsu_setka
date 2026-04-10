@@ -41,7 +41,7 @@ jobs:
       - name: Install & Test
         run: |
           cd web
-          npm install
+          npm install --legacy-peer-deps
           npm run test
       - name: Verify build
         run: |
