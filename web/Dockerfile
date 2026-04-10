@@ -12,6 +12,9 @@ RUN npm install --legacy-peer-deps
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+ARG VITE_CF_ANALYTICS_TOKEN
+ENV VITE_CF_ANALYTICS_TOKEN=$VITE_CF_ANALYTICS_TOKEN
+
 # Копируем исходники фронтенда из папки web
 COPY web/ .
 
