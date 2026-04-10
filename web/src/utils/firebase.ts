@@ -10,6 +10,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+console.log('Firebase Config Present:', !!firebaseConfig.apiKey);
+if (!firebaseConfig.apiKey) {
+  console.error('Firebase configuration is missing! Push notifications will not work.');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);

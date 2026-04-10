@@ -131,18 +131,22 @@ jobs:
             mkdir -p ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
             cd ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
             
-            export APP_ENV="production"
-            export SERVER_PORT="8080"
-            export ADMIN_KEY="$ADMIN_KEY"
-            export CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS"
-            export FIREBASE_SERVICE_ACCOUNT="$FIREBASE_SERVICE_ACCOUNT"
+            # Create a robust environment file
+            cat <<EOF > .env.prod
+            ADMIN_KEY=$ADMIN_KEY
+            CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
+            FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT
+            EOF
             
             # Ensure the nginx-network exists
             docker network inspect nginx-network >/dev/null 2>&1 || docker network create nginx-network
             
-            # Restart containers with new images and pass envs
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            # Restart containers using the env file
+            docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+            
+            # Clean up: remove the sensitive env file after containers are up
+            rm .env.prod
             
             # Clean up old images
             docker image prune -f
