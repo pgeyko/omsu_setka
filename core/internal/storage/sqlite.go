@@ -26,6 +26,11 @@ func NewSQLite(cfg *config.Config) (*SQLite, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// 19.3 For in-memory DB, we must limit to 1 connection to share the same private memory space
+	if cfg.SQLitePath == ":memory:" {
+		db.SetMaxOpenConns(1)
+	}
+
 	// Configure WAL mode for concurrency
 	if cfg.SQLiteWALMode {
 		if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
