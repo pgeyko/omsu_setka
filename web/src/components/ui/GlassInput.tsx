@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import styles from './GlassInput.module.css';
 
 interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -6,16 +6,24 @@ interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   loading?: boolean;
 }
 
-export const GlassInput: React.FC<GlassInputProps> = ({ icon, loading, ...props }) => {
-  return (
-    <div className={styles.container}>
-      {icon && <div className={styles.icon}>{icon}</div>}
-      <input className={`${styles.input} ${icon ? styles.withIcon : ''}`} {...props} />
-      {loading && (
-        <div className={styles.loader}>
-          <div className={styles.spinner}></div>
-        </div>
-      )}
-    </div>
-  );
-};
+export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
+  ({ icon, loading, ...props }, ref) => {
+    return (
+      <div className={styles.container}>
+        {icon && <div className={styles.icon}>{icon}</div>}
+        <input 
+          ref={ref}
+          className={`${styles.input} ${icon ? styles.withIcon : ''}`} 
+          {...props} 
+        />
+        {loading && (
+          <div className={styles.loader}>
+            <div className={styles.spinner}></div>
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+GlassInput.displayName = 'GlassInput';

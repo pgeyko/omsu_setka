@@ -1,0 +1,216 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 5000;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 80%;
+  max-width: 320px;
+  background: var(--bg-color) !important;
+  border-right: 1px solid var(--surface-border);
+  z-index: 5001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 1100px) {
+  .sidebar {
+    width: 280px;
+    box-shadow: none;
+    transform: none !important; /* Force show on desktop */
+  }
+  
+  .overlay {
+    display: none; /* No overlay on desktop */
+  }
+
+  .closeBtn {
+    display: none; /* No close button on desktop */
+  }
+}
+
+.header {
+  padding: var(--spacing-lg) var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: var(--text-primary);
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+
+.closeBtn {
+  background: var(--surface-color);
+  border: none;
+  border-radius: var(--radius-md);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 var(--spacing-sm);
+}
+
+.sectionLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  letter-spacing: 0.1em;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: var(--surface-color);
+  color: var(--text-primary);
+}
+
+.active {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+  border-left: 3px solid var(--accent-color);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+[data-theme='dark'] .active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.extIcon {
+  margin-left: auto;
+  opacity: 0.4;
+}
+
+.divider {
+  height: 1px;
+  background: var(--surface-border);
+  margin: var(--spacing-sm) var(--spacing-md);
+}
+
+.footer {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.themeToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.themeToggle:hover {
+  border-color: var(--text-primary);
+}
+
+.statusInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.statusInfo:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.healthy {
+  background-color: #ffffff;
+  color: #ffffff;
+}
+
+.unhealthy {
+  background-color: #ef4444;
+  color: #ef4444;
+}
+
+.statusLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.version {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  opacity: 0.5;
+}
+
+@media (min-width: 1100px) {
+  /* On very wide screens we could potentially make it sticky but 
+     the requirement says "located on the left", we'll keep it as a drawer
+     that can be triggered from header for consistency across all pages. */
+}

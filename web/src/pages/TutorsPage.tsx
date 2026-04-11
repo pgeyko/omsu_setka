@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar, Star, Pin } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { fetchTutors, fetchSchedule, onRateLimit } from '../api/client';
@@ -19,9 +19,30 @@ export const TutorsPage: React.FC = () => {
   const [loadingSubjects, setLoadingSubjects] = useState<Record<number, boolean>>({});
   const [isFocused, setIsFocused] = useState(false);
 
-  const { recentTutors, addRecent } = useFavoritesStore();
+  const { recentTutors, addRecent, addFavorite, removeFavorite, isFavorite, pinEntity, unpinEntity, pinnedEntity } = useFavoritesStore();
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+
+  const isTutorFavorite = (id: number) => isFavorite(id, 'tutor');
+  const isTutorPinned = (id: number) => pinnedEntity?.id === id && pinnedEntity?.type === 'tutor';
+
+  const toggleFavorite = (e: React.MouseEvent, tutor: Tutor) => {
+    e.stopPropagation();
+    if (isTutorFavorite(tutor.id)) {
+      removeFavorite(tutor.id, 'tutor');
+    } else {
+      addFavorite({ id: tutor.id, name: tutor.name, type: 'tutor' });
+    }
+  };
+
+  const togglePin = (e: React.MouseEvent, tutor: Tutor) => {
+    e.stopPropagation();
+    if (isTutorPinned(tutor.id)) {
+      unpinEntity();
+    } else {
+      pinEntity({ id: tutor.id, name: tutor.name, type: 'tutor' });
+    }
+  };
 
   useEffect(() => {
     onRateLimit((retry) => {
@@ -107,7 +128,7 @@ export const TutorsPage: React.FC = () => {
         <nav className={styles.nav}>
           <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
           <div className={styles.navTitle}>Преподаватели</div>
-          <div className={styles.navActions}></div>
+          <div className={styles.navSpacer}></div>
         </nav>
       </header>
 
@@ -154,7 +175,23 @@ export const TutorsPage: React.FC = () => {
                     <User size={20} className="text-accent" />
                     <span className={styles.tutorName}>{tutor.name}</span>
                   </div>
-                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button 
+                      className={`${styles.actionButton} ${isTutorFavorite(tutor.id) ? styles.active : ''}`}
+                      onClick={(e) => toggleFavorite(e, tutor)}
+                      title="В избранное"
+                    >
+                      <Star size={18} fill={isTutorFavorite(tutor.id) ? 'currentColor' : 'none'} />
+                    </button>
+                    <button 
+                      className={`${styles.actionButton} ${isTutorPinned(tutor.id) ? styles.activePin : ''}`}
+                      onClick={(e) => togglePin(e, tutor)}
+                      title="Закрепить на главной"
+                    >
+                      <Pin size={18} />
+                    </button>
+                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </div>
                 </div>
 
                 {isExpanded && (

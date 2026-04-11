@@ -31,9 +31,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  z-index: 2000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 5000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -42,14 +43,14 @@
 .modalContent {
   width: 100%;
   max-width: 800px;
-  background: var(--bg-color);
+  background: var(--bg-color) !important;
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
   padding: var(--spacing-xl) var(--spacing-lg) calc(var(--spacing-xl) + 20px);
   max-height: 85dvh;
   overflow-y: auto;
   border-top: 1px solid var(--surface-border);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
   overscroll-behavior: contain;
 }
 
@@ -107,8 +108,8 @@
 }
 
 .navBtn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
+  background: var(--surface-color);
+  border: 1px solid var(--glass-border);
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -121,7 +122,8 @@
 }
 
 .navBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-color);
+  border-color: var(--accent-color);
   color: var(--accent-color);
 }
 

@@ -69,6 +69,27 @@ input {
   position: relative;
 }
 
+@media (min-width: 1100px) {
+  .with-sidebar .app-container {
+    padding-left: calc(280px + var(--spacing-md));
+    max-width: calc(1100px + 280px);
+  }
+}
+
+/* Responsive Utils */
+.desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 1100px) {
+  .desktop-only {
+    display: flex !important;
+  }
+  .mobile-only {
+    display: none !important;
+  }
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

@@ -1,0 +1,120 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 5000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 450px;
+  background: var(--bg-color) !important;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: var(--spacing-xl);
+  border-top: 1px solid var(--surface-border);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  color: var(--text-primary);
+}
+
+.message {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-xl);
+}
+
+.footer {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.cancelBtn, .confirmBtn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.confirmBtn {
+  background: var(--text-primary);
+  color: var(--bg);
+  border: none;
+}
+
+.confirmBtn:active, .cancelBtn:active {
+  transform: scale(0.96);
+}
+
+.confirmBtn:disabled, .cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #000000;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (min-width: 768px) {
+  .modalOverlay {
+    align-items: center;
+  }
+
+  .modalContent {
+    border-radius: 24px;
+    border: 1px solid #262626;
+  }
+}
