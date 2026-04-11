@@ -80,7 +80,7 @@
 
 .confirmBtn {
   background: var(--text-primary);
-  color: var(--bg);
+  color: var(--bg-color) !important;
   border: none;
 }
 

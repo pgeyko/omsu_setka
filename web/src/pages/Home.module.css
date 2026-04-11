@@ -58,6 +58,34 @@
   margin-bottom: var(--spacing-xl);
 }
 
+.searchButton {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  width: 100%;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: var(--text-primary) !important;
+  font-weight: 700;
+}
+
+.searchButton svg {
+  color: inherit !important;
+}
+
+.searchButton:hover {
+  border-color: var(--text-h);
+  background: var(--surface-color);
+  transform: translateY(-2px);
+}
+
 .actionCard {
   padding: 20px;
   display: flex;
@@ -76,7 +104,7 @@
 .actionCard:hover {
   border-color: var(--text-primary);
   transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-color);
 }
 
 .actionIcon {
