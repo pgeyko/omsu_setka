@@ -254,6 +254,24 @@
   margin: 0 auto;
 }
 
+.entityNameMobile {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100vw - 150px);
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .entityNameMobile {
+    display: none;
+  }
+}
+
 .dateTitle {
   font-size: 16px;
   font-weight: 700;

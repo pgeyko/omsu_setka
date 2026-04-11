@@ -62,7 +62,7 @@ export const Home: React.FC = () => {
             <div className={styles.bannerText}>
               Используйте поиск, чтобы найти свою группу или преподавателя, а затем добавьте их в избранное и закрепите на главной.
             </div>
-            <button onClick={() => navigate('/search')} className={styles.actionCard} style={{ marginTop: 8, flexDirection: 'row', gap: 12, padding: 16 }}>
+            <button onClick={() => navigate('/search')} className={styles.searchButton}>
               <Search size={20} /> Перейти к поиску
             </button>
           </div>

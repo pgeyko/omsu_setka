@@ -6,17 +6,15 @@
   margin: 0 auto;
   width: fit-content;
   max-width: 90vw;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  background: var(--text-primary);
+  border: 1px solid var(--surface-border);
   padding: 12px 24px;
   border-radius: var(--radius-full);
-  color: white;
-  font-weight: 600;
+  color: var(--bg-color) !important;
+  font-weight: 700;
   font-size: 14px;
-  z-index: 3000;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 6000;
+  box-shadow: var(--shadow-md);
   white-space: nowrap;
   text-align: center;
 }

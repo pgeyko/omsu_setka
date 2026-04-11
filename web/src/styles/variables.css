@@ -1,5 +1,5 @@
 :root {
-  /* Colors - Dark Theme (AMOLED Monochrome) */
+  /* Default Theme (Dark/Monochrome) */
   --bg-color: #000000;
   --surface-color: #121212;
   --surface-border: #262626;
@@ -53,7 +53,7 @@
   --accent-glow: rgba(0, 0, 0, 0.05);
   --glass-bg: #ffffff;
   --glass-blur: none;
-  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-border: #e5e5e5;
   --success: #000000;
   --warning: #000000;
   --danger: #000000;

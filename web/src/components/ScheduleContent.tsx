@@ -498,7 +498,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
         <header className={styles.stickyHeader}>
           <nav className={styles.nav}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
               {showBackButton ? (
                 <motion.button 
                   whileHover={{ scale: 1.05 }} 
@@ -509,11 +509,11 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                   <ArrowLeft size={24} />
                 </motion.button>
               ) : (
-                <div style={{ width: 44 }} /> // Placeholder to keep title centered
+                <h2 className={styles.entityNameMobile}>{entityName}</h2>
               )}
             </div>
 
-            <div className={styles.headerTitle} style={{ display: 'block' }}>
+            <div className={styles.headerTitle} style={{ display: showBackButton ? 'block' : undefined }}>
               <h2 className={styles.entityNameDesktop}>{entityName}</h2>
             </div>
 

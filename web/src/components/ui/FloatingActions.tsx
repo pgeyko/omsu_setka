@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings2,
@@ -80,48 +81,51 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
 
   return (
     <div className={styles.container}>
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div 
-              className={styles.overlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-            />
-            
-            <div className={styles.menu}>
-              {actions.map((action, index) => (
-                <motion.div
-                  key={index}
-                  className={styles.actionWrapper}
-                  initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <span className={styles.label}>{action.label}</span>
-                  <button 
-                    className={`${styles.actionBtn} ${action.isActive ? styles.btnActive : ''}`} 
-                    onClick={() => {
-                      action.onClick();
-                      setIsOpen(false);
-                    }}
-                    style={{ 
-                      color: action.isActive ? (action.activeColor || 'var(--text-primary)') : 'var(--text-secondary)',
-                      borderColor: action.isActive ? (action.activeColor || 'var(--text-primary)') : undefined
-                    }}
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              <motion.div 
+                className={styles.overlay}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsOpen(false)}
+              />
+              
+              <div className={styles.menu}>
+                {actions.map((action, index) => (
+                  <motion.div
+                    key={index}
+                    className={styles.actionWrapper}
+                    initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    {action.icon}
-                    {action.badge && <span className={styles.badge} />}
-                  </button>
-                </motion.div>
-              ))}
-            </div>
-          </>
-        )}
-      </AnimatePresence>
+                    <span className={styles.label}>{action.label}</span>
+                    <button 
+                      className={`${styles.actionBtn} ${action.isActive ? styles.btnActive : ''}`} 
+                      onClick={() => {
+                        action.onClick();
+                        setIsOpen(false);
+                      }}
+                      style={{ 
+                        color: action.isActive ? (action.activeColor || 'var(--text-primary)') : 'var(--text-secondary)',
+                        borderColor: action.isActive ? (action.activeColor || 'var(--text-primary)') : undefined
+                      }}
+                    >
+                      {action.icon}
+                      {action.badge && <span className={styles.badge} />}
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       <motion.button
         className={`${styles.mainBtn} ${isOpen ? styles.active : ''}`}
