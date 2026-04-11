@@ -14,6 +14,9 @@ interface FavoritesState {
   updateItemName: (id: number, type: string, newName: string) => void;
   subgroup: string | null;
   setSubgroup: (subgroup: string | null) => void;
+  pinnedEntity: SearchResult | null;
+  pinEntity: (item: SearchResult) => void;
+  unpinEntity: () => void;
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -59,9 +62,12 @@ export const useFavoritesStore = create<FavoritesState>()(
       }),
       subgroup: null,
       setSubgroup: (subgroup) => set({ subgroup }),
+      pinnedEntity: null,
+      pinEntity: (item) => set({ pinnedEntity: item }),
+      unpinEntity: () => set({ pinnedEntity: null }),
     }),
     {
-      name: 'omsu-setka-favorites', // Keep the current persist name to avoid clearing user data if possible, but structure must match
+      name: 'omsu-setka-favorites',
     }
   )
 );

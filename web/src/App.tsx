@@ -4,8 +4,12 @@ import { Home } from './pages/Home';
 import { ScheduleView } from './pages/ScheduleView';
 import { StatusPage } from './pages/StatusPage';
 import { TutorsPage } from './pages/TutorsPage';
+import { FavoritesPage } from './pages/FavoritesPage';
+import { SearchPage } from './pages/SearchPage';
 import { Footer } from './components/ui/Footer';
+import { Sidebar } from './components/ui/Sidebar';
 import { useSettingsStore } from './store/useSettings';
+import { useSidebarStore } from './store/useSidebar';
 import './styles/global.css';
 
 const ScrollToTop = () => {
@@ -14,6 +18,19 @@ const ScrollToTop = () => {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
+};
+
+const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isOpen, close } = useSidebarStore();
+
+  return (
+    <>
+      <Sidebar isOpen={isOpen} onClose={close} />
+      <div className="with-sidebar">
+        {children}
+      </div>
+    </>
+  );
 };
 
 function App() {
@@ -37,13 +54,16 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/schedule/:type/:id" element={<ScheduleView />} />
-        <Route path="/status" element={<StatusPage />} />
-        <Route path="/tutors" element={<TutorsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/schedule/:type/:id" element={<ScheduleView />} />
+          <Route path="/status" element={<StatusPage />} />
+          <Route path="/tutors" element={<TutorsPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />        </Routes>
+      </MainLayout>
       <Footer />
     </BrowserRouter>
   );
