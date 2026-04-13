@@ -46,9 +46,9 @@ func NewFCMClient() *FCMClient {
 	}
 }
 
-func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, body string, data map[string]string) {
+func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, body string, data map[string]string) []string {
 	if c.messaging == nil || len(tokens) == 0 {
-		return
+		return nil
 	}
 
 	// FCM v1 allows sending to multiple tokens via Multicast
@@ -72,12 +72,19 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 	br, err := c.messaging.SendEachForMulticast(ctx, message)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to send FCM multicast message")
-		return
+		return nil
 	}
 
+	var invalidTokens []string
 	if br.FailureCount > 0 {
 		log.Warn().Msgf("FCM: %d messages failed to deliver", br.FailureCount)
+		for i, resp := range br.Responses {
+			if resp.Error != nil && messaging.IsRegistrationTokenNotRegistered(resp.Error) {
+				invalidTokens = append(invalidTokens, tokens[i])
+			}
+		}
 	}
 
 	log.Info().Msgf("FCM: Successfully sent notifications to %d devices", br.SuccessCount)
+	return invalidTokens
 }

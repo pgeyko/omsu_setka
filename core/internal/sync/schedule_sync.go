@@ -199,10 +199,15 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 		// Send push notifications to subscribers
 		tokens, err := s.subscriptionRepo.GetTokensByEntity(ctx, entityType, entityID)
 		if err == nil && len(tokens) > 0 {
-			s.fcm.SendToTokens(ctx, tokens, "Изменение в расписании! 🔄", "Замечены изменения в расписании, нажми чтобы посмотреть.", map[string]string{
+			invalidTokens := s.fcm.SendToTokens(ctx, tokens, "Изменение в расписании! 🔄", "Замечены изменения в расписании, нажми чтобы посмотреть.", map[string]string{
 				"type": entityType,
 				"id":   strconv.Itoa(entityID),
 			})
+			if len(invalidTokens) > 0 {
+				if err := s.subscriptionRepo.DeleteTokens(ctx, invalidTokens); err != nil {
+					log.Warn().Err(err).Msg("Failed to cleanup invalid FCM tokens")
+				}
+			}
 		}
 	}
 }
