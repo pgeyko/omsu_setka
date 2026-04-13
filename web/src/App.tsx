@@ -6,6 +6,7 @@ import { StatusPage } from './pages/StatusPage';
 import { TutorsPage } from './pages/TutorsPage';
 import { FavoritesPage } from './pages/FavoritesPage';
 import { SearchPage } from './pages/SearchPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { Footer } from './components/ui/Footer';
 import { Sidebar } from './components/ui/Sidebar';
 import { useSettingsStore } from './store/useSettings';
@@ -62,6 +63,7 @@ function App() {
           <Route path="/tutors" element={<TutorsPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />        </Routes>
       </MainLayout>
       <Footer />

@@ -11,7 +11,8 @@ import {
   Grid, 
   Calendar,
   Home,
-  Star
+  Star,
+  Settings
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSettingsStore } from '../../store/useSettings';
@@ -65,6 +66,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       label: 'Преподаватели', 
       path: '/tutors',
       active: location.pathname === '/tutors'
+    },
+    { 
+      icon: <Settings size={20} />, 
+      label: 'Настройки', 
+      path: '/settings',
+      active: location.pathname === '/settings'
     },
   ];
 

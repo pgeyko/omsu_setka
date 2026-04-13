@@ -1,0 +1,178 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: env(safe-area-inset-top, 0) 0 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 16px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.backBtn:hover {
+  background-color: var(--bg-hover);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.content {
+  padding: 20px 16px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 8px;
+}
+
+.sectionIcon {
+  color: var(--accent-primary);
+}
+
+.card {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--bg-secondary);
+}
+
+.settingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settingName {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settingDesc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Subscriptions List */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.subList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.subItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-hover);
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.subItem:hover {
+  background: var(--border-color);
+}
+
+.subInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.subIcon {
+  color: var(--accent-primary);
+  background: var(--bg-primary);
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.subDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.subName {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.subType {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subAction {
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.subAction:hover {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
