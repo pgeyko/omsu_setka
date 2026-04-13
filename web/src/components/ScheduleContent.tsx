@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, User, Clock, X, Menu, Search } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Clock, X, Menu, Search, Bell } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { 
   fetchSchedule, 
@@ -18,6 +18,7 @@ import { requestForToken, onMessageListener } from '../utils/firebase';
 import type { Day, Lesson } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { useSidebarStore } from '../store/useSidebar';
+import { useSubscriptionsStore } from '../store/useSubscriptions';
 import { Toast } from '../components/ui/Toast';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { FloatingActions } from '../components/ui/FloatingActions';
@@ -143,6 +144,9 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   // Favorites Store
   const { addFavorite, removeFavorite, isFavorite, subgroup, setSubgroup, pinnedEntity, pinEntity, unpinEntity } = useFavoritesStore();
 
+  // Subscriptions Store
+  const { addSubscription, isSubscribed: checkSubscribed } = useSubscriptionsStore();
+
   // Sidebar Store
   const { open: openSidebar } = useSidebarStore();
 
@@ -151,11 +155,13 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const [hasNewChanges, setHasNewChanges] = useState(false);
 
   useEffect(() => {
+    // Check zustand store first, fallback to localStorage for backwards compatibility
+    const hasSub = checkSubscribed(entityID, entityType);
     const savedToken = localStorage.getItem(`fcm_token_${entityType}_${entityID}`);
-    if (savedToken) {
+    if (hasSub || savedToken) {
       setIsSubscribed(true);
     }
-  }, [entityType, entityID]);
+  }, [entityType, entityID, checkSubscribed]);
 
   useEffect(() => {
     if (entityID > 0) {
@@ -190,6 +196,12 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
             if (token) {
               await subscribeToNotifications(token, entityType, entityID);
               localStorage.setItem(storageKey, token);
+              addSubscription({
+                id: entityID,
+                type: entityType,
+                name: entityName || `${prefixes[entityType]} ${entityID}`,
+                token: token
+              });
               setIsSubscribed(true);
               setToastMessage('Уведомления включены!');
             } else {
@@ -642,6 +654,15 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
               {!showBackButton && (
                 <div className={`${styles.navActions} ${styles.mobileOnly}`}>
                   <button
+                    className={`${styles.themeToggle} ${isSubscribed ? styles.active : ''}`}
+                    onClick={toggleNotifications}
+                    aria-label="Настройки уведомлений"
+                    style={{ position: 'relative' }}
+                  >
+                    <Bell size={20} className={isSubscribed ? "text-accent" : ""} />
+                    {hasNewChanges && <div className={styles.notificationBadge} />}
+                  </button>
+                  <button
                     className={styles.themeToggle}
                     onClick={() => navigate('/search')}
                     aria-label="Поиск"
@@ -657,7 +678,32 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                   </button>
                 </div>
               )}
-              <div className={styles.desktopOnly} style={{ width: 44 }}></div>
+              {showBackButton && (
+                <div className={`${styles.navActions} ${styles.mobileOnly}`}>
+                  <button
+                    className={`${styles.themeToggle} ${isSubscribed ? styles.active : ''}`}
+                    onClick={toggleNotifications}
+                    aria-label="Настройки уведомлений"
+                    style={{ position: 'relative' }}
+                  >
+                    <Bell size={20} className={isSubscribed ? "text-accent" : ""} />
+                    {hasNewChanges && <div className={styles.notificationBadge} />}
+                  </button>
+                </div>
+              )}
+              <div className={styles.desktopOnly} style={{ width: showBackButton ? 44 : 88 }}>
+                <div className={styles.navActions} style={{ justifyContent: 'flex-end' }}>
+                   <button
+                    className={`${styles.themeToggle} ${isSubscribed ? styles.active : ''}`}
+                    onClick={toggleNotifications}
+                    aria-label="Настройки уведомлений"
+                    style={{ position: 'relative' }}
+                  >
+                    <Bell size={20} className={isSubscribed ? "text-accent" : ""} />
+                    {hasNewChanges && <div className={styles.notificationBadge} />}
+                  </button>
+                </div>
+              </div>
             </div>
           </nav>
         </header>
