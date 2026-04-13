@@ -241,7 +241,7 @@
   width: 100%;
   padding: 10px;
   background: var(--accent-color);
-  color: white;
+  color: var(--bg-color);
   border: none;
   border-radius: var(--radius-md);
   font-weight: 700;
