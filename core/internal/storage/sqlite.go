@@ -120,8 +120,7 @@ func (s *SQLite) migrate() error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_changes_entity ON schedule_changes(entity_type, entity_id);`,
 
-		`DROP TABLE IF EXISTS user_subscriptions;`,
-		`CREATE TABLE user_subscriptions (
+		`CREATE TABLE IF NOT EXISTS user_subscriptions (
 			fcm_token    TEXT NOT NULL,
 			entity_type  TEXT NOT NULL,
 			entity_id    INTEGER NOT NULL,
@@ -136,6 +135,25 @@ func (s *SQLite) migrate() error {
 			return err
 		}
 	}
+
+	newColumns := map[string]string{
+		"notify_on_change":     "INTEGER DEFAULT 1",
+		"notify_daily_digest":  "INTEGER DEFAULT 0",
+		"digest_time":          "TEXT DEFAULT '19:00'",
+		"notify_before_lesson": "INTEGER DEFAULT 0",
+		"before_minutes":       "INTEGER DEFAULT 30",
+		"timezone":             "TEXT DEFAULT 'Asia/Omsk'",
+		"last_digest_at":       "TEXT",
+	}
+
+	for col, colDef := range newColumns {
+		var dummy interface{}
+		err := s.DB.QueryRow(fmt.Sprintf("SELECT %s FROM user_subscriptions LIMIT 0", col)).Scan(&dummy)
+		if err != nil && err.Error() != "sql: no rows in result set" {
+			_, _ = s.DB.Exec(fmt.Sprintf("ALTER TABLE user_subscriptions ADD COLUMN %s %s", col, colDef))
+		}
+	}
+
 	return nil
 }
 

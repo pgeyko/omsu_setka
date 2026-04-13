@@ -110,12 +110,19 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/tutor/:id", s.handleGetSchedule("tutor"))
 	v1.Get("/schedule/auditory/:id", s.handleGetSchedule("auditory"))
 
+	// iCal Export
+	v1.Get("/schedule/group/:id/ical", s.handleGetICal)
+	v1.Get("/schedule/tutor/:id/ical", s.handleGetICal)
+	v1.Get("/schedule/auditory/:id/ical", s.handleGetICal)
+
 	// Changes
 	v1.Get("/changes/:type/:id", s.handleGetChanges)
 
 	// Notifications
 	v1.Post("/subscribe", s.handleSubscribe)
 	v1.Post("/unsubscribe", s.handleUnsubscribe)
+	v1.Patch("/notifications/settings", s.handleUpdateNotificationSettings)
+	v1.Get("/notifications/settings/:type/:id", s.handleGetNotificationSettings)
 
 	// Search — use stricter rate limit directly
 	v1.Get("/search", RateLimitMiddleware(s.Cfg.RateLimitSearch, s.Cfg.RateLimitWindow), s.handleSearch)

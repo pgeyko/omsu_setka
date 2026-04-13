@@ -139,10 +139,12 @@ func (s *Syncer) Run(ctx context.Context) {
 
 	dictTicker := time.NewTicker(s.cfg.SyncDictInterval)
 	schedTicker := time.NewTicker(s.cfg.SyncScheduleInterval)
+	notifyTicker := time.NewTicker(1 * time.Minute)
 	cleanTicker := time.NewTicker(1 * time.Hour) // Cleanup old cache and incidents periodically
 
 	defer dictTicker.Stop()
 	defer schedTicker.Stop()
+	defer notifyTicker.Stop()
 	defer cleanTicker.Stop()
 
 	for {
@@ -159,6 +161,10 @@ func (s *Syncer) Run(ctx context.Context) {
 			log.Info().Msg("Starting periodic active schedules synchronization...")
 			if err := s.SyncActiveSchedules(ctx); err != nil {
 				log.Error().Err(err).Msg("Periodic active schedules sync failed")
+			}
+		case <-notifyTicker.C:
+			if err := s.SyncScheduledNotifications(ctx); err != nil {
+				log.Error().Err(err).Msg("Scheduled notification processing failed")
 			}
 		case <-cleanTicker.C:
 			log.Info().Msg("Running periodic cleanup tasks...")

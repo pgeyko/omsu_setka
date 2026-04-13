@@ -14,11 +14,19 @@ definitions:
       cached_at:
         type: string
       data: {}
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
       source:
         description: '"cache", "upstream", "stale"'
         type: string
       success:
         type: boolean
+      week_end:
+        type: string
+      week_start:
+        type: string
     type: object
   models.Day:
     properties:
@@ -66,6 +74,27 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+    type: object
+  storage.Subscription:
+    properties:
+      before_minutes:
+        type: integer
+      digest_time:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      fcm_token:
+        type: string
+      notify_before_lesson:
+        type: boolean
+      notify_daily_digest:
+        type: boolean
+      notify_on_change:
+        type: boolean
+      timezone:
         type: string
     type: object
 host: localhost:8080
@@ -188,6 +217,120 @@ paths:
       summary: Get health status
       tags:
       - Meta
+  /incidents:
+    get:
+      description: Returns recent health incidents for the upstream service.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+      summary: Get recent incidents
+      tags:
+      - Meta
+  /notifications/settings:
+    patch:
+      consumes:
+      - application/json
+      description: Updates subscription preferences for a specific entity (group,
+        tutor, auditory).
+      parameters:
+      - description: Notification Settings
+        in: body
+        name: settings
+        required: true
+        schema:
+          $ref: '#/definitions/storage.Subscription'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update notification settings
+      tags:
+      - Notifications
+  /notifications/settings/{type}/{id}:
+    get:
+      description: Returns current notification preferences for a specific subscription.
+      parameters:
+      - description: Entity type (group, tutor, auditory)
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: FCM Token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.Subscription'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get notification settings
+      tags:
+      - Notifications
+  /schedule/{type}/{id}/ical:
+    get:
+      description: Returns the full schedule for a group, tutor, or auditory as an
+        .ics file.
+      parameters:
+      - description: Entity type (group, tutor, auditory)
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Access token (if configured)
+        in: query
+        name: token
+        type: string
+      produces:
+      - text/calendar
+      responses:
+        "200":
+          description: iCal Calendar Data
+          schema:
+            type: string
+      summary: Get schedule in iCal format
+      tags:
+      - Schedules
   /schedule/auditory/{id}:
     get:
       description: Returns the schedule for a specific auditory. Lazy-fetches if not

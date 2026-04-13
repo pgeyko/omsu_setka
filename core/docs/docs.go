@@ -205,6 +205,133 @@ const docTemplate = `{
                 }
             }
         },
+        "/incidents": {
+            "get": {
+                "description": "Returns recent health incidents for the upstream service.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Meta"
+                ],
+                "summary": "Get recent incidents",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.BFFResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/settings": {
+            "patch": {
+                "description": "Updates subscription preferences for a specific entity (group, tutor, auditory).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Update notification settings",
+                "parameters": [
+                    {
+                        "description": "Notification Settings",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storage.Subscription"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/settings/{type}/{id}": {
+            "get": {
+                "description": "Returns current notification preferences for a specific subscription.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Get notification settings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity type (group, tutor, auditory)",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Entity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "FCM Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storage.Subscription"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/schedule/auditory/{id}": {
             "get": {
                 "description": "Returns the schedule for a specific auditory. Lazy-fetches if not in cache.",
@@ -332,6 +459,48 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/schedule/{type}/{id}/ical": {
+            "get": {
+                "description": "Returns the full schedule for a group, tutor, or auditory as an .ics file.",
+                "produces": [
+                    "text/calendar"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Get schedule in iCal format",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity type (group, tutor, auditory)",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Entity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Access token (if configured)",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "iCal Calendar Data",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -548,12 +717,24 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "data": {},
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                },
                 "source": {
                     "description": "\"cache\", \"upstream\", \"stale\"",
                     "type": "string"
                 },
                 "success": {
                     "type": "boolean"
+                },
+                "week_end": {
+                    "type": "string"
+                },
+                "week_start": {
+                    "type": "string"
                 }
             }
         },
@@ -627,6 +808,38 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "storage.Subscription": {
+            "type": "object",
+            "properties": {
+                "before_minutes": {
+                    "type": "integer"
+                },
+                "digest_time": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "integer"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "fcm_token": {
+                    "type": "string"
+                },
+                "notify_before_lesson": {
+                    "type": "boolean"
+                },
+                "notify_daily_digest": {
+                    "type": "boolean"
+                },
+                "notify_on_change": {
+                    "type": "boolean"
+                },
+                "timezone": {
                     "type": "string"
                 }
             }
