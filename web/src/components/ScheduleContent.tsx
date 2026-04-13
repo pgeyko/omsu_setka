@@ -396,7 +396,10 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    let url = window.location.href;
+    if (window.location.pathname === '/') {
+      url = `${window.location.origin}/schedule/${entityType}/${entityID}`;
+    }
     const shareData = {
       title: `Расписание: ${entityName}`,
       text: `Посмотри расписание для ${entityName} в Setka`,
