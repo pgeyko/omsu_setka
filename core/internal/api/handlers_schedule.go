@@ -145,7 +145,13 @@ func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 	}
 
 	if sub.FCMToken == "" || sub.EntityType == "" || sub.EntityID == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing required fields"})
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "missing required fields"})
+	}
+
+	// 25.5 Add subscription limit check
+	count, err := s.SubscriptionRepo.GetSubscriptionCount(c.Context(), sub.FCMToken)
+	if err == nil && count >= 10 {
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "maximum subscriptions limit reached (10)"})
 	}
 
 	if err := s.SubscriptionRepo.Subscribe(c.Context(), sub); err != nil {
@@ -157,17 +163,23 @@ func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 
 func (s *Server) handleUnsubscribe(c *fiber.Ctx) error {
 	var body struct {
-		Token string `json:"fcm_token"`
+		Token      string `json:"fcm_token"`
+		EntityType string `json:"entity_type"`
+		EntityID   int    `json:"entity_id"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
 	if body.Token == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing fcm_token"})
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "missing fcm_token"})
 	}
 
-	if err := s.SubscriptionRepo.Unsubscribe(c.Context(), body.Token); err != nil {
+	if body.EntityType == "" || body.EntityID == 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "missing entity_type or entity_id"})
+	}
+
+	if err := s.SubscriptionRepo.Unsubscribe(c.Context(), body.Token, body.EntityType, body.EntityID); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to unsubscribe"})
 	}
 

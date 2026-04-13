@@ -2,6 +2,14 @@
 
 `omsu_setka` is a high-performance **BFF (Backend-for-Frontend)** designed to mirror and cache the Omsu University schedule. It prioritizes minimal resource usage (RAM < 50MB, CPU ~0%), sub-millisecond response times for cached data, and background synchronization to reduce load on the original server.
 
+## Mandatory Skills (Gemini CLI)
+The following skills MUST be activated and followed for all development tasks:
+
+- **Backend (Go & SQL):** `golang-pro`, `sql-pro`, `api-endpoint-builder`, `api-documentation`, `performance-optimizer`.
+- **Frontend (React & UI):** `senior-frontend`, `typescript-expert`, `zustand-store-ts`, `tanstack-query-expert`, `ui-ux-pro-max`, `frontend-design`, `progressive-web-app`.
+- **Infrastructure:** `firebase-basics` (for FCM), `docker-expert`, `bash-pro`.
+- **Standards:** `lint-and-validate` (after every change), `writing-plans`, `blueprint`, `commit`.
+
 ## Architecture
 
 The project follows a tiered architecture:

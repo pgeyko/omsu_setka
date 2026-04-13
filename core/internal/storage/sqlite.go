@@ -120,11 +120,13 @@ func (s *SQLite) migrate() error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_changes_entity ON schedule_changes(entity_type, entity_id);`,
 
-		`CREATE TABLE IF NOT EXISTS user_subscriptions (
-			fcm_token    TEXT PRIMARY KEY,
+		`DROP TABLE IF EXISTS user_subscriptions;`,
+		`CREATE TABLE user_subscriptions (
+			fcm_token    TEXT NOT NULL,
 			entity_type  TEXT NOT NULL,
 			entity_id    INTEGER NOT NULL,
-			created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+			created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (fcm_token, entity_type, entity_id)
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_sub_entity ON user_subscriptions(entity_type, entity_id);`,
 	}

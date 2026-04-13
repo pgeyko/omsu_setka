@@ -158,9 +158,11 @@ export const subscribeToNotifications = async (token: string, type: string, id: 
   return data;
 };
 
-export const unsubscribeFromNotifications = async (token: string) => {
+export const unsubscribeFromNotifications = async (token: string, type: string, id: number) => {
   const { data } = await apiClient.post('/unsubscribe', {
     fcm_token: token,
+    entity_type: type,
+    entity_id: id,
   });
   return data;
 };

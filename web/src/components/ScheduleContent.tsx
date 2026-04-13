@@ -150,14 +150,14 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           try {
             const token = localStorage.getItem(storageKey);
             if (token) {
-              await unsubscribeFromNotifications(token);
+              await unsubscribeFromNotifications(token, entityType, entityID);
               localStorage.removeItem(storageKey);
             }
             setIsSubscribed(false);
             setToastMessage('Уведомления отключены');
             setShowToast(true);
             setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          } catch (e) {
+          } catch {
             setToastMessage('Ошибка при отключении');
             setShowToast(true);
           } finally {
@@ -184,7 +184,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
             }
             setShowToast(true);
             setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          } catch (e) {
+          } catch {
             setToastMessage('Ошибка при подписке');
             setShowToast(true);
           } finally {

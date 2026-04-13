@@ -219,7 +219,18 @@
 
 ---
 
-## Этап 15: Страница аудиторий (→ [SPEC.md § 4.2](./SPEC.md#42-расписание))
+## Этап 15: Страница аудиторий ⏸️ ПРИОСТАНОВЛЕН (→ [ROADMAP_V3.md](./ROADMAP_V3.md))
+
+> **⚠️ НЕ РЕАЛИЗОВЫВАТЬ до завершения исследования API университета.**
+> Необходимо изучить возможности API аудиторий глубже, прежде чем проектировать UI.
+
+### Исследование (предварительное)
+- [ ] 15.R1 Исследование: протестировать `GET /schedule/auditory/{id}` для 10-20 разных ID
+- [ ] 15.R2 Исследование: задокументировать формат ответа и edge-cases (виртуальные аудитории, спецсимволы)
+- [ ] 15.R3 Исследование: определить какие аудитории полезны пользователям (отфильтровать «Дистант», «онлайн»)
+- [ ] 15.R4 Решение: нужна ли отдельная страница или достаточно поиска
+
+### Реализация (после исследования)
 - [ ] 15.1 Frontend: Создание страницы `AuditoriesPage.tsx` для поиска и выбора аудиторий
 - [ ] 15.2 Frontend: Маршрутизация `/auditories` в `App.tsx`
 - [ ] 15.3 Frontend: Интеграция с `fetchSchedule('auditory', id)` для отображения занятости кабинетов
@@ -300,3 +311,58 @@
 - [x] 24.1 Frontend: Настройка `firebase-messaging-sw.js` для обработки фоновых Push
 - [x] 24.2 Frontend: Кнопка «Уведомлять об изменениях» на странице расписания
 - [x] 24.3 Frontend: Логика регистрации FCM токена и подписки на топики групп
+
+---
+
+> **Новые этапы:** детальное описание в [ROADMAP_V3.md](./ROADMAP_V3.md)
+
+## Этап 25: Исправление схемы подписок (→ [ROADMAP_V3.md § 25](./ROADMAP_V3.md))
+- [x] 25.1 Backend: Миграция таблицы `user_subscriptions` — новый PK `(fcm_token, entity_type, entity_id)`
+- [x] 25.2 Backend: Обновить `SubscriptionRepo.Subscribe()` — `ON CONFLICT DO NOTHING`
+- [x] 25.3 Backend: Обновить `SubscriptionRepo.Unsubscribe()` — удалять конкретную подписку `(token, type, id)`
+- [x] 25.4 Backend: Добавить `GetAllSubscriptions(token)` — все подписки пользователя
+- [x] 25.5 Backend: Лимит подписок — `GetSubscriptionCount(token)` → если ≥ 10, вернуть 429
+- [x] 25.6 Backend: Инвалидация мёртвых FCM-токенов после `SendEachForMulticast`
+- [x] 25.7 Backend: Обновить эндпоинт `POST /api/v1/notifications/subscribe`
+- [x] 25.8 Backend: Обновить эндпоинт unsubscribe — принимать `entity_type` + `entity_id`
+- [x] 25.9 Frontend: localStorage хранит массив подписок вместо одного токена (индивидуальные ключи)
+
+---
+
+## Этап 26: Пагинация расписания по неделям (→ [ROADMAP_V3.md § 26](./ROADMAP_V3.md))
+- [ ] 26.1 Backend: Query-параметр `?week_start=YYYY-MM-DD` в `handleGetSchedule()`
+- [ ] 26.2 Backend: Фильтрация `[]Day` по диапазону дат из L1/L2 кэша
+- [ ] 26.3 Backend: Метаданные в ответе: `week_start`, `week_end`, `has_prev`, `has_next`
+- [ ] 26.4 Frontend: Обновить `fetchSchedule()` — принимать `weekStart` параметр
+- [ ] 26.5 Frontend: ScheduleContent — серверная фильтрация вместо локальной
+- [ ] 26.6 Frontend: React Query кэширование по неделям (`queryKey: ['schedule', type, id, weekStart]`)
+- [ ] 26.7 Frontend: Prefetch следующей недели в фоне
+- [ ] 26.8 Frontend: URL с неделей — `/schedule/group/123?week=2025-09-01`
+
+---
+
+## Этап 27: Экспорт расписания в iCal (→ [ROADMAP_V3.md § 27](./ROADMAP_V3.md))
+- [ ] 27.1 Backend: Добавить зависимость `arran4/golang-ical`
+- [ ] 27.2 Backend: Создать `handlers_ical.go` — эндпоинт `GET /api/v1/schedule/{type}/{id}/ical`
+- [ ] 27.3 Backend: Конвертация `[]Day` → VCALENDAR с VEVENT для каждого занятия
+- [ ] 27.4 Backend: Кэширование .ics в MemoryCache (TTL 30 мин)
+- [ ] 27.5 Backend: Заголовки: `Content-Type: text/calendar`, `Content-Disposition: attachment`
+- [ ] 27.6 Backend: Опциональная защита `?token=...` из конфига
+- [ ] 27.7 Frontend: Кнопка «📅 Добавить в календарь» с выпадашкой
+- [ ] 27.8 Frontend: Выпадашка «Скачать .ics» / «Скопировать ссылку для подписки»
+
+---
+
+## Этап 28: Расширенные уведомления — дайджест и напоминания (→ [ROADMAP_V3.md § 28](./ROADMAP_V3.md))
+- [ ] 28.1 Backend: Расширить `user_subscriptions` — поля `notify_on_change`, `notify_daily_digest`, `digest_time`, `notify_before_lesson`, `before_minutes`, `timezone`
+- [ ] 28.2 Backend: Миграция `ALTER TABLE` для новых колонок
+- [ ] 28.3 Backend: Эндпоинт `PATCH /api/v1/notifications/settings`
+- [ ] 28.4 Backend: Scheduler — горутина с тикером раз в минуту в `syncer.go`
+- [ ] 28.5 Backend: Логика вечернего дайджеста (расписание на завтра → FCM)
+- [ ] 28.6 Backend: Логика напоминания перед парой (ближайшая пара через N минут → FCM)
+- [ ] 28.7 Backend: Обработка «завтра нет пар» — весёлый пуш «🎉»
+- [ ] 28.8 Frontend: Кнопка «🔔 Уведомления» → bottom sheet с настройками
+- [ ] 28.9 Frontend: Тогглы (изменения / дайджест / перед парой)
+- [ ] 28.10 Frontend: Time picker для дайджеста, select для минут (15/30/60)
+- [ ] 28.11 Frontend: Сохранение настроек в localStorage
+- [ ] 28.12 Frontend: Статус уведомлений (активны / отклонены браузером)
