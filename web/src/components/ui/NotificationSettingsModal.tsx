@@ -10,6 +10,10 @@ interface NotificationSettings {
   digest_time: string;
   notify_before_lesson: boolean;
   before_minutes: number;
+  timezone?: string;
+  fcm_token?: string;
+  entity_type?: string;
+  entity_id?: number;
 }
 
 interface NotificationSettingsModalProps {
@@ -29,21 +33,38 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   initialSettings,
   isLoading
 }) => {
-  const [settings, setSettings] = useState<NotificationSettings>(initialSettings);
+  const defaultSettings: NotificationSettings = {
+    notify_on_change: true,
+    notify_daily_digest: false,
+    digest_time: '19:00',
+    notify_before_lesson: false,
+    before_minutes: 30
+  };
+
+  const [settings, setSettings] = useState<NotificationSettings>(initialSettings || defaultSettings);
 
   useEffect(() => {
     if (isOpen) {
-      setSettings(initialSettings);
+      setSettings(initialSettings || defaultSettings);
     }
   }, [isOpen, initialSettings]);
 
   const toggle = (key: keyof NotificationSettings) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    setSettings(prev => {
+      const state = prev || defaultSettings;
+      return { ...state, [key]: !state[key] };
+    });
   };
 
   const update = (key: keyof NotificationSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => {
+      const state = prev || defaultSettings;
+      return { ...state, [key]: value };
+    });
   };
+
+  // Safe destructuring or fallback for render
+  const safeSettings = settings || defaultSettings;
 
   return createPortal(
     <AnimatePresence>
@@ -83,7 +104,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                   <label className={styles.switch}>
                     <input 
                       type="checkbox" 
-                      checked={settings.notify_on_change} 
+                      checked={safeSettings.notify_on_change} 
                       onChange={() => toggle('notify_on_change')}
                     />
                     <span className={styles.slider}></span>
@@ -102,21 +123,21 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                   <label className={styles.switch}>
                     <input 
                       type="checkbox" 
-                      checked={settings.notify_daily_digest} 
+                      checked={safeSettings.notify_daily_digest} 
                       onChange={() => toggle('notify_daily_digest')}
                     />
                     <span className={styles.slider}></span>
                   </label>
                 </div>
 
-                {settings.notify_daily_digest && (
+                {safeSettings.notify_daily_digest && (
                   <div className={styles.subSetting}>
                     <Clock size={16} />
                     <span>Время отправки:</span>
                     <input 
                       type="time" 
                       className={styles.timeInput}
-                      value={settings.digest_time}
+                      value={safeSettings.digest_time}
                       onChange={(e) => update('digest_time', e.target.value)}
                     />
                   </div>
@@ -134,14 +155,14 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                   <label className={styles.switch}>
                     <input 
                       type="checkbox" 
-                      checked={settings.notify_before_lesson} 
+                      checked={safeSettings.notify_before_lesson} 
                       onChange={() => toggle('notify_before_lesson')}
                     />
                     <span className={styles.slider}></span>
                   </label>
                 </div>
 
-                {settings.notify_before_lesson && (
+                {safeSettings.notify_before_lesson && (
                   <div className={styles.subSetting}>
                     <Clock size={16} />
                     <span>За</span>
@@ -151,7 +172,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                       max="120"
                       step="5"
                       className={styles.numberInput}
-                      value={settings.before_minutes}
+                      value={safeSettings.before_minutes}
                       onChange={(e) => update('before_minutes', parseInt(e.target.value))}
                     />
                     <span>минут</span>
@@ -168,7 +189,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
             <div className={styles.footer}>
               <button 
                 className={styles.saveBtn} 
-                onClick={() => onSave(settings)}
+                onClick={() => onSave(safeSettings)}
                 disabled={isLoading}
               >
                 {isLoading ? <div className={styles.spinner} /> : 'Сохранить'}

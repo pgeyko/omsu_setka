@@ -249,7 +249,13 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     setIsSettingsModalOpen(true);
     try {
       const settings = await getNotificationSettings(token, entityType, entityID);
-      setNotificationSettings(settings);
+      setNotificationSettings(settings || {
+        notify_on_change: true,
+        notify_daily_digest: false,
+        digest_time: '19:00',
+        notify_before_lesson: false,
+        before_minutes: 30
+      });
     } catch {
       setToastMessage('Ошибка при загрузке настроек');
       setShowToast(true);
@@ -265,7 +271,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         ...settings,
         fcm_token: localStorage.getItem(`fcm_token_${entityType}_${entityID}`),
         entity_type: entityType,
-        entity_id: entityID
+        entity_id: Number(entityID)
       });
       setToastMessage('Настройки сохранены');
       setShowToast(true);
