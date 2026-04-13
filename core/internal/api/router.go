@@ -111,9 +111,9 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/auditory/:id", s.handleGetSchedule("auditory"))
 
 	// iCal Export
-	v1.Get("/schedule/group/:id/ical", s.handleGetICal)
-	v1.Get("/schedule/tutor/:id/ical", s.handleGetICal)
-	v1.Get("/schedule/auditory/:id/ical", s.handleGetICal)
+	v1.Get("/schedule/group/:id/ical", s.handleGetICal("group"))
+	v1.Get("/schedule/tutor/:id/ical", s.handleGetICal("tutor"))
+	v1.Get("/schedule/auditory/:id/ical", s.handleGetICal("auditory"))
 
 	// Changes
 	v1.Get("/changes/:type/:id", s.handleGetChanges)

@@ -21,15 +21,15 @@ import (
 // @Param token query string false "Access token (if configured)"
 // @Success 200 {string} string "iCal Calendar Data"
 // @Router /schedule/{type}/{id}/ical [get]
-func (s *Server) handleGetICal(c *fiber.Ctx) error {
-	entityType := c.Params("type")
-	idStr := c.Params("id")
-	token := c.Query("token")
+func (s *Server) handleGetICal(entityType string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		idStr := c.Params("id")
+		token := c.Query("token")
 
-	// 1. Security Check (Optional Token)
-	if s.Cfg.ICalAccessToken != "" && token != s.Cfg.ICalAccessToken {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "invalid access token"})
-	}
+		// 1. Security Check (Optional Token)
+		if s.Cfg.ICalAccessToken != "" && token != s.Cfg.ICalAccessToken {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "invalid access token"})
+		}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -108,6 +108,7 @@ func (s *Server) handleGetICal(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/calendar; charset=utf-8")
 	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"schedule_%s_%d.ics\"", entityType, id))
 	return c.SendString(icsData)
+	}
 }
 
 // fetchFullSchedule is an internal helper to retrieve the complete schedule array.
