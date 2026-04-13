@@ -12,6 +12,10 @@ export interface BFFResponse<T> {
   data: T;
   cached_at: string;
   source: 'cache' | 'upstream' | 'stale';
+  week_start?: string;
+  week_end?: string;
+  has_prev: boolean;
+  has_next: boolean;
 }
 
 export interface Group {
@@ -79,9 +83,10 @@ export const fetchSearch = async (query: string, type: string = 'all'): Promise<
   return data.data;
 };
 
-export const fetchSchedule = async (type: string, id: number) => {
-  const { data } = await apiClient.get<BFFResponse<Day[]>>(`/schedule/${type}/${id}`);
-  return data.data;
+export const fetchSchedule = async (type: string, id: number, weekStart?: string): Promise<BFFResponse<Day[]>> => {
+  const url = `/schedule/${type}/${id}${weekStart ? `?week_start=${weekStart}` : ''}`;
+  const { data } = await apiClient.get<BFFResponse<Day[]>>(url);
+  return data;
 };
 
 export const fetchTutors = async (): Promise<Tutor[]> => {

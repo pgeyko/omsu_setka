@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, User, Clock, X, Menu, Search } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { fetchSchedule, TIME_SLOTS, subscribeToNotifications, unsubscribeFromNotifications, fetchChanges } from '../api/client';
@@ -76,14 +76,29 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  // Helper
+  const parseYYYYMMDD = (str: string | null) => {
+    if (!str) return null;
+    const [y, m, d] = str.split('-').map(Number);
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+    return new Date(y, m - 1, d);
+  };
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const weekParam = searchParams.get('week');
 
   // State
-  const [schedule, setSchedule] = useState<Day[]>([]);
-  const [filteredSchedule, setFilteredSchedule] = useState<Day[]>([]);
+  const [schedule, setSchedule] = useState<Day[]>([]); // holds only the active week
   const [loading, setLoading] = useState(true);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [dateFilter, setDateFilter] = useState('');
-  const [activeWeekStart, setActiveWeekStart] = useState<Date>(getMonday(getDefaultDate()));
+  
+  const [activeWeekStart, setActiveWeekStart] = useState<Date>(() => {
+    const fromURL = parseYYYYMMDD(weekParam);
+    if (fromURL) return getMonday(fromURL);
+    return getMonday(getDefaultDate());
+  });
+
   const [selectedGroup, setSelectedGroup] = useState<Lesson[] | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -274,14 +289,25 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
 
-  const loadData = React.useCallback(async (isRefresh = false) => {
+  const [paginationMeta, setPaginationMeta] = useState({ hasPrev: false, hasNext: false });
+
+  const loadData = React.useCallback(async (isRefresh = false, targetWeekStart?: Date) => {
+    const weekToFetch = targetWeekStart || activeWeekStart;
+    const weekStartStr = weekToFetch.toISOString().split('T')[0];
+
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    
     try {
-      const data = await fetchSchedule(entityType, entityID);
+      const resp = await fetchSchedule(entityType, entityID, weekStartStr);
+      const data = resp.data;
       const sortedData = [...data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
+      
       setSchedule(sortedData);
+      setPaginationMeta({ hasPrev: resp.has_prev, hasNext: resp.has_next });
+
       if (!initialName && sortedData.length > 0) {
+        // ... (preserving logic for entityName detection)
         for (const day of sortedData) {
           let found = false;
           for (const lesson of day.lessons) {
@@ -301,13 +327,21 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           if (found) break;
         }
       }
+
+      // Prefetch next week
+      if (resp.has_next) {
+        const nextMonday = new Date(weekToFetch);
+        nextMonday.setDate(weekToFetch.getDate() + 7);
+        fetchSchedule(entityType, entityID, nextMonday.toISOString().split('T')[0]).catch(() => {});
+      }
+
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [entityType, entityID, initialName]);
+  }, [entityType, entityID, initialName, activeWeekStart]);
 
   useEffect(() => {
     loadData();
@@ -335,29 +369,36 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     if (dateFilter) {
       weekStart = getMonday(new Date(dateFilter));
       setActiveWeekStart(weekStart);
+      setSearchParams({ week: weekStart.toISOString().split('T')[0] });
     }
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 7);
-    const weekDays = schedule.filter(d => {
-      const date = parseDate(d.day);
-      return date >= weekStart && date < weekEnd;
-    });
-    setFilteredSchedule(weekDays);
+    
     if (dateFilter) {
       const filterDate = new Date(dateFilter);
-      const idx = weekDays.findIndex(d => parseDate(d.day).toDateString() === filterDate.toDateString());
+      const idx = schedule.findIndex(d => parseDate(d.day).toDateString() === filterDate.toDateString());
       setActiveDayIdx(idx !== -1 ? idx : 0);
     } else {
       const defaultDate = getDefaultDate();
-      const idx = weekDays.findIndex(d => parseDate(d.day).toDateString() === defaultDate.toDateString());
+      const idx = schedule.findIndex(d => parseDate(d.day).toDateString() === defaultDate.toDateString());
       setActiveDayIdx(idx !== -1 ? idx : 0);
     }
-  }, [activeWeekStart, dateFilter, schedule]);
+  }, [activeWeekStart, dateFilter, schedule, setSearchParams]);
+
+  // Sync state with URL when it changes
+  useEffect(() => {
+    const urlDate = parseYYYYMMDD(weekParam);
+    if (urlDate) {
+      const monday = getMonday(urlDate);
+      if (monday.getTime() !== activeWeekStart.getTime()) {
+        setActiveWeekStart(monday);
+      }
+    }
+  }, [weekParam, activeWeekStart]);
 
   const changeWeek = (direction: number) => {
     const newMonday = new Date(activeWeekStart);
     newMonday.setDate(activeWeekStart.getDate() + direction * 7);
     setActiveWeekStart(newMonday);
+    setSearchParams({ week: newMonday.toISOString().split('T')[0] });
     setDateFilter('');
   };
 
@@ -489,7 +530,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     </div>
   );
 
-  const currentDay = filteredSchedule[activeDayIdx];
+  const currentDay = schedule[activeDayIdx];
   const isToday = currentDay ? parseDate(currentDay.day).toDateString() === new Date().toDateString() : false;
 
   return (
@@ -545,15 +586,27 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         </header>
 
         <div className={styles.weekSelector}>
-          <button className={styles.weekNav} onClick={() => changeWeek(-1)}>←</button>
+          <button 
+            className={`${styles.weekNav} ${!paginationMeta.hasPrev ? styles.navDisabled : ''}`} 
+            onClick={() => changeWeek(-1)}
+            disabled={!paginationMeta.hasPrev}
+          >
+            ←
+          </button>
           <div className={styles.weekInfo}><span className={styles.weekLabel}>{formatWeekRange(activeWeekStart)}</span></div>
-          <button className={styles.weekNav} onClick={() => changeWeek(1)}>→</button>
+          <button 
+            className={`${styles.weekNav} ${!paginationMeta.hasNext ? styles.navDisabled : ''}`} 
+            onClick={() => changeWeek(1)}
+            disabled={!paginationMeta.hasNext}
+          >
+            →
+          </button>
           <CustomDatePicker value={dateFilter} onChange={setDateFilter} />
         </div>
 
         {viewMode === 'day' && (
           <div className={styles.daySelector}>
-            {filteredSchedule.map((day, idx) => {
+            {schedule.map((day, idx) => {
               const date = parseDate(day.day);
               return (
                 <button key={day.day} className={`${styles.dayTab} ${activeDayIdx === idx ? styles.activeTab : ''}`} onClick={() => setActiveDayIdx(idx)}>
@@ -562,7 +615,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                 </button>
               );
             })}
-            {filteredSchedule.length === 0 && <div className={styles.noFilterResults}>На этой неделе занятий нет</div>}
+            {schedule.length === 0 && <div className={styles.noFilterResults}>На этой неделе занятий нет</div>}
           </div>
         )}
 
@@ -649,7 +702,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                 {[1, 2, 3, 4, 5, 6].map(dayOffset => {
                   const dayDate = new Date(activeWeekStart);
                   dayDate.setDate(activeWeekStart.getDate() + dayOffset - 1);
-                  const dayData = filteredSchedule.find(d => parseDate(d.day).toDateString() === dayDate.toDateString());
+                  const dayData = schedule.find(d => parseDate(d.day).toDateString() === dayDate.toDateString());
                   const slotLessons = (dayData?.lessons.filter(l => l.time === Number(slotIdx)) || []).filter(isLessonForSubgroup);
                   return (
                     <div key={dayOffset} className={styles.gridCell}>
