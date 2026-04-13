@@ -55,8 +55,8 @@ export const TutorsPage: React.FC = () => {
       } else if (pinnedEntity.id !== tutor.id || pinnedEntity.type !== 'tutor') {
         setConfirmModal({
           isOpen: true,
-          title: 'Заменить главную группу?',
-          message: `Текущая главная — ${pinnedEntity.name}. Заменить её на ${tutor.name}?`,
+          title: 'Заменить главного преподавателя?',
+          message: `Текущ${pinnedEntity.type === 'tutor' ? 'ий' : 'ая'} главн${pinnedEntity.type === 'tutor' ? 'ый' : 'ая'} ${pinnedEntity.type === 'group' ? 'группа' : pinnedEntity.type === 'tutor' ? 'преподаватель' : 'аудитория'} — ${pinnedEntity.name}. Заменить ${pinnedEntity.type === 'tutor' ? 'его' : 'её'} на ${tutor.name}?`,
           onConfirm: performPin
         });
       }

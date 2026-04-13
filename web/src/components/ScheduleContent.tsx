@@ -521,10 +521,11 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           onConfirm: performPin
         });
       } else if (pinnedEntity.id !== entityID || pinnedEntity.type !== entityType) {
+        const typeText = entityType === 'group' ? 'группу' : entityType === 'tutor' ? 'преподавателя' : 'аудиторию';
         setConfirmModal({
           isOpen: true,
-          title: 'Заменить главную группу?',
-          message: `Текущая главная группа — ${pinnedEntity.name}. Заменить её на ${entityName}?`,
+          title: `Заменить главн${entityType === 'group' || entityType === 'auditory' ? 'ую' : 'ого'} ${typeText}?`,
+          message: `Текущ${pinnedEntity.type === 'tutor' ? 'ий' : 'ая'} главн${pinnedEntity.type === 'tutor' ? 'ый' : 'ая'} ${pinnedEntity.type === 'group' ? 'группа' : pinnedEntity.type === 'tutor' ? 'преподаватель' : 'аудитория'} — ${pinnedEntity.name}. Заменить ${pinnedEntity.type === 'tutor' ? 'его' : 'её'} на ${entityName}?`,
           onConfirm: performPin
         });
       }
