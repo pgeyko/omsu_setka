@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar, Star, Pin } from 'lucide-react';
+import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar, Star } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { fetchTutors, fetchSchedule, onRateLimit } from '../api/client';
 import type { Tutor, SearchResult } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
@@ -22,25 +23,43 @@ export const TutorsPage: React.FC = () => {
   const { recentTutors, addRecent, addFavorite, removeFavorite, isFavorite, pinEntity, unpinEntity, pinnedEntity } = useFavoritesStore();
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [isConfirmLoading, setIsConfirmLoading] = useState(false);
 
   const isTutorFavorite = (id: number) => isFavorite(id, 'tutor');
-  const isTutorPinned = (id: number) => pinnedEntity?.id === id && pinnedEntity?.type === 'tutor';
 
   const toggleFavorite = (e: React.MouseEvent, tutor: Tutor) => {
     e.stopPropagation();
     if (isTutorFavorite(tutor.id)) {
+      if (pinnedEntity?.id === tutor.id && pinnedEntity?.type === 'tutor') unpinEntity();
       removeFavorite(tutor.id, 'tutor');
     } else {
       addFavorite({ id: tutor.id, name: tutor.name, type: 'tutor' });
-    }
-  };
-
-  const togglePin = (e: React.MouseEvent, tutor: Tutor) => {
-    e.stopPropagation();
-    if (isTutorPinned(tutor.id)) {
-      unpinEntity();
-    } else {
-      pinEntity({ id: tutor.id, name: tutor.name, type: 'tutor' });
+      const performPin = () => {
+        setIsConfirmLoading(true);
+        setTimeout(() => {
+          pinEntity({ id: tutor.id, type: 'tutor', name: tutor.name });
+          setToastMessage('Закреплено на главной!');
+          setShowToast(true);
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          setIsConfirmLoading(false);
+        }, 400);
+      };
+      if (!pinnedEntity) {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Закрепить на главной?',
+          message: `Сделать расписание ${tutor.name} главным? Оно будет открываться сразу при входе на сайт.`,
+          onConfirm: performPin
+        });
+      } else if (pinnedEntity.id !== tutor.id || pinnedEntity.type !== 'tutor') {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Заменить главную группу?',
+          message: `Текущая главная — ${pinnedEntity.name}. Заменить её на ${tutor.name}?`,
+          onConfirm: performPin
+        });
+      }
     }
   };
 
@@ -183,13 +202,6 @@ export const TutorsPage: React.FC = () => {
                     >
                       <Star size={18} fill={isTutorFavorite(tutor.id) ? 'currentColor' : 'none'} />
                     </button>
-                    <button 
-                      className={`${styles.actionButton} ${isTutorPinned(tutor.id) ? styles.activePin : ''}`}
-                      onClick={(e) => togglePin(e, tutor)}
-                      title="Закрепить на главной"
-                    >
-                      <Pin size={18} />
-                    </button>
                     {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </div>
                 </div>
@@ -225,6 +237,14 @@ export const TutorsPage: React.FC = () => {
           })}
         </div>
       </main>
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        isLoading={isConfirmLoading}
+      />
     </div>
   );
 };
