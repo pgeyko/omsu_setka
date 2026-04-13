@@ -57,10 +57,11 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\/api\/v1\/schedule\/.*/i,
+            urlPattern: /\/api\/v1\/schedule\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-schedule-cache',
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
@@ -71,7 +72,7 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/.*\/api\/v1\/(groups|tutors|auditories|search).*/i,
+            urlPattern: /\/api\/v1\/(groups|tutors|auditories|search).*/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'api-meta-cache',
