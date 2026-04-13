@@ -44,6 +44,7 @@ type Config struct {
 	// Security
 	AdminKey            string        `env:"ADMIN_KEY" envDefault:""`
 	CORSAllowedOrigins  string        `env:"CORS_ALLOWED_ORIGINS" envDefault:""`
+	ICalAccessToken     string        `env:"ICAL_ACCESS_TOKEN" envDefault:""`
 
 	// Rate Limiting
 	RateLimitGeneral int           `env:"RATE_LIMIT_GENERAL" envDefault:"120"`

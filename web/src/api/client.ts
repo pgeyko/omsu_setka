@@ -171,3 +171,17 @@ export const unsubscribeFromNotifications = async (token: string, type: string, 
   });
   return data;
 };
+export const getNotificationSettings = async (token: string, type: string, id: number) => {
+  const { data } = await apiClient.get(`/notifications/settings/${type}/${id}?token=${token}`);
+  return data;
+};
+
+export const updateNotificationSettings = async (settings: any) => {
+  const { data } = await apiClient.patch('/notifications/settings', settings);
+  return data;
+};
+
+export const getICalUrl = (type: string, id: number) => {
+  const baseUrl = API_BASE.startsWith('http') ? API_BASE : window.location.origin + API_BASE;
+  return `${baseUrl}/schedule/${type}/${id}/ical`;
+};

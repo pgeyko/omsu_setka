@@ -4,7 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, User, Clock, X, Menu, Search } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { fetchSchedule, TIME_SLOTS, subscribeToNotifications, unsubscribeFromNotifications, fetchChanges } from '../api/client';
+import { 
+  fetchSchedule, 
+  TIME_SLOTS, 
+  subscribeToNotifications, 
+  unsubscribeFromNotifications, 
+  fetchChanges, 
+  getICalUrl,
+  getNotificationSettings,
+  updateNotificationSettings
+} from '../api/client';
 import { requestForToken, onMessageListener } from '../utils/firebase';
 import type { Day, Lesson } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
@@ -13,6 +22,8 @@ import { Toast } from '../components/ui/Toast';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { FloatingActions } from '../components/ui/FloatingActions';
 import { CustomDatePicker } from '../components/ui/CustomDatePicker';
+import { ICalModal } from '../components/ui/ICalModal';
+import { NotificationSettingsModal } from '../components/ui/NotificationSettingsModal';
 import styles from '../pages/ScheduleView.module.css';
 
 const parseDate = (dateStr: string) => {
@@ -105,6 +116,16 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [showSubgroupDrawer, setShowSubgroupDrawer] = useState(false);
   const [isConfirmLoading, setIsConfirmLoading] = useState(false);
+  const [isICalModalOpen, setIsICalModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    notify_on_change: true,
+    notify_daily_digest: false,
+    digest_time: '19:00',
+    notify_before_lesson: false,
+    before_minutes: 30
+  });
 
   // Confirm Modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -156,30 +177,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const toggleNotifications = async () => {
     const storageKey = `fcm_token_${entityType}_${entityID}`;
     if (isSubscribed) {
-      setConfirmModal({
-        isOpen: true,
-        title: 'Отключить уведомления?',
-        message: 'Вы больше не будете получать сообщения об изменениях в этом расписании.',
-        onConfirm: async () => {
-          setIsConfirmLoading(true);
-          try {
-            const token = localStorage.getItem(storageKey);
-            if (token) {
-              await unsubscribeFromNotifications(token, entityType, entityID);
-              localStorage.removeItem(storageKey);
-            }
-            setIsSubscribed(false);
-            setToastMessage('Уведомления отключены');
-            setShowToast(true);
-            setConfirmModal(prev => ({ ...prev, isOpen: false }));
-          } catch {
-            setToastMessage('Ошибка при отключении');
-            setShowToast(true);
-          } finally {
-            setIsConfirmLoading(false);
-          }
-        }
-      });
+      handleOpenSettings();
     } else {
       setConfirmModal({
         isOpen: true,
@@ -207,6 +205,85 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           }
         }
       });
+    }
+  };
+
+  const handleExportICal = () => {
+    setIsICalModalOpen(true);
+  };
+
+  const handleDownloadICal = () => {
+    const url = getICalUrl(entityType, entityID);
+    window.location.href = url;
+    setIsICalModalOpen(false);
+    setToastMessage('Загрузка началась');
+    setShowToast(true);
+  };
+
+  const handleCopyICalLink = () => {
+    const url = getICalUrl(entityType, entityID);
+    const webcalUrl = url.replace(/^https?:\/\//, 'webcal://');
+    navigator.clipboard.writeText(webcalUrl);
+    setIsICalModalOpen(false);
+    setToastMessage('Ссылка скопирована!');
+    setShowToast(true);
+  };
+
+  const handleOpenSettings = async () => {
+    const token = localStorage.getItem(`fcm_token_${entityType}_${entityID}`);
+    if (!token) return;
+    
+    setIsSettingsLoading(true);
+    setIsSettingsModalOpen(true);
+    try {
+      const settings = await getNotificationSettings(token, entityType, entityID);
+      setNotificationSettings(settings);
+    } catch {
+      setToastMessage('Ошибка при загрузке настроек');
+      setShowToast(true);
+    } finally {
+      setIsSettingsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async (settings: any) => {
+    setIsSettingsLoading(true);
+    try {
+      await updateNotificationSettings({
+        ...settings,
+        fcm_token: localStorage.getItem(`fcm_token_${entityType}_${entityID}`),
+        entity_type: entityType,
+        entity_id: entityID
+      });
+      setToastMessage('Настройки сохранены');
+      setShowToast(true);
+      setIsSettingsModalOpen(false);
+    } catch {
+      setToastMessage('Ошибка при сохранении');
+      setShowToast(true);
+    } finally {
+      setIsSettingsLoading(false);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    const storageKey = `fcm_token_${entityType}_${entityID}`;
+    setIsConfirmLoading(true);
+    try {
+      const token = localStorage.getItem(storageKey);
+      if (token) {
+        await unsubscribeFromNotifications(token, entityType, entityID);
+        localStorage.removeItem(storageKey);
+      }
+      setIsSubscribed(false);
+      setIsSettingsModalOpen(false);
+      setToastMessage('Уведомления отключены');
+      setShowToast(true);
+    } catch {
+      setToastMessage('Ошибка при отключении');
+      setShowToast(true);
+    } finally {
+      setIsConfirmLoading(false);
     }
   };
 
@@ -735,6 +812,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         onShowSubgroups={entityType === 'group' ? () => setShowSubgroupDrawer(true) : undefined}
         isSubgroupActive={!!subgroup}
         onShare={handleShare}
+        onExportICal={handleExportICal}
         hasNewChanges={hasNewChanges}
       />
 
@@ -793,6 +871,23 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         onConfirm={confirmModal.onConfirm} 
         onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
         isLoading={isConfirmLoading} 
+      />
+
+      <ICalModal 
+        isOpen={isICalModalOpen}
+        onClose={() => setIsICalModalOpen(false)}
+        onDownload={handleDownloadICal}
+        onCopyLink={handleCopyICalLink}
+        title={entityName}
+      />
+
+      <NotificationSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        onSave={handleSaveSettings}
+        onUnsubscribe={handleUnsubscribe}
+        initialSettings={notificationSettings}
+        isLoading={isSettingsLoading}
       />
     </>
   );

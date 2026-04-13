@@ -26,13 +26,17 @@ func NewMemoryCache() *MemoryCache {
 }
 
 func (c *MemoryCache) Set(key string, data []byte) {
+	c.SetWithTTL(key, data, 5*time.Minute)
+}
+
+func (c *MemoryCache) SetWithTTL(key string, data []byte, ttl time.Duration) {
 	// 20.3 Prevent cache growth beyond MaxCacheItems
 	if atomic.LoadInt64(&c.itemCount) >= MaxCacheItems {
 		// Simple eviction: clear everything if limit reached (could be improved to LRU)
 		c.Clear()
 	}
 
-	expiresAt := time.Now().Add(5 * time.Minute)
+	expiresAt := time.Now().Add(ttl)
 	item := cacheItem{data: data, expiresAt: expiresAt}
 	
 	// 20.6 Fix race in itemCount by checking if item was actually stored

@@ -330,39 +330,39 @@
 ---
 
 ## Этап 26: Пагинация расписания по неделям (→ [ROADMAP_V3.md § 26](./ROADMAP_V3.md))
-- [ ] 26.1 Backend: Query-параметр `?week_start=YYYY-MM-DD` в `handleGetSchedule()`
-- [ ] 26.2 Backend: Фильтрация `[]Day` по диапазону дат из L1/L2 кэша
-- [ ] 26.3 Backend: Метаданные в ответе: `week_start`, `week_end`, `has_prev`, `has_next`
-- [ ] 26.4 Frontend: Обновить `fetchSchedule()` — принимать `weekStart` параметр
-- [ ] 26.5 Frontend: ScheduleContent — серверная фильтрация вместо локальной
-- [ ] 26.6 Frontend: React Query кэширование по неделям (`queryKey: ['schedule', type, id, weekStart]`)
-- [ ] 26.7 Frontend: Prefetch следующей недели в фоне
-- [ ] 26.8 Frontend: URL с неделей — `/schedule/group/123?week=2025-09-01`
+- [x] 26.1 Backend: Query-параметр `?week_start=YYYY-MM-DD` в `handleGetSchedule()`
+- [x] 26.2 Backend: Фильтрация `[]Day` по диапазону дат из L1/L2 кэша
+- [x] 26.3 Backend: Метаданные в ответе: `week_start`, `week_end`, `has_prev`, `has_next`
+- [x] 26.4 Frontend: Обновить `fetchSchedule()` — принимать `weekStart` параметр
+- [x] 26.5 Frontend: ScheduleContent — серверная фильтрация вместо локальной
+- [x] 26.6 Frontend: React Query кэширование по неделям (`queryKey: ['schedule', type, id, weekStart]`)
+- [x] 26.7 Frontend: Prefetch следующей недели в фоне
+- [x] 26.8 Frontend: URL с неделей — `/schedule/group/123?week=2025-09-01`
 
 ---
 
 ## Этап 27: Экспорт расписания в iCal (→ [ROADMAP_V3.md § 27](./ROADMAP_V3.md))
-- [ ] 27.1 Backend: Добавить зависимость `arran4/golang-ical`
-- [ ] 27.2 Backend: Создать `handlers_ical.go` — эндпоинт `GET /api/v1/schedule/{type}/{id}/ical`
-- [ ] 27.3 Backend: Конвертация `[]Day` → VCALENDAR с VEVENT для каждого занятия
-- [ ] 27.4 Backend: Кэширование .ics в MemoryCache (TTL 30 мин)
-- [ ] 27.5 Backend: Заголовки: `Content-Type: text/calendar`, `Content-Disposition: attachment`
-- [ ] 27.6 Backend: Опциональная защита `?token=...` из конфига
-- [ ] 27.7 Frontend: Кнопка «📅 Добавить в календарь» с выпадашкой
-- [ ] 27.8 Frontend: Выпадашка «Скачать .ics» / «Скопировать ссылку для подписки»
+- [x] 27.1 Backend: Добавить зависимость `arran4/golang-ical`
+- [x] 27.2 Backend: Создать `handlers_ical.go` — эндпоинт `GET /api/v1/schedule/{type}/{id}/ical`
+- [x] 27.3 Backend: Конвертация `[]Day` → VCALENDAR с VEVENT для каждого занятия
+- [x] 27.4 Backend: Кэширование .ics в MemoryCache (TTL 30 мин)
+- [x] 27.5 Backend: Заголовки: `Content-Type: text/calendar`, `Content-Disposition: attachment`
+- [x] 27.6 Backend: Опциональная защита `?token=...` из конфига
+- [x] 27.7 Frontend: Кнопка «📅 Добавить в календарь» с выпадашкой
+- [x] 27.8 Frontend: Выпадашка «Скачать .ics» / «Скопировать ссылку для подписки»
 
 ---
 
 ## Этап 28: Расширенные уведомления — дайджест и напоминания (→ [ROADMAP_V3.md § 28](./ROADMAP_V3.md))
-- [ ] 28.1 Backend: Расширить `user_subscriptions` — поля `notify_on_change`, `notify_daily_digest`, `digest_time`, `notify_before_lesson`, `before_minutes`, `timezone`
-- [ ] 28.2 Backend: Миграция `ALTER TABLE` для новых колонок
-- [ ] 28.3 Backend: Эндпоинт `PATCH /api/v1/notifications/settings`
-- [ ] 28.4 Backend: Scheduler — горутина с тикером раз в минуту в `syncer.go`
-- [ ] 28.5 Backend: Логика вечернего дайджеста (расписание на завтра → FCM)
-- [ ] 28.6 Backend: Логика напоминания перед парой (ближайшая пара через N минут → FCM)
-- [ ] 28.7 Backend: Обработка «завтра нет пар» — весёлый пуш «🎉»
-- [ ] 28.8 Frontend: Кнопка «🔔 Уведомления» → bottom sheet с настройками
-- [ ] 28.9 Frontend: Тогглы (изменения / дайджест / перед парой)
-- [ ] 28.10 Frontend: Time picker для дайджеста, select для минут (15/30/60)
-- [ ] 28.11 Frontend: Сохранение настроек в localStorage
-- [ ] 28.12 Frontend: Статус уведомлений (активны / отклонены браузером)
+- [x] 28.1 Backend: Расширить `user_subscriptions` — поля `notify_on_change`, `notify_daily_digest`, `digest_time`, `notify_before_lesson`, `before_minutes`, `timezone`
+- [x] 28.2 Backend: Миграция `ALTER TABLE` для новых колонок
+- [x] 28.3 Backend: Эндпоинт `PATCH /api/v1/notifications/settings`
+- [x] 28.4 Backend: Scheduler — горутина с тикером раз в минуту в `syncer.go`
+- [x] 28.5 Backend: Логика вечернего дайджеста (расписание на завтра → FCM)
+- [x] 28.6 Backend: Логика напоминания перед парой (ближайшая пара через N минут → FCM)
+- [x] 28.7 Backend: Обработка «завтра нет пар» — весёлый пуш «🎉»
+- [x] 28.8 Frontend: Кнопка «🔔 Уведомления» → bottom sheet с настройками
+- [x] 28.9 Frontend: Тогглы (изменения / дайджест / перед парой)
+- [x] 28.10 Frontend: Time picker для дайджеста, select для минут (15/30/60)
+- [x] 28.11 Frontend: Сохранение настроек в localStorage
+- [x] 28.12 Frontend: Статус уведомлений (активны / отклонены браузером)

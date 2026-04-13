@@ -5,7 +5,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { fetchTutors, fetchSchedule, onRateLimit } from '../api/client';
-import type { Tutor, SearchResult } from '../api/client';
+import type { Tutor, SearchResult, Day, Lesson } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { Toast } from '../components/ui/Toast';
 import styles from './TutorsPage.module.css';
@@ -95,11 +95,11 @@ export const TutorsPage: React.FC = () => {
 
     setLoadingSubjects(prev => ({ ...prev, [tutorId]: true }));
     try {
-      const schedule = await fetchSchedule('tutor', tutorId);
+      const resp = await fetchSchedule('tutor', tutorId);
       const subjects = new Set<string>();
 
-      schedule.forEach(day => {
-        day.lessons.forEach(lesson => {
+      resp.data.forEach((day: Day) => {
+        day.lessons.forEach((lesson: Lesson) => {
           if (lesson.lesson) subjects.add(lesson.lesson);
         });
       });
