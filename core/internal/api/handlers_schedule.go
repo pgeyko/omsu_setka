@@ -49,8 +49,28 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 
 		key := fmt.Sprintf("%s:%d", entityType, id)
 
+		weekStartStr := c.Query("week_start")
+
 		// 1. Try L1 Cache
 		if data, ok := s.MemoryCache.Get(key); ok {
+			// If we need filtering, we must unmarshal even from cache
+			if weekStartStr != "" {
+				var cachedResp models.BFFResponse
+				if err := json.Unmarshal(data, &cachedResp); err == nil {
+					if days, ok := cachedResp.Data.([]interface{}); ok {
+						// We need to re-parse because Data is interface{} and comes back as []interface{} or similar
+						// Actually, safer to unmarshal into a specific struct
+						var fullSchedule []models.Day
+						daysJSON, _ := json.Marshal(days)
+						json.Unmarshal(daysJSON, &fullSchedule)
+						
+						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+						filteredResp.CachedAt = cachedResp.CachedAt
+						filteredResp.Source = "cache"
+						return c.JSON(filteredResp)
+					}
+				}
+			}
 			c.Set("X-Cache-Status", "HIT-L1")
 			c.Set("Content-Type", "application/json")
 			return c.Send(data)
@@ -64,6 +84,19 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 
 		if data != nil && time.Now().Before(meta.ExpiresAt) {
 			s.MemoryCache.Set(key, data) // Warm up L1
+			if weekStartStr != "" {
+				var cachedResp models.BFFResponse
+				if err := json.Unmarshal(data, &cachedResp); err == nil {
+					var fullSchedule []models.Day
+					daysJSON, _ := json.Marshal(cachedResp.Data)
+					json.Unmarshal(daysJSON, &fullSchedule)
+
+					filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+					filteredResp.CachedAt = cachedResp.CachedAt
+					filteredResp.Source = "cache"
+					return c.JSON(filteredResp)
+				}
+			}
 			c.Set("X-Cache-Status", "HIT-L2")
 			c.Set("Content-Type", "application/json")
 			return c.Send(data)
@@ -84,6 +117,19 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		if err != nil {
 			// If upstream is down, try to serve stale L2 data if present
 			if data != nil {
+				if weekStartStr != "" {
+					var cachedResp models.BFFResponse
+					if err := json.Unmarshal(data, &cachedResp); err == nil {
+						var fullSchedule []models.Day
+						daysJSON, _ := json.Marshal(cachedResp.Data)
+						json.Unmarshal(daysJSON, &fullSchedule)
+
+						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+						filteredResp.CachedAt = cachedResp.CachedAt
+						filteredResp.Source = "stale"
+						return c.JSON(filteredResp)
+					}
+				}
 				c.Set("X-Cache-Status", "STALE")
 				c.Set("Content-Type", "application/json")
 				return c.Send(data)
@@ -98,6 +144,10 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 			CachedAt: time.Now(),
 			Source:   "upstream",
 		}
+
+		// If filtering requested, do it before FINAL response but AFTER L2 cache update
+		// We want to cache the FULL schedule in L2, but return filtered to user.
+		
 		jsonData, err := json.Marshal(resp)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to marshal schedule response")
@@ -112,8 +162,56 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		// Update L1
 		s.MemoryCache.Set(key, jsonData)
 
+		if weekStartStr != "" {
+			filteredResp := s.filterSchedule(schedule, weekStartStr)
+			filteredResp.CachedAt = resp.CachedAt
+			filteredResp.Source = resp.Source
+			return c.JSON(filteredResp)
+		}
+
 		c.Set("X-Cache-Status", "MISS")
 		return c.JSON(resp)
+	}
+}
+
+func (s *Server) filterSchedule(schedule []models.Day, weekStartStr string) models.BFFResponse {
+	weekStart, err := time.Parse("2006-01-02", weekStartStr)
+	if err != nil {
+		// If invalid date, return everything to be safe
+		return models.BFFResponse{Success: true, Data: schedule}
+	}
+
+	weekEnd := weekStart.AddDate(0, 0, 7)
+	filtered := make([]models.Day, 0)
+	
+	hasNext := false
+	hasPrev := false
+
+	for _, day := range schedule {
+		dayTime, err := time.Parse("02.01.2006", day.Day)
+		if err != nil {
+			continue
+		}
+
+		if (dayTime.Equal(weekStart) || dayTime.After(weekStart)) && dayTime.Before(weekEnd) {
+			filtered = append(filtered, day)
+		}
+		
+		if dayTime.Before(weekStart) {
+			hasPrev = true
+		}
+		if dayTime.Equal(weekEnd) || dayTime.After(weekEnd) {
+			hasNext = true
+		}
+	}
+
+	return models.BFFResponse{
+		Success:   true,
+		Data:      filtered,
+		WeekStart: weekStartStr,
+		WeekEnd:   weekEnd.Format("2006-01-02"),
+		HasPrev:   hasPrev,
+		HasNext:   hasNext,
 	}
 }
 
