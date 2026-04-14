@@ -56,19 +56,23 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 	}
 
 	// FCM v1 allows sending to multiple tokens via Multicast
+	// We move everything to Data map to let the Service Worker 
+	// handle the notification display. This prevents duplication
+	// between the browser's automatic display and the SW manual display.
+	if data == nil {
+		data = make(map[string]string)
+	}
+	data["title"] = title
+	data["body"] = body
+	data["click_url"] = ensureHTTPS(c.baseURL + "/schedule/" + data["type"] + "/" + data["id"])
+	data["tag"] = "schedule_alert"
+
 	message := &messaging.MulticastMessage{
 		Tokens: tokens,
-		Notification: &messaging.Notification{
-			Title: title,
-			Body:  body,
-		},
-		Data: data,
+		Data:   data,
 		Webpush: &messaging.WebpushConfig{
-			Notification: &messaging.WebpushNotification{
-				Icon: ensureHTTPS(c.baseURL + "/favicon-96x96.png"),
-			},
 			FCMOptions: &messaging.WebpushFCMOptions{
-				Link: ensureHTTPS(c.baseURL + "/schedule/" + data["type"] + "/" + data["id"]),
+				Link: data["click_url"],
 			},
 		},
 	}
