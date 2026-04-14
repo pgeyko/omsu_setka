@@ -54,6 +54,10 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 	}
 
 	// 4. Generate iCal
+	if len(schedule) == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no schedule data found for this entity"})
+	}
+
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetProductId("-//omsu_mirror//NONSGML v1.0//RU")
@@ -64,6 +68,7 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 		loc = time.FixedZone("OMST", 6*3600)
 	}
 
+	eventCount := 0
 	for _, day := range schedule {
 		date, err := time.ParseInLocation("02.01.2006", day.Day, loc)
 		if err != nil {
@@ -97,7 +102,12 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 				desc += fmt.Sprintf("\nПодгруппа: %s", lesson.SubgroupName)
 			}
 			event.SetDescription(desc)
+			eventCount++
 		}
+	}
+
+	if eventCount == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "schedule exists but has no lessons to export"})
 	}
 
 	icsData := cal.Serialize()
