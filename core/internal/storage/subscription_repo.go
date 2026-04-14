@@ -15,6 +15,7 @@ type Subscription struct {
 	NotifyBeforeLesson bool   `json:"notify_before_lesson"`
 	BeforeMinutes      int    `json:"before_minutes"`
 	Timezone           string `json:"timezone"`
+	Subgroup           string `json:"subgroup"`
 }
 
 type SubscriptionRepo struct {
@@ -41,20 +42,22 @@ func (r *SubscriptionRepo) Subscribe(ctx context.Context, sub Subscription) erro
 		INSERT INTO user_subscriptions (
 			fcm_token, entity_type, entity_id, 
 			notify_on_change, notify_daily_digest, digest_time, 
-			notify_before_lesson, before_minutes, timezone
+			notify_before_lesson, before_minutes, timezone, subgroup
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(fcm_token, entity_type, entity_id) DO UPDATE SET
 			notify_on_change = excluded.notify_on_change,
 			notify_daily_digest = excluded.notify_daily_digest,
 			digest_time = excluded.digest_time,
 			notify_before_lesson = excluded.notify_before_lesson,
 			before_minutes = excluded.before_minutes,
-			timezone = excluded.timezone
+			timezone = excluded.timezone,
+			subgroup = excluded.subgroup,
+			last_digest_at = NULL
 	`, 
 		sub.FCMToken, sub.EntityType, sub.EntityID,
 		sub.NotifyOnChange, sub.NotifyDailyDigest, sub.DigestTime,
-		sub.NotifyBeforeLesson, sub.BeforeMinutes, sub.Timezone,
+		sub.NotifyBeforeLesson, sub.BeforeMinutes, sub.Timezone, sub.Subgroup,
 	)
 	return err
 }
@@ -100,7 +103,7 @@ func (r *SubscriptionRepo) GetAllSubscriptionsByToken(ctx context.Context, token
 		SELECT 
 			fcm_token, entity_type, entity_id,
 			notify_on_change, notify_daily_digest, digest_time,
-			notify_before_lesson, before_minutes, timezone
+			notify_before_lesson, before_minutes, timezone, subgroup
 		FROM user_subscriptions 
 		WHERE fcm_token = ?
 	`, token)
@@ -115,7 +118,7 @@ func (r *SubscriptionRepo) GetAllSubscriptionsByToken(ctx context.Context, token
 		if err := rows.Scan(
 			&s.FCMToken, &s.EntityType, &s.EntityID,
 			&s.NotifyOnChange, &s.NotifyDailyDigest, &s.DigestTime,
-			&s.NotifyBeforeLesson, &s.BeforeMinutes, &s.Timezone,
+			&s.NotifyBeforeLesson, &s.BeforeMinutes, &s.Timezone, &s.Subgroup,
 		); err != nil {
 			return nil, err
 		}
@@ -144,7 +147,7 @@ func (r *SubscriptionRepo) GetTokensByEntity(ctx context.Context, entityType str
 
 func (r *SubscriptionRepo) GetSubscriptionsForDigest(ctx context.Context, timeStr string, todayStr string) (*sql.Rows, error) {
 	return r.db.DB.QueryContext(ctx, `
-		SELECT fcm_token, entity_type, entity_id, timezone
+		SELECT fcm_token, entity_type, entity_id, timezone, subgroup
 		FROM user_subscriptions
 		WHERE notify_daily_digest = 1 
 		  AND digest_time = ? 
@@ -163,7 +166,7 @@ func (r *SubscriptionRepo) MarkDigestSent(ctx context.Context, token, entityType
 
 func (r *SubscriptionRepo) GetSubscriptionsWithReminders(ctx context.Context) (*sql.Rows, error) {
 	return r.db.DB.QueryContext(ctx, `
-		SELECT fcm_token, entity_type, entity_id, before_minutes
+		SELECT fcm_token, entity_type, entity_id, before_minutes, subgroup
 		FROM user_subscriptions
 		WHERE notify_before_lesson = 1
 	`)

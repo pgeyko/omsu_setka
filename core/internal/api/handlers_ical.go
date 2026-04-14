@@ -127,13 +127,12 @@ func (s *Server) fetchFullSchedule(c *fiber.Ctx, entityType string, id int) ([]m
 	
 	// Check L1
 	if data, ok := s.MemoryCache.Get(key); ok {
-		var resp models.BFFResponse
-		if err := json.Unmarshal(data, &resp); err == nil {
-			// BFFResponse.Data is interface{}, need to convert to []models.Day
-			if days, ok := resp.Data.([]interface{}); ok {
-				var schedule []models.Day
-				daysBytes, _ := json.Marshal(days)
-				json.Unmarshal(daysBytes, &schedule)
+		var cached struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(data, &cached); err == nil {
+			var schedule []models.Day
+			if err := json.Unmarshal(cached.Data, &schedule); err == nil {
 				return schedule, nil
 			}
 		}
@@ -142,12 +141,12 @@ func (s *Server) fetchFullSchedule(c *fiber.Ctx, entityType string, id int) ([]m
 	// Check L2
 	data, meta, err := s.ScheduleRepo.GetSchedule(c.Context(), key)
 	if err == nil && data != nil && time.Now().Before(meta.ExpiresAt) {
-		var resp models.BFFResponse
-		if err := json.Unmarshal(data, &resp); err == nil {
-			if days, ok := resp.Data.([]interface{}); ok {
-				var schedule []models.Day
-				daysBytes, _ := json.Marshal(days)
-				json.Unmarshal(daysBytes, &schedule)
+		var cached struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(data, &cached); err == nil {
+			var schedule []models.Day
+			if err := json.Unmarshal(cached.Data, &schedule); err == nil {
 				return schedule, nil
 			}
 		}

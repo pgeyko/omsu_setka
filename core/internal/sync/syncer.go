@@ -36,6 +36,8 @@ type Syncer struct {
 	searchIndex  *cache.SearchIndex
 	mu           sync.Mutex
 	status       *UpstreamStatus
+	dictSema     chan struct{}
+	schedSema    chan struct{}
 }
 
 func NewSyncer(
@@ -64,6 +66,8 @@ func NewSyncer(
 		status: &UpstreamStatus{
 			IsHealthy: true, // Optimistically assume healthy until proven otherwise
 		},
+		dictSema:  make(chan struct{}, 1),
+		schedSema: make(chan struct{}, 1),
 	}
 }
 
@@ -153,32 +157,54 @@ func (s *Syncer) Run(ctx context.Context) {
 			log.Info().Msg("Syncer stopping...")
 			return
 		case <-dictTicker.C:
-			log.Info().Msg("Starting periodic dictionary synchronization...")
-			if err := s.SyncDictionaries(ctx); err != nil {
-				log.Error().Err(err).Msg("Periodic dictionary sync failed")
-			}
+			go func() {
+				select {
+				case s.dictSema <- struct{}{}:
+					defer func() { <-s.dictSema }()
+					log.Info().Msg("Starting periodic dictionary synchronization...")
+					if err := s.SyncDictionaries(ctx); err != nil {
+						log.Error().Err(err).Msg("Periodic dictionary sync failed")
+					}
+				default:
+					log.Warn().Msg("Dictionary sync skipped: already in progress")
+				}
+			}()
 		case <-schedTicker.C:
-			log.Info().Msg("Starting periodic active schedules synchronization...")
-			if err := s.SyncActiveSchedules(ctx); err != nil {
-				log.Error().Err(err).Msg("Periodic active schedules sync failed")
-			}
+			go func() {
+				select {
+				case s.schedSema <- struct{}{}:
+					defer func() { <-s.schedSema }()
+					log.Info().Msg("Starting periodic active schedules synchronization...")
+					if err := s.SyncActiveSchedules(ctx); err != nil {
+						log.Error().Err(err).Msg("Periodic active schedules sync failed")
+					}
+				default:
+					log.Warn().Msg("Active schedules sync skipped: already in progress")
+				}
+			}()
 		case <-notifyTicker.C:
-			if err := s.SyncScheduledNotifications(ctx); err != nil {
-				log.Error().Err(err).Msg("Scheduled notification processing failed")
-			}
+			// Notifications are lightweight so we just run them
+			// but still in a goroutine to not block the select if it somehow hangs
+			go func() {
+				if err := s.SyncScheduledNotifications(ctx); err != nil {
+					log.Error().Err(err).Msg("Scheduled notification processing failed")
+				}
+			}()
 		case <-cleanTicker.C:
-			log.Info().Msg("Running periodic cleanup tasks...")
-			if n, err := s.scheduleRepo.CleanExpired(ctx); err != nil {
-				log.Error().Err(err).Msg("Failed to clean expired schedules")
-			} else if n > 0 {
-				log.Info().Msgf("Cleaned %d expired schedule entries", n)
-			}
-			
-			if n, err := s.incidentRepo.CleanOld(ctx, 500); err != nil {
-				log.Error().Err(err).Msg("Failed to clean old incidents")
-			} else if n > 0 {
-				log.Info().Msgf("Cleaned %d old incident entries", n)
-			}
+			go func() {
+				log.Info().Msg("Running periodic cleanup tasks...")
+				if n, err := s.scheduleRepo.CleanExpired(ctx); err != nil {
+					log.Error().Err(err).Msg("Failed to clean expired schedules")
+				} else if n > 0 {
+					log.Info().Msgf("Cleaned %d expired schedule entries", n)
+				}
+				
+				if n, err := s.incidentRepo.CleanOld(ctx, 500); err != nil {
+					log.Error().Err(err).Msg("Failed to clean old incidents")
+				} else if n > 0 {
+					log.Info().Msgf("Cleaned %d old incident entries", n)
+				}
+			}()
 		}
 	}
 }

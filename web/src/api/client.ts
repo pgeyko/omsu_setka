@@ -154,12 +154,13 @@ export const fetchChanges = async (type: string, id: number) => {
   return data.data;
 };
 
-export const subscribeToNotifications = async (token: string, type: string, id: number) => {
+export const subscribeToNotifications = async (token: string, type: string, id: number, subgroup?: string) => {
   const { data } = await apiClient.post('/subscribe', {
     fcm_token: token,
     entity_type: type,
     entity_id: id,
     notify_on_change: true,
+    subgroup: subgroup || ""
   });
   return data;
 };

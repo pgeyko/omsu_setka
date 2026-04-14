@@ -10,6 +10,7 @@ import (
 type Config struct {
 	// Server
 	AppEnv             string        `env:"APP_ENV" envDefault:"development"`
+	AppBaseURL         string        `env:"APP_BASE_URL" envDefault:"http://localhost"`
 	ServerPort         string        `env:"SERVER_PORT" envDefault:"8080"`
 	ServerReadTimeout  time.Duration `env:"SERVER_READ_TIMEOUT" envDefault:"5s"`
 	ServerWriteTimeout time.Duration `env:"SERVER_WRITE_TIMEOUT" envDefault:"5s"`
