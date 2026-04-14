@@ -238,11 +238,12 @@
 }
 
 input:checked + .slider {
-  background-color: var(--accent-color);
-  border-color: var(--accent-color);
+  background-color: var(--text-h);
+  border-color: var(--text-h);
 }
 
 input:checked + .slider:before {
+  background-color: var(--bg);
   transform: translateX(20px);
 }
 

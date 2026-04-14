@@ -159,6 +159,7 @@ export const subscribeToNotifications = async (token: string, type: string, id: 
     fcm_token: token,
     entity_type: type,
     entity_id: id,
+    notify_on_change: true,
   });
   return data;
 };
