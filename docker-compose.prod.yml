@@ -4,7 +4,7 @@ services:
     container_name: omsu_mirror_backend
     restart: always
     volumes:
-      - omsu_data:/app/data
+      - ./data:/app/data
     environment:
       - ADMIN_KEY
       - CORS_ALLOWED_ORIGINS
@@ -43,5 +43,4 @@ services:
 networks:
   nginx-network:
     external: true
-volumes:
-  omsu_data:
+
