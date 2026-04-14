@@ -93,14 +93,11 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 			}
 
 			startTime := models.TimeSlots[firstSlot].Start
-			title = fmt.Sprintf("Расписание на %s (%s)", 
-				getDayRelativeLabel(now, targetDate),
-				targetDate.Format("02.01"),
-			)
-			body = fmt.Sprintf("У вас %d %s %s. Первое начинается в %s.",
+			title = fmt.Sprintf("Расписание на: %s", targetDate.Format("02.01"))
+			body = fmt.Sprintf("У вас %d %s на %s. Первое начинается в %s.",
 				len(uniqueSlots),
 				getLessonWord(len(uniqueSlots)),
-				getDayRelativeBodyLabel(now, targetDate),
+				targetDate.Format("02.01"),
 				startTime,
 			)
 		}
@@ -156,7 +153,7 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 				}
 
 				// Match! Send notification
-				title := "Скоро занятие"
+				title := fmt.Sprintf("Расписание на: %s", targetTime.Format("02.01"))
 				body := fmt.Sprintf("%s в %s (%s)", lesson.Lesson, startTime, lesson.AuditCorps)
 				
 				s.fcm.SendToTokens(ctx, []string{sub.FCMToken}, title, body, map[string]string{
@@ -218,61 +215,7 @@ func (s *Syncer) getScheduleForDay(ctx context.Context, entityType string, entit
 	return nil, nil
 }
 
-func getDayRelativeLabel(now, target time.Time) string {
-	diff := target.Sub(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())).Hours()
-	if diff < 36 {
-		return "завтра"
-	}
-	if diff < 60 {
-		return "послезавтра"
-	}
-	
-	switch target.Weekday() {
-	case time.Monday:
-		return "понедельник"
-	case time.Tuesday:
-		return "вторник"
-	case time.Wednesday:
-		return "среду"
-	case time.Thursday:
-		return "четверг"
-	case time.Friday:
-		return "пятницу"
-	case time.Saturday:
-		return "субботу"
-	case time.Sunday:
-		return "воскресенье"
-	}
-	return "выбранный день"
-}
 
-func getDayRelativeBodyLabel(now, target time.Time) string {
-	diff := target.Sub(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())).Hours()
-	if diff < 36 {
-		return "завтра"
-	}
-	if diff < 60 {
-		return "послезавтра"
-	}
-
-	switch target.Weekday() {
-	case time.Monday:
-		return "в понедельник"
-	case time.Tuesday:
-		return "во вторник"
-	case time.Wednesday:
-		return "в среду"
-	case time.Thursday:
-		return "в четверг"
-	case time.Friday:
-		return "в пятницу"
-	case time.Saturday:
-		return "в субботу"
-	case time.Sunday:
-		return "в воскресенье"
-	}
-	return "в выбранный день"
-}
 
 func getLessonWord(count int) string {
 	if count%10 == 1 && count%100 != 11 {

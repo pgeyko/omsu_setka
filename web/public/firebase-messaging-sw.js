@@ -1,6 +1,6 @@
 // Scripts for firebase and firebase messaging
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
 // Initialize the Firebase app in the service worker.
 // These values are replaced by Vite during build (see vite.config.ts)
@@ -16,26 +16,72 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/favicon-96x96.png',
-    data: payload.data
-  };
+// Handle incoming push events manually to prevent duplicates
+// and ensure we have full control over the notification display.
+self.addEventListener('push', function(event) {
+    if (!event.data) return;
+    try {
+        const payload = event.data.json();
+        console.log('[sw.js] Push received:', payload);
+        
+        // Data comes from payload.data when sending from Go FCM client
+        const d = payload.data;
+        if (!d) return;
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+        const notificationTitle = d.title || "Setka — Расписание";
+        const notificationOptions = {
+            body: d.body || "Обновление в расписании",
+            icon: '/pwa-192x192.png',
+            badge: '/favicon-96x96.png',
+            tag: d.tag || 'schedule_event',
+            renotify: true, // Allow replacing previous notifications with the same tag
+            data: {
+                url: d.click_url || '/' 
+            }
+        };
+
+        event.waitUntil(
+            self.registration.showNotification(notificationTitle, notificationOptions)
+        );
+    } catch (e) {
+        console.error('[sw.js] Error processing push:', e);
+    }
 });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  let urlToOpen = '/';
-  if (event.notification.data && event.notification.data.type && event.notification.data.id) {
-    urlToOpen = `/schedule/${event.notification.data.type}/${event.notification.data.id}`;
-  }
+// Robust notification click handler with window focusing
+self.addEventListener('notificationclick', function(event) {
+    console.log('[sw.js] Notification click received');
+    event.notification.close();
 
-  event.waitUntil(
-    clients.openWindow(urlToOpen)
-  );
+    // Get the target URL from the notification data
+    let targetUrl = event.notification.data?.url || '/';
+    
+    // Resolve relative URLs to absolute
+    if (!targetUrl.startsWith('http')) {
+        targetUrl = new URL(targetUrl, self.location.origin).href;
+    }
+
+    console.log('[sw.js] Target URL:', targetUrl);
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+            // Check if any existing tab belongs to our domain
+            for (let i = 0; i < clientList.length; i++) {
+                let client = clientList[i];
+                
+                if (client.url.includes(self.location.host) && 'focus' in client) {
+                    console.log('[sw.js] Matching tab found. Focusing and navigating...');
+                    return client.focus().then((focusedClient) => {
+                        return focusedClient.navigate(targetUrl);
+                    });
+                }
+            }
+
+            // If no tab is found, open a new window
+            if (clients.openWindow) {
+                console.log('[sw.js] No matching tab found. Opening new window.');
+                return clients.openWindow(targetUrl);
+            }
+        })
+    );
 });
