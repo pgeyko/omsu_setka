@@ -4,7 +4,7 @@ services:
     container_name: omsu_mirror_backend
     restart: always
     volumes:
-      - ./data:/app/data
+      - backend_data:/app/data
     environment:
       - ADMIN_KEY
       - CORS_ALLOWED_ORIGINS
@@ -13,12 +13,15 @@ services:
       - APP_ENV=production
       - SERVER_PORT=8080
       - SQLITE_PATH=/app/data/mirror.db
+      - GOMEMLIMIT=192MiB
+    mem_limit: 256m
+    mem_reservation: 128m
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
         reservations:
-          memory: 64M
+          memory: 128M
     networks:
       - nginx-network
     healthcheck:
@@ -44,3 +47,5 @@ networks:
   nginx-network:
     external: true
 
+volumes:
+  backend_data:
