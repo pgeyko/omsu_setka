@@ -14,7 +14,7 @@ import {
   getNotificationSettings,
   updateNotificationSettings
 } from '../api/client';
-import { requestForToken, onMessageListener } from '../utils/firebase';
+import { requestForToken } from '../utils/firebase';
 import type { Day, Lesson } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { useSidebarStore } from '../store/useSidebar';
@@ -173,12 +173,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     }
   }, [entityType, entityID]);
 
-  useEffect(() => {
-    onMessageListener().then((payload: any) => {
-      setToastMessage(`Уведомление: ${payload.notification.title}`);
-      setShowToast(true);
-    }).catch(err => console.log('failed: ', err));
-  }, []);
+
 
   const toggleNotifications = async () => {
     const storageKey = `fcm_token_${entityType}_${entityID}`;
@@ -678,7 +673,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                     <Search size={20} />
                   </button>
                   <button
-                    className={styles.themeToggle}
+                    className={`${styles.themeToggle} mobile-only`}
                     onClick={openSidebar}
                     aria-label="Открыть меню"
                   >

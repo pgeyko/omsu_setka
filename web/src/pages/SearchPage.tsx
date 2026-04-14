@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ArrowLeft, School, User, MapPin, X, History } from 'lucide-react';
+import { Search, ArrowLeft, School, User, MapPin, X, History, Menu } from 'lucide-react';
 import { GlassInput } from '../components/ui/GlassInput';
 import { fetchSearch } from '../api/client';
 import type { SearchResult, GroupedSearchResult } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
+import { useSidebarStore } from '../store/useSidebar';
 import styles from './SearchPage.module.css';
 
 export const SearchPage: React.FC = () => {
@@ -14,6 +15,7 @@ export const SearchPage: React.FC = () => {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const { recent, recentTutors, recentAuditories, addRecent } = useFavoritesStore();
+  const { open: openSidebar } = useSidebarStore();
 
   useEffect(() => {
     if (inputRef.current) {
@@ -82,23 +84,33 @@ export const SearchPage: React.FC = () => {
     <div className="app-container animate-fade-in">
       <header className={styles.header}>
         <div className={styles.searchBar}>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}>
-            <ArrowLeft size={24} />
-          </button>
-          <div className={styles.inputWrapper}>
-            <GlassInput
-              ref={inputRef}
-              icon={<Search size={20} />}
-              placeholder="Группа, преподаватель или аудитория"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button className={styles.clearBtn} onClick={() => setQuery('')}>
-                <X size={18} />
-              </button>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            <button onClick={() => navigate(-1)} className={styles.backBtn}>
+              <ArrowLeft size={24} />
+            </button>
+            <div className={styles.inputWrapper}>
+              <GlassInput
+                ref={inputRef}
+                icon={<Search size={20} />}
+                placeholder="Группа, преподаватель или аудитория"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              {query && (
+                <button className={styles.clearBtn} onClick={() => setQuery('')}>
+                  <X size={18} />
+                </button>
+              )}
+            </div>
           </div>
+          <button
+            className={`${styles.backBtn} mobile-only`}
+            onClick={openSidebar}
+            aria-label="Открыть меню"
+            style={{ marginLeft: '12px' }}
+          >
+            <Menu size={24} />
+          </button>
         </div>
       </header>
 

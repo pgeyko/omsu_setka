@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar, Star } from 'lucide-react';
+import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar, Star, Menu } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { fetchTutors, fetchSchedule, onRateLimit } from '../api/client';
 import type { Tutor, SearchResult, Day, Lesson } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
+import { useSidebarStore } from '../store/useSidebar';
 import { Toast } from '../components/ui/Toast';
 import styles from './TutorsPage.module.css';
 
 export const TutorsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { open: openSidebar } = useSidebarStore();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,9 +147,17 @@ export const TutorsPage: React.FC = () => {
 
       <header className={styles.stickyHeader}>
         <nav className={styles.nav}>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
-          <div className={styles.navTitle}>Преподаватели</div>
-          <div className={styles.navSpacer}></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
+            <div className={styles.navTitle}>Преподаватели</div>
+          </div>
+          <button
+            className={`${styles.backBtn} mobile-only`}
+            onClick={openSidebar}
+            aria-label="Открыть меню"
+          >
+            <Menu size={24} />
+          </button>
         </nav>
       </header>
 

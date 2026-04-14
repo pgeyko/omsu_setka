@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, School, User, MapPin, ArrowLeft, Trash2 } from 'lucide-react';
+import { Star, School, User, MapPin, ArrowLeft, Trash2, Menu } from 'lucide-react';
 import { useFavoritesStore } from '../store/useFavorites';
+import { useSidebarStore } from '../store/useSidebar';
 import { GlassCard } from '../components/ui/GlassCard';
 import styles from './FavoritesPage.module.css';
 
@@ -12,6 +13,7 @@ export const FavoritesPage: React.FC = () => {
     favorites, 
     removeFavorite
   } = useFavoritesStore();
+  const { open: openSidebar } = useSidebarStore();
 
   const handleSelect = (item: any) => {
     navigate(`/schedule/${item.type}/${item.id}`, { state: { name: item.name } });
@@ -21,11 +23,19 @@ export const FavoritesPage: React.FC = () => {
     <div className="app-container animate-fade-in">
       <header className={styles.header}>
         <nav className={styles.nav}>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}>
-            <ArrowLeft size={24} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={() => navigate(-1)} className={styles.backBtn}>
+              <ArrowLeft size={24} />
+            </button>
+            <h1 className={styles.title}>Избранное</h1>
+          </div>
+          <button
+            className={`${styles.backBtn} mobile-only`}
+            onClick={openSidebar}
+            aria-label="Открыть меню"
+          >
+            <Menu size={24} />
           </button>
-          <h1 className={styles.title}>Избранное</h1>
-          <div style={{ width: 44 }} />
         </nav>
       </header>
 

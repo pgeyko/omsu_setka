@@ -173,6 +173,7 @@ func (s *SQLite) migrate() error {
 		{"before_minutes", "INTEGER DEFAULT 30"},
 		{"timezone", "TEXT DEFAULT 'Asia/Omsk'"},
 		{"last_digest_at", "TEXT"},
+		{"last_reminder_at", "TEXT"},
 		{"subgroup", "TEXT"},
 	}
 
