@@ -12,51 +12,47 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// @Summary Get schedule in iCal format
-// @Description Returns the full schedule for a group, tutor, or auditory as an .ics file.
-// @Tags Schedules
-// @Produce text/calendar
-// @Param type path string true "Entity type (group, tutor, auditory)"
-// @Param id path int true "Entity ID"
-// @Param token query string false "Access token (if configured)"
-// @Success 200 {string} string "iCal Calendar Data"
-// @Router /schedule/{type}/{id}/ical [get]
 func (s *Server) handleGetICal(entityType string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		idStr := c.Params("id")
 		token := c.Query("token")
 
+		log.Info().Msgf("iCal request: type=%s, id=%s", entityType, idStr)
+
 		// 1. Security Check (Optional Token)
 		if s.Cfg.ICalAccessToken != "" && token != s.Cfg.ICalAccessToken {
+			log.Warn().Msgf("iCal: invalid token for %s:%s", entityType, idStr)
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "invalid access token"})
 		}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID"})
-	}
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID"})
+		}
 
-	key := fmt.Sprintf("%s:%d", entityType, id)
-	icalKey := "ical:" + key
+		key := fmt.Sprintf("%s:%d", entityType, id)
+		icalKey := "ical:" + key
 
-	// 2. Try Cache
-	if data, ok := s.MemoryCache.Get(icalKey); ok {
-		c.Set("Content-Type", "text/calendar; charset=utf-8")
-		c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"schedule_%s_%d.ics\"", entityType, id))
-		return c.Send(data)
-	}
+		// 2. Try Cache
+		if data, ok := s.MemoryCache.Get(icalKey); ok {
+			log.Debug().Msgf("iCal hit-L1 for %s", icalKey)
+			c.Set("Content-Type", "text/calendar; charset=utf-8")
+			c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"schedule_%s_%d.ics\"", entityType, id))
+			return c.Send(data)
+		}
 
-	// 3. Fetch Full Schedule
-	schedule, err := s.fetchFullSchedule(c, entityType, id)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to fetch schedule for iCal: %s", key)
-		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "schedule data unavailable"})
-	}
+		// 3. Fetch Full Schedule
+		schedule, err := s.fetchFullSchedule(c, entityType, id)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to fetch schedule for iCal: %s", key)
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "schedule data unavailable"})
+		}
 
-	// 4. Generate iCal
-	if len(schedule) == 0 {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no schedule data found for this entity"})
-	}
+		// 4. Generate iCal
+		if len(schedule) == 0 {
+			log.Warn().Msgf("iCal: no schedule found for %s", key)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "no schedule data found for this entity"})
+		}
 
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
@@ -83,8 +79,12 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 
 			// Parse slot times (e.g., "08:45")
 			var startH, startM, endH, endM int
-			fmt.Sscanf(slot.Start, "%d:%d", &startH, &startM)
-			fmt.Sscanf(slot.End, "%d:%d", &endH, &endM)
+			if n, _ := fmt.Sscanf(slot.Start, "%d:%d", &startH, &startM); n != 2 {
+				continue
+			}
+			if n, _ := fmt.Sscanf(slot.End, "%d:%d", &endH, &endM); n != 2 {
+				continue
+			}
 
 			start := time.Date(date.Year(), date.Month(), date.Day(), startH, startM, 0, 0, loc)
 			end := time.Date(date.Year(), date.Month(), date.Day(), endH, endM, 0, 0, loc)
@@ -107,6 +107,7 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 	}
 
 	if eventCount == 0 {
+		log.Warn().Msgf("iCal: %s has schedule but 0 events found in date range", key)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "schedule exists but has no lessons to export"})
 	}
 
@@ -114,6 +115,7 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 	
 	// 5. Cache and Return (30 mins TTL as per roadmap)
 	s.MemoryCache.SetWithTTL(icalKey, []byte(icsData), 30*time.Minute)
+	log.Info().Msgf("iCal generated for %s (%d events)", key, eventCount)
 
 	c.Set("Content-Type", "text/calendar; charset=utf-8")
 	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"schedule_%s_%d.ics\"", entityType, id))
@@ -133,9 +135,11 @@ func (s *Server) fetchFullSchedule(c *fiber.Ctx, entityType string, id int) ([]m
 		if err := json.Unmarshal(data, &cached); err == nil {
 			var schedule []models.Day
 			if err := json.Unmarshal(cached.Data, &schedule); err == nil {
+				log.Debug().Msgf("iCal: fetch schedule hit-L1 for %s", key)
 				return schedule, nil
 			}
 		}
+		log.Warn().Msgf("iCal: fetch schedule hit-L1 for %s but failed to unmarshal", key)
 	}
 
 	// Check L2
@@ -147,9 +151,11 @@ func (s *Server) fetchFullSchedule(c *fiber.Ctx, entityType string, id int) ([]m
 		if err := json.Unmarshal(data, &cached); err == nil {
 			var schedule []models.Day
 			if err := json.Unmarshal(cached.Data, &schedule); err == nil {
+				log.Debug().Msgf("iCal: fetch schedule hit-L2 for %s", key)
 				return schedule, nil
 			}
 		}
+		log.Warn().Msgf("iCal: fetch schedule hit-L2 for %s but failed to unmarshal", key)
 	}
 
 	// Fetch Upstream

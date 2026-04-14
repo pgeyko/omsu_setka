@@ -221,6 +221,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
 
   const handleDownloadICal = () => {
     const url = getICalUrl(entityType, entityID);
+    console.log('[ScheduleContent] Downloading iCal from:', url);
     window.location.href = url;
     setIsICalModalOpen(false);
     setToastMessage('Загрузка началась');
@@ -230,6 +231,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const handleCopyICalLink = () => {
     const url = getICalUrl(entityType, entityID);
     const webcalUrl = url.replace(/^https?:\/\//, 'webcal://');
+    console.log('[ScheduleContent] Copying iCal link:', webcalUrl);
     navigator.clipboard.writeText(webcalUrl);
     setIsICalModalOpen(false);
     setToastMessage('Ссылка скопирована!');

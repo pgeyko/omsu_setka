@@ -153,8 +153,8 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 				}
 
 				// Match! Send notification
-				title := fmt.Sprintf("Расписание на: %s", targetTime.Format("02.01"))
-				body := fmt.Sprintf("%s в %s (%s)", lesson.Lesson, startTime, lesson.AuditCorps)
+				title := fmt.Sprintf("Скоро: %s", lesson.Lesson)
+				body := fmt.Sprintf("Начнется в %s (%s)", startTime, lesson.AuditCorps)
 				
 				s.fcm.SendToTokens(ctx, []string{sub.FCMToken}, title, body, map[string]string{
 					"type": sub.EntityType,
