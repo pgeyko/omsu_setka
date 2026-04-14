@@ -31,7 +31,7 @@ self.addEventListener('push', function(event) {
         const notificationTitle = d.title || "Setka — Расписание";
         const notificationOptions = {
             body: d.body || "Обновление в расписании",
-            icon: '/pwa-192x192.png',
+            icon: '/web-app-manifest-192x192.png',
             badge: '/favicon-96x96.png',
             tag: d.tag || 'schedule_event',
             renotify: true, // Allow replacing previous notifications with the same tag
