@@ -238,13 +238,13 @@
 }
 
 input:checked + .slider {
-  background-color: var(--text-h);
-  border-color: var(--text-h);
+  background-color: var(--text-primary) !important;
 }
 
 input:checked + .slider:before {
-  background-color: var(--bg);
+  background-color: var(--bg-color) !important;
   transform: translateX(20px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .spinner {

@@ -2,7 +2,9 @@ package notifications
 
 import (
 	"context"
+	"omsu_mirror/internal/config"
 	"os"
+	"strings"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
@@ -13,9 +15,10 @@ import (
 type FCMClient struct {
 	app       *firebase.App
 	messaging *messaging.Client
+	baseURL   string
 }
 
-func NewFCMClient() *FCMClient {
+func NewFCMClient(cfg *config.Config) *FCMClient {
 	ctx := context.Background()
 	var app *firebase.App
 	var err error
@@ -31,18 +34,19 @@ func NewFCMClient() *FCMClient {
 
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to initialize Firebase App (push notifications will be disabled)")
-		return &FCMClient{}
+		return &FCMClient{baseURL: cfg.AppBaseURL}
 	}
 
 	client, err := app.Messaging(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to initialize Firebase Messaging")
-		return &FCMClient{}
+		return &FCMClient{baseURL: cfg.AppBaseURL}
 	}
 
 	return &FCMClient{
 		app:       app,
 		messaging: client,
+		baseURL:   cfg.AppBaseURL,
 	}
 }
 
@@ -61,10 +65,10 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 		Data: data,
 		Webpush: &messaging.WebpushConfig{
 			Notification: &messaging.WebpushNotification{
-				Icon: "/favicon-96x96.png",
+				Icon: ensureHTTPS(c.baseURL + "/favicon-96x96.png"),
 			},
 			FCMOptions: &messaging.WebpushFCMOptions{
-				Link: "/schedule/" + data["type"] + "/" + data["id"],
+				Link: ensureHTTPS(c.baseURL + "/schedule/" + data["type"] + "/" + data["id"]),
 			},
 		},
 	}
@@ -87,4 +91,11 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 
 	log.Info().Msgf("FCM: Successfully sent notifications to %d devices", br.SuccessCount)
 	return invalidTokens
+}
+
+func ensureHTTPS(url string) string {
+	if strings.HasPrefix(url, "http://") {
+		return "https://" + strings.TrimPrefix(url, "http://")
+	}
+	return url
 }

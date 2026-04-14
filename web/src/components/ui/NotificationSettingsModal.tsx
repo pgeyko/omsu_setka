@@ -14,6 +14,7 @@ interface NotificationSettings {
   fcm_token?: string;
   entity_type?: string;
   entity_id?: number;
+  subgroup?: string;
 }
 
 interface NotificationSettingsModalProps {
@@ -38,7 +39,8 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     notify_daily_digest: false,
     digest_time: '19:00',
     notify_before_lesson: false,
-    before_minutes: 30
+    before_minutes: 30,
+    subgroup: ""
   };
 
   const [settings, setSettings] = useState<NotificationSettings>(initialSettings || defaultSettings);
@@ -110,6 +112,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                     <span className={styles.slider}></span>
                   </label>
                 </div>
+
               </div>
 
               <div className={styles.divider} />

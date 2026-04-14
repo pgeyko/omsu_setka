@@ -53,25 +53,23 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 
 		// 1. Try L1 Cache
 		if data, ok := s.MemoryCache.Get(key); ok {
+			c.Set("X-Cache-Status", "HIT-L1")
 			// If we need filtering, we must unmarshal even from cache
 			if weekStartStr != "" {
-				var cachedResp models.BFFResponse
-				if err := json.Unmarshal(data, &cachedResp); err == nil {
-					if days, ok := cachedResp.Data.([]interface{}); ok {
-						// We need to re-parse because Data is interface{} and comes back as []interface{} or similar
-						// Actually, safer to unmarshal into a specific struct
-						var fullSchedule []models.Day
-						daysJSON, _ := json.Marshal(days)
-						json.Unmarshal(daysJSON, &fullSchedule)
-						
+				var cached struct {
+					Data     json.RawMessage `json:"data"`
+					CachedAt time.Time       `json:"cached_at"`
+				}
+				if err := json.Unmarshal(data, &cached); err == nil {
+					var fullSchedule []models.Day
+					if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
 						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-						filteredResp.CachedAt = cachedResp.CachedAt
+						filteredResp.CachedAt = cached.CachedAt
 						filteredResp.Source = "cache"
 						return c.JSON(filteredResp)
 					}
 				}
 			}
-			c.Set("X-Cache-Status", "HIT-L1")
 			c.Set("Content-Type", "application/json")
 			return c.Send(data)
 		}
@@ -84,20 +82,23 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 
 		if data != nil && time.Now().Before(meta.ExpiresAt) {
 			s.MemoryCache.Set(key, data) // Warm up L1
+			c.Set("X-Cache-Status", "HIT-L2")
+			
 			if weekStartStr != "" {
-				var cachedResp models.BFFResponse
-				if err := json.Unmarshal(data, &cachedResp); err == nil {
+				var cached struct {
+					Data     json.RawMessage `json:"data"`
+					CachedAt time.Time       `json:"cached_at"`
+				}
+				if err := json.Unmarshal(data, &cached); err == nil {
 					var fullSchedule []models.Day
-					daysJSON, _ := json.Marshal(cachedResp.Data)
-					json.Unmarshal(daysJSON, &fullSchedule)
-
-					filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-					filteredResp.CachedAt = cachedResp.CachedAt
-					filteredResp.Source = "cache"
-					return c.JSON(filteredResp)
+					if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
+						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+						filteredResp.CachedAt = cached.CachedAt
+						filteredResp.Source = "cache"
+						return c.JSON(filteredResp)
+					}
 				}
 			}
-			c.Set("X-Cache-Status", "HIT-L2")
 			c.Set("Content-Type", "application/json")
 			return c.Send(data)
 		}
@@ -117,20 +118,22 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		if err != nil {
 			// If upstream is down, try to serve stale L2 data if present
 			if data != nil {
+				c.Set("X-Cache-Status", "STALE")
 				if weekStartStr != "" {
-					var cachedResp models.BFFResponse
-					if err := json.Unmarshal(data, &cachedResp); err == nil {
+					var cached struct {
+						Data     json.RawMessage `json:"data"`
+						CachedAt time.Time       `json:"cached_at"`
+					}
+					if err := json.Unmarshal(data, &cached); err == nil {
 						var fullSchedule []models.Day
-						daysJSON, _ := json.Marshal(cachedResp.Data)
-						json.Unmarshal(daysJSON, &fullSchedule)
-
-						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-						filteredResp.CachedAt = cachedResp.CachedAt
-						filteredResp.Source = "stale"
-						return c.JSON(filteredResp)
+						if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
+							filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+							filteredResp.CachedAt = cached.CachedAt
+							filteredResp.Source = "stale"
+							return c.JSON(filteredResp)
+						}
 					}
 				}
-				c.Set("X-Cache-Status", "STALE")
 				c.Set("Content-Type", "application/json")
 				return c.Send(data)
 			}
@@ -145,9 +148,6 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 			Source:   "upstream",
 		}
 
-		// If filtering requested, do it before FINAL response but AFTER L2 cache update
-		// We want to cache the FULL schedule in L2, but return filtered to user.
-		
 		jsonData, err := json.Marshal(resp)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to marshal schedule response")
@@ -162,6 +162,7 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		// Update L1
 		s.MemoryCache.Set(key, jsonData)
 
+		c.Set("X-Cache-Status", "MISS")
 		if weekStartStr != "" {
 			filteredResp := s.filterSchedule(schedule, weekStartStr)
 			filteredResp.CachedAt = resp.CachedAt
@@ -169,7 +170,6 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 			return c.JSON(filteredResp)
 		}
 
-		c.Set("X-Cache-Status", "MISS")
 		return c.JSON(resp)
 	}
 }

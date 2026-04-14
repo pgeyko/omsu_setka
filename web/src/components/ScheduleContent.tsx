@@ -194,7 +194,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           try {
             const token = await requestForToken();
             if (token) {
-              await subscribeToNotifications(token, entityType, entityID);
+              await subscribeToNotifications(token, entityType, entityID, subgroup || "");
               localStorage.setItem(storageKey, token);
               addSubscription({
                 id: entityID,
@@ -254,7 +254,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         notify_daily_digest: false,
         digest_time: '19:00',
         notify_before_lesson: false,
-        before_minutes: 30
+        before_minutes: 30,
+        subgroup: subgroup || ""
       });
     } catch {
       setToastMessage('Ошибка при загрузке настроек');
@@ -271,7 +272,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         ...settings,
         fcm_token: localStorage.getItem(`fcm_token_${entityType}_${entityID}`),
         entity_type: entityType,
-        entity_id: Number(entityID)
+        entity_id: Number(entityID),
+        subgroup: subgroup || ""
       });
       setToastMessage('Настройки сохранены');
       setShowToast(true);

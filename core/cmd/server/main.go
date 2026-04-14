@@ -53,7 +53,7 @@ func main() {
 	client := upstream.NewClient(cfg)
 
 	// 5. Initialize FCM Client
-	fcm := notifications.NewFCMClient()
+	fcm := notifications.NewFCMClient(cfg)
 
 	// 6. Initialize Cache & Index
 	memoryCache := cache.NewMemoryCache()

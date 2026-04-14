@@ -32,7 +32,7 @@ func setupTestServer() *Server {
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
-	fcm := notifications.NewFCMClient()
+	fcm := notifications.NewFCMClient(cfg)
 
 	client := upstream.NewClient(cfg)
 	memoryCache := cache.NewMemoryCache()

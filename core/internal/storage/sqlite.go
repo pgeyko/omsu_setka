@@ -7,6 +7,8 @@ import (
 	"omsu_mirror/internal/config"
 	"os"
 	"path/filepath"
+	"time"
+	"github.com/rs/zerolog/log"
 )
 
 type SQLite struct {
@@ -26,15 +28,20 @@ func NewSQLite(cfg *config.Config) (*SQLite, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// SQLite is a single-file database. To prevent "database is locked" errors,
-	// especially during concurrent writes, we limit the connection pool to 1.
-	// This ensures that all operations are serialized.
-	db.SetMaxOpenConns(1)
+	// SQLite with WAL mode can handle multiple readers and one writer.
+	// We increase the connection pool to prevent API hangs during background syncs.
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
 
 	// Configure WAL mode for concurrency
 	if cfg.SQLiteWALMode {
 		if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
 			return nil, fmt.Errorf("failed to enable WAL: %w", err)
+		}
+		// NORMAL is recommended for WAL mode to improve performance while being safe
+		if _, err := db.Exec("PRAGMA synchronous=NORMAL;"); err != nil {
+			return nil, fmt.Errorf("failed to set synchronous mode: %w", err)
 		}
 	}
 
@@ -136,21 +143,46 @@ func (s *SQLite) migrate() error {
 		}
 	}
 
-	newColumns := map[string]string{
-		"notify_on_change":     "INTEGER DEFAULT 1",
-		"notify_daily_digest":  "INTEGER DEFAULT 0",
-		"digest_time":          "TEXT DEFAULT '19:00'",
-		"notify_before_lesson": "INTEGER DEFAULT 0",
-		"before_minutes":       "INTEGER DEFAULT 30",
-		"timezone":             "TEXT DEFAULT 'Asia/Omsk'",
-		"last_digest_at":       "TEXT",
+	// 2. Add missing columns to user_subscriptions
+	existingCols := make(map[string]bool)
+	rows, err := s.DB.Query("PRAGMA table_info(user_subscriptions)")
+	if err != nil {
+		return fmt.Errorf("failed to query table info: %w", err)
+	}
+	for rows.Next() {
+		var cid int
+		var name, dtype string
+		var notnull, pk int
+		var dfltValue interface{}
+		if err := rows.Scan(&cid, &name, &dtype, &notnull, &dfltValue, &pk); err != nil {
+			rows.Close()
+			return fmt.Errorf("failed to scan table info: %w", err)
+		}
+		existingCols[name] = true
+	}
+	rows.Close()
+
+	newColumnsList := []struct {
+		name string
+		def  string
+	}{
+		{"notify_on_change", "INTEGER DEFAULT 1"},
+		{"notify_daily_digest", "INTEGER DEFAULT 0"},
+		{"digest_time", "TEXT DEFAULT '19:00'"},
+		{"notify_before_lesson", "INTEGER DEFAULT 0"},
+		{"before_minutes", "INTEGER DEFAULT 30"},
+		{"timezone", "TEXT DEFAULT 'Asia/Omsk'"},
+		{"last_digest_at", "TEXT"},
+		{"subgroup", "TEXT"},
 	}
 
-	for col, colDef := range newColumns {
-		var dummy interface{}
-		err := s.DB.QueryRow(fmt.Sprintf("SELECT %s FROM user_subscriptions LIMIT 0", col)).Scan(&dummy)
-		if err != nil && err.Error() != "sql: no rows in result set" {
-			_, _ = s.DB.Exec(fmt.Sprintf("ALTER TABLE user_subscriptions ADD COLUMN %s %s", col, colDef))
+	for _, col := range newColumnsList {
+		if !existingCols[col.name] {
+			log.Info().Msgf("Migration: adding column %s to user_subscriptions", col.name)
+			query := fmt.Sprintf("ALTER TABLE user_subscriptions ADD COLUMN %s %s", col.name, col.def)
+			if _, err := s.DB.Exec(query); err != nil {
+				log.Error().Err(err).Msgf("Failed to add column %s", col.name)
+			}
 		}
 	}
 
