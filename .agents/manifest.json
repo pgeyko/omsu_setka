@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "project": "omsu_setka",
+  "canonical_instructions": "AGENTS.md",
+  "shared_registry": ".agents/README.md",
+  "model_entrypoints": {
+    "codex": "AGENTS.md",
+    "claude": "CLAUDE.md",
+    "gemini": "GEMINI.md"
+  },
+  "skills_dir": ".agents/skills",
+  "skill_groups": {
+    "backend": [
+      "golang-pro",
+      "sql-pro",
+      "api-endpoint-builder",
+      "api-documentation",
+      "performance-optimizer"
+    ],
+    "frontend": [
+      "senior-frontend",
+      "typescript-expert",
+      "zustand-store-ts",
+      "tanstack-query-expert",
+      "ui-ux-pro-max",
+      "frontend-design",
+      "progressive-web-app"
+    ],
+    "infrastructure": [
+      "firebase-basics",
+      "docker-expert",
+      "bash-pro"
+    ],
+    "standards": [
+      "lint-and-validate",
+      "writing-plans",
+      "blueprint",
+      "commit"
+    ]
+  },
+  "skills": [
+    {
+      "name": "golang-pro",
+      "path": ".agents/skills/golang-pro.md",
+      "group": "backend"
+    },
+    {
+      "name": "sql-pro",
+      "path": ".agents/skills/sql-pro.md",
+      "group": "backend"
+    },
+    {
+      "name": "api-endpoint-builder",
+      "path": ".agents/skills/api-endpoint-builder.md",
+      "group": "backend"
+    },
+    {
+      "name": "api-documentation",
+      "path": ".agents/skills/api-documentation.md",
+      "group": "backend"
+    },
+    {
+      "name": "performance-optimizer",
+      "path": ".agents/skills/performance-optimizer.md",
+      "group": "backend"
+    },
+    {
+      "name": "senior-frontend",
+      "path": ".agents/skills/senior-frontend.md",
+      "group": "frontend"
+    },
+    {
+      "name": "typescript-expert",
+      "path": ".agents/skills/typescript-expert.md",
+      "group": "frontend"
+    },
+    {
+      "name": "zustand-store-ts",
+      "path": ".agents/skills/zustand-store-ts.md",
+      "group": "frontend"
+    },
+    {
+      "name": "tanstack-query-expert",
+      "path": ".agents/skills/tanstack-query-expert.md",
+      "group": "frontend"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "path": ".agents/skills/ui-ux-pro-max.md",
+      "group": "frontend"
+    },
+    {
+      "name": "frontend-design",
+      "path": ".agents/skills/frontend-design.md",
+      "group": "frontend"
+    },
+    {
+      "name": "progressive-web-app",
+      "path": ".agents/skills/progressive-web-app.md",
+      "group": "frontend"
+    },
+    {
+      "name": "firebase-basics",
+      "path": ".agents/skills/firebase-basics.md",
+      "group": "infrastructure"
+    },
+    {
+      "name": "docker-expert",
+      "path": ".agents/skills/docker-expert.md",
+      "group": "infrastructure"
+    },
+    {
+      "name": "bash-pro",
+      "path": ".agents/skills/bash-pro.md",
+      "group": "infrastructure"
+    },
+    {
+      "name": "lint-and-validate",
+      "path": ".agents/skills/lint-and-validate.md",
+      "group": "standards",
+      "mandatory_after_code_change": true
+    },
+    {
+      "name": "writing-plans",
+      "path": ".agents/skills/writing-plans.md",
+      "group": "standards"
+    },
+    {
+      "name": "blueprint",
+      "path": ".agents/skills/blueprint.md",
+      "group": "standards"
+    },
+    {
+      "name": "commit",
+      "path": ".agents/skills/commit.md",
+      "group": "standards",
+      "mandatory_for_commit": true
+    }
+  ]
+}
