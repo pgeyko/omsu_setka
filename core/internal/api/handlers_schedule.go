@@ -246,6 +246,9 @@ func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "missing required fields"})
 	}
 
+	// Set NotifyOnChange to true by default as requested
+	sub.NotifyOnChange = true
+
 	// 25.5 Add subscription limit check
 	count, err := s.SubscriptionRepo.GetSubscriptionCount(c.Context(), sub.FCMToken)
 	if err == nil && count >= 10 {
