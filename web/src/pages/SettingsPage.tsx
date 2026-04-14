@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Bell, 
   School,
   User,
   MapPin,
-  Settings
+  Settings,
+  Menu
 } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { useSubscriptionsStore } from '../store/useSubscriptions';
+import { useSidebarStore } from '../store/useSidebar';
 import { NotificationSettingsModal } from '../components/ui/NotificationSettingsModal';
 import { getNotificationSettings, updateNotificationSettings, unsubscribeFromNotifications } from '../api/client';
 import { Toast } from '../components/ui/Toast';
@@ -19,6 +20,7 @@ import styles from './SettingsPage.module.css';
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { subscriptions, removeSubscription, getToken } = useSubscriptionsStore();
+  const { open: openSidebar } = useSidebarStore();
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeSubscription, setActiveSubscription] = useState<{id: number, type: string, name: string} | null>(null);
@@ -120,13 +122,21 @@ export const SettingsPage: React.FC = () => {
       <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
       
       <header className={styles.header}>
-        <nav className={styles.nav}>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}>
-            <ArrowLeft size={24} />
+        <div className={styles.headerInner}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={() => navigate(-1)} className={styles.backBtn}>
+              <ArrowLeft size={24} />
+            </button>
+            <h1 className={styles.title}>Настройки</h1>
+          </div>
+          <button
+            className={`${styles.backBtn} mobile-only`}
+            onClick={openSidebar}
+            aria-label="Открыть меню"
+          >
+            <Menu size={24} />
           </button>
-          <h1 className={styles.title}>Настройки</h1>
-          <div style={{ width: 40 }} />
-        </nav>
+        </div>
       </header>
 
       <main className={styles.content}>
@@ -135,42 +145,40 @@ export const SettingsPage: React.FC = () => {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>
             <Bell size={20} className={styles.sectionIcon} />
-            Активные уведомления
+            Уведомления
           </h2>
           
-          <GlassCard className={styles.card}>
+          <div className={styles.subList}>
             {subscriptions.length === 0 ? (
-              <div className={styles.emptyState}>
-                <Bell size={32} style={{ opacity: 0.5 }} />
-                <span>У вас пока нет активных подписок на изменения расписания.</span>
-              </div>
+              <GlassCard className={styles.emptyCard}>
+                <div className={styles.emptyState}>
+                  <Bell size={32} style={{ opacity: 0.3 }} />
+                  <p>У вас пока нет активных подписок. Вы можете подписаться на изменения в расписании на странице группы или преподавателя.</p>
+                </div>
+              </GlassCard>
             ) : (
-              <div className={styles.subList}>
-                {subscriptions.map(sub => (
-                  <motion.div 
-                    key={`${sub.type}-${sub.id}`}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={styles.subItem}
-                    onClick={() => handleOpenSubscription(sub)}
-                  >
-                    <div className={styles.subInfo}>
-                      <div className={styles.subIcon}>
-                        {renderIcon(sub.type)}
-                      </div>
-                      <div className={styles.subDetails}>
-                        <span className={styles.subName}>{sub.name}</span>
-                        <span className={styles.subType}>{getTypeLabel(sub.type)}</span>
-                      </div>
+              subscriptions.map(sub => (
+                <GlassCard 
+                  key={`${sub.type}-${sub.id}`}
+                  className={styles.subCard}
+                  onClick={() => handleOpenSubscription(sub)}
+                >
+                  <div className={styles.subInfo}>
+                    <div className={styles.subIcon}>
+                      {renderIcon(sub.type)}
                     </div>
-                    <button className={styles.subAction}>
-                      <Settings size={20} />
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
+                    <div className={styles.subDetails}>
+                      <span className={styles.subName}>{sub.name}</span>
+                      <span className={styles.subType}>{getTypeLabel(sub.type)}</span>
+                    </div>
+                  </div>
+                  <div className={styles.subAction}>
+                    <Settings size={20} />
+                  </div>
+                </GlassCard>
+              ))
             )}
-          </GlassCard>
+          </div>
         </section>
 
       </main>

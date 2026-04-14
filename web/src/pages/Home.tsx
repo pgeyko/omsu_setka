@@ -45,7 +45,7 @@ export const Home: React.FC = () => {
               <Search size={20} />
             </button>
             <button
-              className={styles.themeToggle}
+              className={`${styles.themeToggle} mobile-only`}
               onClick={open}
               aria-label="Открыть меню"
             >

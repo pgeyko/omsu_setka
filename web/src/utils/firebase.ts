@@ -37,10 +37,9 @@ export const requestForToken = async () => {
   }
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      console.log('Payload received: ', payload);
-      resolve(payload);
-    });
+export const onForegroundMessage = (callback: (payload: { notification?: { title?: string; body?: string } }) => void) => {
+  return onMessage(messaging, (payload) => {
+    console.log('Foreground message received: ', payload);
+    callback(payload as any);
   });
+};

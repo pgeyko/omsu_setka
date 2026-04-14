@@ -11,6 +11,9 @@ import { Footer } from './components/ui/Footer';
 import { Sidebar } from './components/ui/Sidebar';
 import { useSettingsStore } from './store/useSettings';
 import { useSidebarStore } from './store/useSidebar';
+import { onForegroundMessage } from './utils/firebase';
+import { Toast } from './components/ui/Toast';
+import { useState } from 'react';
 import './styles/global.css';
 
 const ScrollToTop = () => {
@@ -36,6 +39,19 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   const { theme } = useSettingsStore();
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = onForegroundMessage((payload) => {
+      const title = payload.notification?.title || 'Уведомление';
+      const body = payload.notification?.body || '';
+      setToastMessage(`${title}: ${body}`);
+      setShowToast(true);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -67,6 +83,11 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />        </Routes>
       </MainLayout>
       <Footer />
+      <Toast 
+        isVisible={showToast} 
+        message={toastMessage} 
+        onClose={() => setShowToast(false)} 
+      />
     </BrowserRouter>
   );
 }

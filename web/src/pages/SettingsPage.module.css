@@ -2,177 +2,171 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--bg-primary);
+  background: var(--bg-color);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: env(safe-area-inset-top, 0) 0 0;
+  border-bottom: 1px solid var(--surface-border);
+  padding: 0 var(--spacing-md);
+  margin: 0 calc(var(--spacing-md) * -1) var(--spacing-xl);
 }
 
-.nav {
+.headerInner {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  height: 60px;
-  padding: 0 16px;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-sm) 0;
 }
 
 .backBtn {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 8px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
 }
 
 .backBtn:hover {
-  background-color: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-primary);
+  transform: translateY(-2px);
 }
 
 .title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  text-transform: lowercase;
   color: var(--text-primary);
+  margin: 0;
 }
 
 .content {
-  padding: 20px 16px;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
+  width: 100%;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
 }
 
 .sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--spacing-sm);
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 8px 8px;
+  padding-left: 4px;
 }
 
 .sectionIcon {
-  color: var(--accent-primary);
-}
-
-.card {
-  padding: 16px;
-  border-radius: 16px;
-  background: var(--bg-secondary);
-}
-
-.settingRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.settingInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.settingName {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.settingDesc {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-/* Subscriptions List */
-.emptyState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--text-secondary);
+  color: var(--accent-color);
 }
 
 .subList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
+  gap: var(--spacing-md);
 }
 
-.subItem {
+.subCard {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--bg-hover);
-  transition: background-color 0.2s;
+  justify-content: space-between;
+  padding: 20px !important;
   cursor: pointer;
+  transition: all var(--transition-base);
 }
 
-.subItem:hover {
-  background: var(--border-color);
+.subCard:hover {
+  border-color: var(--text-primary) !important;
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
 .subInfo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .subIcon {
-  color: var(--accent-primary);
-  background: var(--bg-primary);
-  padding: 8px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
+  background: var(--bg-color);
+  border: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
 }
 
 .subDetails {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .subName {
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .subType {
-  font-size: 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .subAction {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-secondary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
 }
 
-.subAction:hover {
+.subCard:hover .subAction {
   color: var(--text-primary);
-  background: var(--bg-primary);
+  transform: rotate(30deg);
+}
+
+.emptyCard {
+  padding: 40px !important;
+  text-align: center;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.emptyState p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 300px;
 }

@@ -54,19 +54,33 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 
 		log.Debug().Msgf("Processing daily digest for token=%.8s... entity=%s:%d", sub.FCMToken, sub.EntityType, sub.EntityID)
 
-		// Get tomorrow's schedule
-		tomorrow := now.AddDate(0, 0, 1)
-		schedule, err := s.getScheduleForDay(ctx, sub.EntityType, sub.EntityID, tomorrow, sub.Subgroup)
+		// Get next study day schedule
+		targetDate := now.AddDate(0, 0, 1)
+		var schedule []models.Lesson
 		
-		if err != nil {
-			log.Warn().Err(err).Msgf("Digest: skipping notification for token=%.8s... because schedule data is unavailable", sub.FCMToken)
-			continue
+		// Look ahead up to 3 days if tomorrow is weekend and has no lessons
+		for i := 0; i < 3; i++ {
+			var err error
+			schedule, err = s.getScheduleForDay(ctx, sub.EntityType, sub.EntityID, targetDate, sub.Subgroup)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Digest: skipping notification for token=%.8s... because schedule data is unavailable", sub.FCMToken)
+				break
+			}
+			if len(schedule) > 0 {
+				break
+			}
+			// Skip weekend if no lessons
+			if targetDate.Weekday() == time.Saturday || targetDate.Weekday() == time.Sunday {
+				targetDate = targetDate.AddDate(0, 0, 1)
+			} else {
+				break
+			}
 		}
 
 		var title, body string
 		if len(schedule) == 0 {
-			title = "Завтра выходной! 🎉"
-			body = "На завтра занятий не найдено. Можно отдыхать!"
+			title = "На ближайшие дни занятий нет! 🎉"
+			body = "Можно отдыхать и набираться сил."
 		} else {
 			// Count unique time slots to handle overlapping lessons (e.g. split subgroups)
 			uniqueSlots := make(map[int]struct{})
@@ -79,10 +93,14 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 			}
 
 			startTime := models.TimeSlots[firstSlot].Start
-			title = fmt.Sprintf("Расписание на завтра (%s)", tomorrow.Format("02.01"))
-			body = fmt.Sprintf("У вас %d %s завтра. Первое начинается в %s.",
+			title = fmt.Sprintf("Расписание на %s (%s)", 
+				getDayRelativeLabel(now, targetDate),
+				targetDate.Format("02.01"),
+			)
+			body = fmt.Sprintf("У вас %d %s %s. Первое начинается в %s.",
 				len(uniqueSlots),
 				getLessonWord(len(uniqueSlots)),
+				getDayRelativeBodyLabel(now, targetDate),
 				startTime,
 			)
 		}
@@ -114,13 +132,15 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 
 	for rows.Next() {
 		var sub storage.Subscription
-		if err := rows.Scan(&sub.FCMToken, &sub.EntityType, &sub.EntityID, &sub.BeforeMinutes, &sub.Subgroup); err != nil {
+		if err := rows.Scan(&sub.FCMToken, &sub.EntityType, &sub.EntityID, &sub.BeforeMinutes, &sub.Subgroup, &sub.LastReminderAt); err != nil {
 			continue
 		}
 
 		// Check if any lesson starts in exactly beforeMinutes
 		targetTime := now.Add(time.Duration(sub.BeforeMinutes) * time.Minute)
 		targetTimeStr := targetTime.Format("15:04")
+		todayDateStr := targetTime.Format("2006-01-02")
+		reminderDateTimeStr := todayDateStr + " " + targetTimeStr
 
 		schedule, err := s.getScheduleForDay(ctx, sub.EntityType, sub.EntityID, targetTime, sub.Subgroup)
 		if err != nil {
@@ -130,6 +150,11 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 		for _, lesson := range schedule {
 			startTime := models.TimeSlots[lesson.Time].Start
 			if startTime == targetTimeStr {
+				// Prevent duplicates
+				if sub.LastReminderAt == reminderDateTimeStr {
+					break
+				}
+
 				// Match! Send notification
 				title := "Скоро занятие"
 				body := fmt.Sprintf("%s в %s (%s)", lesson.Lesson, startTime, lesson.AuditCorps)
@@ -139,6 +164,8 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 					"id":   fmt.Sprintf("%d", sub.EntityID),
 					"kind": "reminder",
 				})
+
+				s.subscriptionRepo.MarkReminderSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, reminderDateTimeStr)
 				break // Only one notification per minute/subscription
 			}
 		}
@@ -189,6 +216,62 @@ func (s *Syncer) getScheduleForDay(ctx context.Context, entityType string, entit
 	}
 
 	return nil, nil
+}
+
+func getDayRelativeLabel(now, target time.Time) string {
+	diff := target.Sub(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())).Hours()
+	if diff < 36 {
+		return "завтра"
+	}
+	if diff < 60 {
+		return "послезавтра"
+	}
+	
+	switch target.Weekday() {
+	case time.Monday:
+		return "понедельник"
+	case time.Tuesday:
+		return "вторник"
+	case time.Wednesday:
+		return "среду"
+	case time.Thursday:
+		return "четверг"
+	case time.Friday:
+		return "пятницу"
+	case time.Saturday:
+		return "субботу"
+	case time.Sunday:
+		return "воскресенье"
+	}
+	return "выбранный день"
+}
+
+func getDayRelativeBodyLabel(now, target time.Time) string {
+	diff := target.Sub(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())).Hours()
+	if diff < 36 {
+		return "завтра"
+	}
+	if diff < 60 {
+		return "послезавтра"
+	}
+
+	switch target.Weekday() {
+	case time.Monday:
+		return "в понедельник"
+	case time.Tuesday:
+		return "во вторник"
+	case time.Wednesday:
+		return "в среду"
+	case time.Thursday:
+		return "в четверг"
+	case time.Friday:
+		return "в пятницу"
+	case time.Saturday:
+		return "в субботу"
+	case time.Sunday:
+		return "в воскресенье"
+	}
+	return "в выбранный день"
 }
 
 func getLessonWord(count int) string {

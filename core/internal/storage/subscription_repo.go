@@ -16,6 +16,7 @@ type Subscription struct {
 	BeforeMinutes      int    `json:"before_minutes"`
 	Timezone           string `json:"timezone"`
 	Subgroup           string `json:"subgroup"`
+	LastReminderAt     string `json:"last_reminder_at"`
 }
 
 type SubscriptionRepo struct {
@@ -166,8 +167,17 @@ func (r *SubscriptionRepo) MarkDigestSent(ctx context.Context, token, entityType
 
 func (r *SubscriptionRepo) GetSubscriptionsWithReminders(ctx context.Context) (*sql.Rows, error) {
 	return r.db.DB.QueryContext(ctx, `
-		SELECT fcm_token, entity_type, entity_id, before_minutes, subgroup
+		SELECT fcm_token, entity_type, entity_id, before_minutes, subgroup, last_reminder_at
 		FROM user_subscriptions
 		WHERE notify_before_lesson = 1
 	`)
+}
+
+func (r *SubscriptionRepo) MarkReminderSent(ctx context.Context, token, entityType string, entityID int, dateTimeStr string) error {
+	_, err := r.db.DB.ExecContext(ctx, `
+		UPDATE user_subscriptions 
+		SET last_reminder_at = ?
+		WHERE fcm_token = ? AND entity_type = ? AND entity_id = ?
+	`, dateTimeStr, token, entityType, entityID)
+	return err
 }
