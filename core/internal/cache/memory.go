@@ -32,13 +32,13 @@ func (c *MemoryCache) Set(key string, data []byte) {
 func (c *MemoryCache) SetWithTTL(key string, data []byte, ttl time.Duration) {
 	// 20.3 Prevent cache growth beyond MaxCacheItems
 	if atomic.LoadInt64(&c.itemCount) >= MaxCacheItems {
-		// Simple eviction: clear everything if limit reached (could be improved to LRU)
-		c.Clear()
+		// Partial eviction to avoid full-cache drop spikes.
+		c.evictApprox(MaxCacheItems / 5) // ~20%
 	}
 
 	expiresAt := time.Now().Add(ttl)
 	item := cacheItem{data: data, expiresAt: expiresAt}
-	
+
 	// 20.6 Fix race in itemCount by checking if item was actually stored
 	_, loaded := c.data.LoadOrStore(key, item)
 	if !loaded {
@@ -46,6 +46,25 @@ func (c *MemoryCache) SetWithTTL(key string, data []byte, ttl time.Duration) {
 	} else {
 		c.data.Store(key, item)
 	}
+}
+
+// evictApprox evicts up to n entries using sync.Map iteration order (best-effort).
+func (c *MemoryCache) evictApprox(n int) {
+	if n <= 0 {
+		return
+	}
+
+	remaining := int64(n)
+	c.data.Range(func(key, value interface{}) bool {
+		if remaining <= 0 {
+			return false
+		}
+		if _, loaded := c.data.LoadAndDelete(key); loaded {
+			atomic.AddInt64(&c.itemCount, -1)
+			remaining--
+		}
+		return true
+	})
 }
 
 func (c *MemoryCache) Get(key string) ([]byte, bool) {

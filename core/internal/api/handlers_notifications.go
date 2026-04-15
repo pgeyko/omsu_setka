@@ -29,6 +29,9 @@ func (s *Server) handleUpdateNotificationSettings(c *fiber.Ctx) error {
 	if sub.EntityType == "" || sub.EntityID == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Entity type and ID are required"})
 	}
+	if !isValidEntityType(sub.EntityType) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Invalid entity type"})
+	}
 
 	// Use the generic Subscribe method which now handles ON CONFLICT DO UPDATE
 	if err := s.SubscriptionRepo.Subscribe(c.Context(), sub); err != nil {
@@ -44,21 +47,27 @@ func (s *Server) handleUpdateNotificationSettings(c *fiber.Ctx) error {
 // @Produce json
 // @Param type path string true "Entity type (group, tutor, auditory)"
 // @Param id path int true "Entity ID"
-// @Param token query string true "FCM Token"
+// @Param X-FCM-Token header string true "FCM Token"
 // @Success 200 {object} storage.Subscription
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /notifications/settings/{type}/{id} [get]
 func (s *Server) handleGetNotificationSettings(c *fiber.Ctx) error {
-	token := c.Query("token")
+	token := c.Get("X-FCM-Token")
 	entityType := c.Params("type")
 	entityIDStr := c.Params("id")
 
 	if token == "" || entityType == "" || entityIDStr == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Missing parameters"})
 	}
+	if !isValidEntityType(entityType) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Invalid entity type"})
+	}
 
-	entityID, _ := strconv.Atoi(entityIDStr)
+	entityID, err := strconv.Atoi(entityIDStr)
+	if err != nil || entityID < 1 || entityID > 999999 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Invalid entity ID"})
+	}
 
 	subs, err := s.SubscriptionRepo.GetAllSubscriptionsByToken(c.Context(), token)
 	if err != nil {

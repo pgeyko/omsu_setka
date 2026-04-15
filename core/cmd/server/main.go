@@ -11,6 +11,7 @@ import (
 	"omsu_mirror/internal/upstream"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,6 +31,9 @@ func main() {
 	// 19.1 Validate ADMIN_KEY in production
 	if cfg.AppEnv == "production" && cfg.AdminKey == "" {
 		log.Fatal().Msg("ADMIN_KEY must be set when APP_ENV is 'production'")
+	}
+	if cfg.AppEnv == "production" && (cfg.CORSAllowedOrigins == "" || strings.Contains(cfg.CORSAllowedOrigins, "*")) {
+		log.Fatal().Msg("CORS_ALLOWED_ORIGINS must be explicitly set and must not contain '*' in production")
 	}
 
 	// 2. Setup logging
@@ -70,7 +74,11 @@ func main() {
 	defer cancel()
 
 	// 8. Start Background Sync
-	go syncer.Run(ctx)
+	syncerDone := make(chan struct{})
+	go func() {
+		defer close(syncerDone)
+		syncer.Run(ctx)
+	}()
 
 	// 9. Start API Server
 	go func() {
@@ -88,8 +96,13 @@ func main() {
 
 	cancel() // Stop syncer
 
-	// Wait for syncer to clean up if needed
-	time.Sleep(500 * time.Millisecond)
+	// Wait deterministically for syncer shutdown instead of sleeping blindly.
+	select {
+	case <-syncerDone:
+		log.Info().Msg("Syncer stopped")
+	case <-time.After(3 * time.Second):
+		log.Warn().Msg("Timed out waiting for syncer shutdown")
+	}
 
 	if err := server.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Server forced to shutdown")
