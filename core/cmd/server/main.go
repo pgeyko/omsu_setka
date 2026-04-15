@@ -24,6 +24,9 @@ import (
 // @description High-performance BFF for Omsu university schedule.
 // @host localhost:8080
 // @BasePath /api/v1
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-Admin-Key
 func main() {
 	// 1. Load config
 	cfg := config.Load()

@@ -1,21 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Bell, Clock, Info } from 'lucide-react';
+import type { NotificationSettings } from '../../api/client';
 import styles from './NotificationSettingsModal.module.css';
 
-interface NotificationSettings {
-  notify_on_change: boolean;
-  notify_daily_digest: boolean;
-  digest_time: string;
-  notify_before_lesson: boolean;
-  before_minutes: number;
-  timezone?: string;
-  fcm_token?: string;
-  entity_type?: string;
-  entity_id?: number;
-  subgroup?: string;
-}
+const defaultSettings: NotificationSettings = {
+  notify_on_change: true,
+  notify_daily_digest: false,
+  digest_time: '19:00',
+  subgroup: ""
+};
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -34,22 +29,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   initialSettings,
   isLoading
 }) => {
-  const defaultSettings: NotificationSettings = {
-    notify_on_change: true,
-    notify_daily_digest: false,
-    digest_time: '19:00',
-    notify_before_lesson: false,
-    before_minutes: 30,
-    subgroup: ""
-  };
-
   const [settings, setSettings] = useState<NotificationSettings>(initialSettings || defaultSettings);
-
-  useEffect(() => {
-    if (isOpen) {
-      setSettings(initialSettings || defaultSettings);
-    }
-  }, [isOpen, initialSettings]);
 
   const toggle = (key: keyof NotificationSettings) => {
     setSettings(prev => {
@@ -58,7 +38,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     });
   };
 
-  const update = (key: keyof NotificationSettings, value: any) => {
+  const update = <K extends keyof NotificationSettings>(key: K, value: NotificationSettings[K]) => {
     setSettings(prev => {
       const state = prev || defaultSettings;
       return { ...state, [key]: value };
@@ -143,42 +123,6 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                       value={safeSettings.digest_time}
                       onChange={(e) => update('digest_time', e.target.value)}
                     />
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.divider} />
-
-              <div className={styles.section}>
-                <div className={styles.settingRow}>
-                  <div className={styles.settingInfo}>
-                    <div className={styles.settingTitle}>Напоминания о парах</div>
-                    <div className={styles.settingDesc}>Перед началом каждого занятия</div>
-                  </div>
-                  <label className={styles.switch}>
-                    <input 
-                      type="checkbox" 
-                      checked={safeSettings.notify_before_lesson} 
-                      onChange={() => toggle('notify_before_lesson')}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
-                </div>
-
-                {safeSettings.notify_before_lesson && (
-                  <div className={styles.subSetting}>
-                    <Clock size={16} />
-                    <span>За</span>
-                    <input 
-                      type="number" 
-                      min="5" 
-                      max="120"
-                      step="5"
-                      className={styles.numberInput}
-                      value={safeSettings.before_minutes}
-                      onChange={(e) => update('before_minutes', parseInt(e.target.value))}
-                    />
-                    <span>минут</span>
                   </div>
                 )}
               </div>

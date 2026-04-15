@@ -100,6 +100,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/changes/{type}/{id}": {
+            "get": {
+                "description": "Returns recent schedule changes for a group, tutor, or auditory.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Changes"
+                ],
+                "summary": "Get schedule changes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity type: group, tutor, auditory",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Entity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.BFFResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/storage.ScheduleChange"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/groups": {
             "get": {
                 "description": "Returns a list of all study groups.",
@@ -299,8 +368,8 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "FCM Token",
-                        "name": "token",
-                        "in": "query",
+                        "name": "X-FCM-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -349,6 +418,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Week start date in YYYY-MM-DD format",
+                        "name": "week_start",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -371,6 +446,95 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schedule/auditory/{id}/ical": {
+            "get": {
+                "description": "Returns the schedule for an auditory in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.",
+                "produces": [
+                    "text/calendar"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Export auditory schedule as iCalendar",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auditory ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional iCal access token",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "iCalendar payload",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -393,6 +557,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Week start date in YYYY-MM-DD format",
+                        "name": "week_start",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -415,6 +585,95 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schedule/group/{id}/ical": {
+            "get": {
+                "description": "Returns the schedule for a group in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.",
+                "produces": [
+                    "text/calendar"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Export group schedule as iCalendar",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group ID (real_group_id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional iCal access token",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "iCalendar payload",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -437,6 +696,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Week start date in YYYY-MM-DD format",
+                        "name": "week_start",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -460,47 +725,94 @@ const docTemplate = `{
                                 }
                             ]
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             }
         },
-        "/schedule/{type}/{id}/ical": {
+        "/schedule/tutor/{id}/ical": {
             "get": {
-                "description": "Returns the full schedule for a group, tutor, or auditory as an .ics file.",
+                "description": "Returns the schedule for a tutor in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.",
                 "produces": [
                     "text/calendar"
                 ],
                 "tags": [
                     "Schedules"
                 ],
-                "summary": "Get schedule in iCal format",
+                "summary": "Export tutor schedule as iCalendar",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Entity type (group, tutor, auditory)",
-                        "name": "type",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "type": "integer",
-                        "description": "Entity ID",
+                        "description": "Tutor ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Access token (if configured)",
+                        "description": "Optional iCal access token",
                         "name": "token",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "iCal Calendar Data",
+                        "description": "iCalendar payload",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -544,6 +856,79 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.BFFResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/subscribe": {
+            "post": {
+                "description": "Creates or updates a notification subscription for a group, tutor, or auditory.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Subscribe to schedule notifications",
+                "parameters": [
+                    {
+                        "description": "Subscription",
+                        "name": "subscription",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storage.Subscription"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -693,9 +1078,87 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/unsubscribe": {
+            "post": {
+                "description": "Removes a notification subscription for a group, tutor, or auditory.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Unsubscribe from schedule notifications",
+                "parameters": [
+                    {
+                        "description": "Subscription identity",
+                        "name": "subscription",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.UnsubscribeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "api.UnsubscribeRequest": {
+            "type": "object",
+            "properties": {
+                "entity_id": {
+                    "type": "integer"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "fcm_token": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Auditory": {
             "type": "object",
             "properties": {
@@ -812,6 +1275,36 @@ const docTemplate = `{
                 }
             }
         },
+        "storage.ScheduleChange": {
+            "type": "object",
+            "properties": {
+                "change_type": {
+                    "description": "\"added\", \"removed\", \"modified\"",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "integer"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lesson_id": {
+                    "type": "integer"
+                },
+                "new_data": {
+                    "type": "string"
+                },
+                "old_data": {
+                    "type": "string"
+                }
+            }
+        },
         "storage.Subscription": {
             "type": "object",
             "properties": {
@@ -830,6 +1323,9 @@ const docTemplate = `{
                 "fcm_token": {
                     "type": "string"
                 },
+                "last_reminder_at": {
+                    "type": "string"
+                },
                 "notify_before_lesson": {
                     "type": "boolean"
                 },
@@ -839,10 +1335,20 @@ const docTemplate = `{
                 "notify_on_change": {
                     "type": "boolean"
                 },
+                "subgroup": {
+                    "type": "string"
+                },
                 "timezone": {
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-Admin-Key",
+            "in": "header"
         }
     }
 }`

@@ -1,5 +1,14 @@
 basePath: /api/v1
 definitions:
+  api.UnsubscribeRequest:
+    properties:
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      fcm_token:
+        type: string
+    type: object
   models.Auditory:
     properties:
       building:
@@ -76,6 +85,26 @@ definitions:
       name:
         type: string
     type: object
+  storage.ScheduleChange:
+    properties:
+      change_type:
+        description: '"added", "removed", "modified"'
+        type: string
+      created_at:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      id:
+        type: integer
+      lesson_id:
+        type: integer
+      new_data:
+        type: string
+      old_data:
+        type: string
+    type: object
   storage.Subscription:
     properties:
       before_minutes:
@@ -88,12 +117,16 @@ definitions:
         type: string
       fcm_token:
         type: string
+      last_reminder_at:
+        type: string
       notify_before_lesson:
         type: boolean
       notify_daily_digest:
         type: boolean
       notify_on_change:
         type: boolean
+      subgroup:
+        type: string
       timezone:
         type: string
     type: object
@@ -154,6 +187,49 @@ paths:
       summary: Get auditory by ID
       tags:
       - Dictionaries
+  /changes/{type}/{id}:
+    get:
+      description: Returns recent schedule changes for a group, tutor, or auditory.
+      parameters:
+      - description: 'Entity type: group, tutor, auditory'
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/storage.ScheduleChange'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get schedule changes
+      tags:
+      - Changes
   /groups:
     get:
       description: Returns a list of all study groups.
@@ -276,8 +352,8 @@ paths:
         required: true
         type: integer
       - description: FCM Token
-        in: query
-        name: token
+        in: header
+        name: X-FCM-Token
         required: true
         type: string
       produces:
@@ -302,35 +378,6 @@ paths:
       summary: Get notification settings
       tags:
       - Notifications
-  /schedule/{type}/{id}/ical:
-    get:
-      description: Returns the full schedule for a group, tutor, or auditory as an
-        .ics file.
-      parameters:
-      - description: Entity type (group, tutor, auditory)
-        in: path
-        name: type
-        required: true
-        type: string
-      - description: Entity ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Access token (if configured)
-        in: query
-        name: token
-        type: string
-      produces:
-      - text/calendar
-      responses:
-        "200":
-          description: iCal Calendar Data
-          schema:
-            type: string
-      summary: Get schedule in iCal format
-      tags:
-      - Schedules
   /schedule/auditory/{id}:
     get:
       description: Returns the schedule for a specific auditory. Lazy-fetches if not
@@ -341,6 +388,10 @@ paths:
         name: id
         required: true
         type: integer
+      - description: Week start date in YYYY-MM-DD format
+        in: query
+        name: week_start
+        type: string
       produces:
       - application/json
       responses:
@@ -355,7 +406,67 @@ paths:
                     $ref: '#/definitions/models.Day'
                   type: array
               type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Get auditory schedule
+      tags:
+      - Schedules
+  /schedule/auditory/{id}/ical:
+    get:
+      description: Returns the schedule for an auditory in .ics format. If ICAL_ACCESS_TOKEN
+        is configured, pass it as the token query parameter.
+      parameters:
+      - description: Auditory ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional iCal access token
+        in: query
+        name: token
+        type: string
+      produces:
+      - text/calendar
+      responses:
+        "200":
+          description: iCalendar payload
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Export auditory schedule as iCalendar
       tags:
       - Schedules
   /schedule/group/{id}:
@@ -368,6 +479,10 @@ paths:
         name: id
         required: true
         type: integer
+      - description: Week start date in YYYY-MM-DD format
+        in: query
+        name: week_start
+        type: string
       produces:
       - application/json
       responses:
@@ -382,7 +497,67 @@ paths:
                     $ref: '#/definitions/models.Day'
                   type: array
               type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Get group schedule
+      tags:
+      - Schedules
+  /schedule/group/{id}/ical:
+    get:
+      description: Returns the schedule for a group in .ics format. If ICAL_ACCESS_TOKEN
+        is configured, pass it as the token query parameter.
+      parameters:
+      - description: Group ID (real_group_id)
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional iCal access token
+        in: query
+        name: token
+        type: string
+      produces:
+      - text/calendar
+      responses:
+        "200":
+          description: iCalendar payload
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Export group schedule as iCalendar
       tags:
       - Schedules
   /schedule/tutor/{id}:
@@ -395,6 +570,10 @@ paths:
         name: id
         required: true
         type: integer
+      - description: Week start date in YYYY-MM-DD format
+        in: query
+        name: week_start
+        type: string
       produces:
       - application/json
       responses:
@@ -409,7 +588,67 @@ paths:
                     $ref: '#/definitions/models.Day'
                   type: array
               type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Get tutor schedule
+      tags:
+      - Schedules
+  /schedule/tutor/{id}/ical:
+    get:
+      description: Returns the schedule for a tutor in .ics format. If ICAL_ACCESS_TOKEN
+        is configured, pass it as the token query parameter.
+      parameters:
+      - description: Tutor ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional iCal access token
+        in: query
+        name: token
+        type: string
+      produces:
+      - text/calendar
+      responses:
+        "200":
+          description: iCalendar payload
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Export tutor schedule as iCalendar
       tags:
       - Schedules
   /search:
@@ -441,6 +680,55 @@ paths:
       summary: Search groups, tutors, or auditories
       tags:
       - Search
+  /subscribe:
+    post:
+      consumes:
+      - application/json
+      description: Creates or updates a notification subscription for a group, tutor,
+        or auditory.
+      parameters:
+      - description: Subscription
+        in: body
+        name: subscription
+        required: true
+        schema:
+          $ref: '#/definitions/storage.Subscription'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Subscribe to schedule notifications
+      tags:
+      - Notifications
   /sync/status:
     get:
       description: Returns the last synchronization timestamps for dictionaries and
@@ -531,4 +819,51 @@ paths:
       summary: Get tutor by ID
       tags:
       - Dictionaries
+  /unsubscribe:
+    post:
+      consumes:
+      - application/json
+      description: Removes a notification subscription for a group, tutor, or auditory.
+      parameters:
+      - description: Subscription identity
+        in: body
+        name: subscription
+        required: true
+        schema:
+          $ref: '#/definitions/api.UnsubscribeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unsubscribe from schedule notifications
+      tags:
+      - Notifications
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-Admin-Key
+    type: apiKey
 swagger: "2.0"

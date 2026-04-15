@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import type { MessagePayload } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -37,9 +38,9 @@ export const requestForToken = async () => {
   }
 };
 
-export const onForegroundMessage = (callback: (payload: { notification?: { title?: string; body?: string } }) => void) => {
+export const onForegroundMessage = (callback: (payload: MessagePayload) => void) => {
   return onMessage(messaging, (payload) => {
     console.log('Foreground message received: ', payload);
-    callback(payload as any);
+    callback(payload);
   });
 };

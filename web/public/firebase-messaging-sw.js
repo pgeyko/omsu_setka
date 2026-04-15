@@ -32,7 +32,7 @@ self.addEventListener('push', function(event) {
         const notificationOptions = {
             body: d.body || "Обновление в расписании",
             icon: '/web-app-manifest-192x192.png',
-            badge: '/favicon-96x96.png',
+            badge: '/notification-badge-96x96.png',
             tag: d.tag || 'schedule_event',
             renotify: true, // Allow replacing previous notifications with the same tag
             data: {

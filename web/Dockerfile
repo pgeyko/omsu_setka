@@ -38,8 +38,7 @@ ENV VITE_FIREBASE_VAPID_KEY=$VITE_FIREBASE_VAPID_KEY
 # Копируем исходники фронтенда из папки web
 COPY web/ .
 
-# Запускаем сборку
-RUN npm test
+# Запускаем сборку. npm run build включает eslint, tests и production build.
 RUN npm run build
 
 # Инъекция секретов в Service Worker (который лежит в public и копируется в dist без обработки Vite)

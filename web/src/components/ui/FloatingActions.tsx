@@ -10,7 +10,6 @@ import {
   LayoutGrid, 
   List, 
   Star,
-  Calendar
 } from 'lucide-react';
 import styles from './FloatingActions.module.css';
 
@@ -24,7 +23,6 @@ interface FloatingActionsProps {
   onShowSubgroups?: () => void;
   isSubgroupActive?: boolean;
   onShare: () => void;
-  onExportICal: () => void;
   hasNewChanges?: boolean;
 }
 
@@ -38,7 +36,6 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
   onShowSubgroups,
   isSubgroupActive,
   onShare,
-  onExportICal,
   hasNewChanges
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,12 +45,6 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       icon: <Share2 size={20} />, 
       label: 'Поделиться', 
       onClick: onShare,
-      isActive: false
-    },
-    { 
-      icon: <Calendar size={20} />, 
-      label: 'Календарь (.ics)', 
-      onClick: onExportICal,
       isActive: false
     },
     { 

@@ -144,13 +144,26 @@ export interface Incident {
   created_at: string;
 }
 
+export interface NotificationSettings {
+  notify_on_change: boolean;
+  notify_daily_digest: boolean;
+  digest_time: string;
+  timezone?: string;
+  fcm_token?: string | null;
+  entity_type?: string;
+  entity_id?: number;
+  subgroup?: string;
+  notify_before_lesson?: boolean;
+  before_minutes?: number;
+}
+
 export const fetchIncidents = async (limit: number = 50, offset: number = 0): Promise<Incident[]> => {
   const { data } = await apiClient.get<BFFResponse<Incident[]>>(`/incidents?limit=${limit}&offset=${offset}`);
   return data.data;
 };
 
-export const fetchChanges = async (type: string, id: number) => {
-  const { data } = await apiClient.get<BFFResponse<any>>(`/changes/${type}/${id}`);
+export const fetchChanges = async (type: string, id: number): Promise<unknown[]> => {
+  const { data } = await apiClient.get<BFFResponse<unknown[]>>(`/changes/${type}/${id}`);
   return data.data;
 };
 
@@ -173,8 +186,8 @@ export const unsubscribeFromNotifications = async (token: string, type: string, 
   });
   return data;
 };
-export const getNotificationSettings = async (token: string, type: string, id: number) => {
-  const { data } = await apiClient.get(`/notifications/settings/${type}/${id}`, {
+export const getNotificationSettings = async (token: string, type: string, id: number): Promise<NotificationSettings> => {
+  const { data } = await apiClient.get<NotificationSettings>(`/notifications/settings/${type}/${id}`, {
     headers: {
       'X-FCM-Token': token,
     },
@@ -182,12 +195,7 @@ export const getNotificationSettings = async (token: string, type: string, id: n
   return data;
 };
 
-export const updateNotificationSettings = async (settings: any) => {
+export const updateNotificationSettings = async (settings: NotificationSettings) => {
   const { data } = await apiClient.patch('/notifications/settings', settings);
   return data;
-};
-
-export const getICalUrl = (type: string, id: number) => {
-  const baseUrl = API_BASE.startsWith('http') ? API_BASE : window.location.origin + API_BASE;
-  return `${baseUrl}/schedule/${type}/${id}/ical`;
 };

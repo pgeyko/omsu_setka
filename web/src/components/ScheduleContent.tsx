@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, User, Clock, X, Menu, Search, Bell } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Clock, X, Menu, Search, Bell, Coffee } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { 
   fetchSchedule, 
@@ -10,12 +10,11 @@ import {
   subscribeToNotifications, 
   unsubscribeFromNotifications, 
   fetchChanges, 
-  getICalUrl,
   getNotificationSettings,
   updateNotificationSettings
 } from '../api/client';
 import { requestForToken } from '../utils/firebase';
-import type { Day, Lesson } from '../api/client';
+import type { Day, Lesson, NotificationSettings, SearchResult } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { useSidebarStore } from '../store/useSidebar';
 import { useSubscriptionsStore } from '../store/useSubscriptions';
@@ -23,8 +22,8 @@ import { Toast } from '../components/ui/Toast';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { FloatingActions } from '../components/ui/FloatingActions';
 import { CustomDatePicker } from '../components/ui/CustomDatePicker';
-import { ICalModal } from '../components/ui/ICalModal';
 import { NotificationSettingsModal } from '../components/ui/NotificationSettingsModal';
+import { getBreakInfo, type BreakInfo } from '../utils/scheduleBreaks';
 import styles from '../pages/ScheduleView.module.css';
 
 const parseDate = (dateStr: string) => {
@@ -80,6 +79,14 @@ interface ScheduleContentProps {
   showBackButton?: boolean;
 }
 
+type LessonWithGroups = Lesson & { groups?: string[] };
+
+const prefixes: Record<string, string> = {
+  group: 'Группа',
+  tutor: 'Преподаватель',
+  auditory: 'Аудитория'
+};
+
 export const ScheduleContent: React.FC<ScheduleContentProps> = ({ 
   entityType, 
   entityID, 
@@ -111,21 +118,20 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     return getMonday(getDefaultDate());
   });
 
-  const [selectedGroup, setSelectedGroup] = useState<Lesson[] | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<LessonWithGroups[] | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+  const [now, setNow] = useState(() => new Date());
   const [showSubgroupDrawer, setShowSubgroupDrawer] = useState(false);
   const [isConfirmLoading, setIsConfirmLoading] = useState(false);
-  const [isICalModalOpen, setIsICalModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(false);
-  const [notificationSettings, setNotificationSettings] = useState({
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     notify_on_change: true,
     notify_daily_digest: false,
     digest_time: '19:00',
-    notify_before_lesson: false,
-    before_minutes: 30
+    subgroup: ""
   });
 
   // Confirm Modal state
@@ -173,7 +179,10 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     }
   }, [entityType, entityID]);
 
-
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const toggleNotifications = async () => {
     const storageKey = `fcm_token_${entityType}_${entityID}`;
@@ -215,29 +224,6 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     }
   };
 
-  const handleExportICal = () => {
-    setIsICalModalOpen(true);
-  };
-
-  const handleDownloadICal = () => {
-    const url = getICalUrl(entityType, entityID);
-    console.log('[ScheduleContent] Downloading iCal from:', url);
-    window.location.href = url;
-    setIsICalModalOpen(false);
-    setToastMessage('Загрузка началась');
-    setShowToast(true);
-  };
-
-  const handleCopyICalLink = () => {
-    const url = getICalUrl(entityType, entityID);
-    const webcalUrl = url.replace(/^https?:\/\//, 'webcal://');
-    console.log('[ScheduleContent] Copying iCal link:', webcalUrl);
-    navigator.clipboard.writeText(webcalUrl);
-    setIsICalModalOpen(false);
-    setToastMessage('Ссылка скопирована!');
-    setShowToast(true);
-  };
-
   const handleOpenSettings = async () => {
     const token = localStorage.getItem(`fcm_token_${entityType}_${entityID}`);
     if (!token) return;
@@ -250,8 +236,6 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         notify_on_change: true,
         notify_daily_digest: false,
         digest_time: '19:00',
-        notify_before_lesson: false,
-        before_minutes: 30,
         subgroup: subgroup || ""
       });
     } catch {
@@ -262,7 +246,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     }
   };
 
-  const handleSaveSettings = async (settings: any) => {
+  const handleSaveSettings = async (settings: NotificationSettings) => {
     setIsSettingsLoading(true);
     try {
       await updateNotificationSettings({
@@ -270,7 +254,9 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         fcm_token: localStorage.getItem(`fcm_token_${entityType}_${entityID}`),
         entity_type: entityType,
         entity_id: Number(entityID),
-        subgroup: subgroup || ""
+        subgroup: subgroup || "",
+        notify_before_lesson: false,
+        before_minutes: 0
       });
       setToastMessage('Настройки сохранены');
       setShowToast(true);
@@ -371,11 +357,6 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     };
   }, [selectedGroup]);
 
-  const prefixes: Record<string, string> = {
-    'group': 'Группа',
-    'tutor': 'Преподаватель',
-    'auditory': 'Аудитория'
-  };
   const [entityName, setEntityName] = useState(initialName || (prefixes[entityType] ? `${prefixes[entityType]}: ID ${entityID}` : `ID ${entityID}`));
   const favorite = isFavorite(entityID, entityType);
 
@@ -501,11 +482,12 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       if (pinnedEntity?.id === entityID && pinnedEntity?.type === entityType) unpinEntity();
       removeFavorite(entityID, entityType);
     } else {
-      addFavorite({ id: entityID, type: entityType as any, name: entityName });
+      const favoriteType = entityType as SearchResult['type'];
+      addFavorite({ id: entityID, type: favoriteType, name: entityName });
       const performPin = () => {
         setIsConfirmLoading(true);
         setTimeout(() => {
-          pinEntity({ id: entityID, type: entityType as any, name: entityName });
+          pinEntity({ id: entityID, type: favoriteType, name: entityName });
           setToastMessage('Закреплено на главной!');
           setShowToast(true);
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -547,7 +529,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         await copyToClipboard(url);
       }
     } catch (err) {
-      if ((err as any).name !== 'AbortError') await copyToClipboard(url);
+      if (!(err instanceof DOMException && err.name === 'AbortError')) await copyToClipboard(url);
     }
   };
 
@@ -625,7 +607,21 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   );
 
   const currentDay = schedule[activeDayIdx];
-  const isToday = currentDay ? parseDate(currentDay.day).toDateString() === new Date().toDateString() : false;
+  const isToday = currentDay ? parseDate(currentDay.day).toDateString() === now.toDateString() : false;
+  const visibleCurrentLessons = currentDay?.lessons.filter(isLessonForSubgroup) || [];
+  const breakInfo = getBreakInfo(visibleCurrentLessons, now, isToday);
+
+  const BreakBanner = ({ info }: { info: BreakInfo }) => (
+    <div className={`${styles.breakBanner} ${info.variant === 'between' ? styles.breakBannerBetween : ''}`}>
+      <div className={styles.breakIcon}>
+        <Coffee size={18} />
+      </div>
+      <div className={styles.breakText}>
+        <div className={styles.breakTitle}>{info.title}</div>
+        <div className={styles.breakDetail}>{info.detail}</div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -749,10 +745,11 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
 
         {viewMode === 'day' ? (
           <main className={styles.content}>
+            {breakInfo && <BreakBanner info={breakInfo} />}
             <div className={styles.lessonList}>
               {currentDay?.lessons.length === 0 ? <div className={styles.empty}>Пар нет, можно отдыхать! 🥳</div> : (
                 (() => {
-                  const grouped = currentDay?.lessons.reduce((acc: any, lesson: any) => {
+                  const grouped = currentDay?.lessons.reduce<Record<number, Lesson[]>>((acc, lesson) => {
                     if (!acc[lesson.time]) acc[lesson.time] = [];
                     acc[lesson.time].push(lesson);
                     return acc;
@@ -760,8 +757,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                   const timesList = Object.keys(grouped || {}).map(Number);
                   if (timesList.length === 0) return null;
                   const maxTime = Math.min(8, Math.max(...timesList));
-                  const slotsToRender = [];
-                  for (let t = 1; t <= maxTime; t++) slotsToRender.push({ time: t, rawLessons: (grouped as any)[t] });
+                  const slotsToRender: Array<{ time: number; rawLessons: Lesson[] | undefined }> = [];
+                  for (let t = 1; t <= maxTime; t++) slotsToRender.push({ time: t, rawLessons: grouped?.[t] });
                   return slotsToRender.map(({ time, rawLessons }) => {
                     const active = isCurrentLesson(time, isToday);
                     const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
@@ -773,8 +770,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                         </GlassCard>
                       );
                     }
-                    const mergedMap = new Map<string, Lesson & { groups?: string[] }>();
-                    rawLessons.forEach((l: any) => {
+                    const mergedMap = new Map<string, LessonWithGroups>();
+                    rawLessons.forEach((l) => {
                       if (!isLessonForSubgroup(l)) return;
                       const key = `${l.lesson}-${l.type_work}-${l.teacher}-${l.auditCorps}`;
                       if (mergedMap.has(key)) {
@@ -863,7 +860,6 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         onShowSubgroups={entityType === 'group' ? () => setShowSubgroupDrawer(true) : undefined}
         isSubgroupActive={!!subgroup}
         onShare={handleShare}
-        onExportICal={handleExportICal}
         hasNewChanges={hasNewChanges}
       />
 
@@ -893,7 +889,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
               <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.4 }} className={styles.modalContent} onClick={e => e.stopPropagation()}>
                 <div className={styles.modalHeader}><div className={styles.modalTimeTitle}><span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span><h3>Занятия</h3></div><button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button></div>
                 <div className={styles.modalList}>
-                  {selectedGroup.map((lesson: any, idx: number) => (
+                  {selectedGroup.map((lesson, idx) => (
                     <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
                       <h3 className={styles.discipline}>{lesson.lesson}</h3>
                       <div className={styles.meta}>
@@ -924,15 +920,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         isLoading={isConfirmLoading} 
       />
 
-      <ICalModal 
-        isOpen={isICalModalOpen}
-        onClose={() => setIsICalModalOpen(false)}
-        onDownload={handleDownloadICal}
-        onCopyLink={handleCopyICalLink}
-        title={entityName}
-      />
-
       <NotificationSettingsModal
+        key={`${entityType}-${entityID}-${isSettingsModalOpen}-${notificationSettings.notify_on_change}-${notificationSettings.notify_daily_digest}-${notificationSettings.digest_time}`}
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         onSave={handleSaveSettings}
