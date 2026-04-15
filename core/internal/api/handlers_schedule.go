@@ -17,7 +17,10 @@ import (
 // @Tags Schedules
 // @Produce json
 // @Param id path int true "Group ID (real_group_id)"
+// @Param week_start query string false "Week start date in YYYY-MM-DD format"
 // @Success 200 {object} models.BFFResponse{data=[]models.Day}
+// @Failure 400 {object} map[string]string
+// @Failure 503 {object} map[string]string
 // @Router /schedule/group/{id} [get]
 func _() {}
 
@@ -26,7 +29,10 @@ func _() {}
 // @Tags Schedules
 // @Produce json
 // @Param id path int true "Tutor ID"
+// @Param week_start query string false "Week start date in YYYY-MM-DD format"
 // @Success 200 {object} models.BFFResponse{data=[]models.Day}
+// @Failure 400 {object} map[string]string
+// @Failure 503 {object} map[string]string
 // @Router /schedule/tutor/{id} [get]
 func _() {}
 
@@ -35,7 +41,10 @@ func _() {}
 // @Tags Schedules
 // @Produce json
 // @Param id path int true "Auditory ID"
+// @Param week_start query string false "Week start date in YYYY-MM-DD format"
 // @Success 200 {object} models.BFFResponse{data=[]models.Day}
+// @Failure 400 {object} map[string]string
+// @Failure 503 {object} map[string]string
 // @Router /schedule/auditory/{id} [get]
 func _() {}
 
@@ -215,6 +224,16 @@ func (s *Server) filterSchedule(schedule []models.Day, weekStartStr string) mode
 	}
 }
 
+// @Summary Get schedule changes
+// @Description Returns recent schedule changes for a group, tutor, or auditory.
+// @Tags Changes
+// @Produce json
+// @Param type path string true "Entity type: group, tutor, auditory"
+// @Param id path int true "Entity ID"
+// @Success 200 {object} models.BFFResponse{data=[]storage.ScheduleChange}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /changes/{type}/{id} [get]
 func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	entityType := c.Params("type")
 	if !isValidEntityType(entityType) {
@@ -240,6 +259,18 @@ func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary Subscribe to schedule notifications
+// @Description Creates or updates a notification subscription for a group, tutor, or auditory.
+// @Tags Notifications
+// @Accept json
+// @Produce json
+// @Param subscription body storage.Subscription true "Subscription"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} map[string]string
+// @Failure 422 {object} map[string]string
+// @Failure 429 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /subscribe [post]
 func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 	var sub storage.Subscription
 	if err := c.BodyParser(&sub); err != nil {
@@ -266,12 +297,26 @@ func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
+// UnsubscribeRequest is the request body for removing a notification subscription.
+type UnsubscribeRequest struct {
+	Token      string `json:"fcm_token"`
+	EntityType string `json:"entity_type"`
+	EntityID   int    `json:"entity_id"`
+}
+
+// @Summary Unsubscribe from schedule notifications
+// @Description Removes a notification subscription for a group, tutor, or auditory.
+// @Tags Notifications
+// @Accept json
+// @Produce json
+// @Param subscription body UnsubscribeRequest true "Subscription identity"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} map[string]string
+// @Failure 422 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /unsubscribe [post]
 func (s *Server) handleUnsubscribe(c *fiber.Ctx) error {
-	var body struct {
-		Token      string `json:"fcm_token"`
-		EntityType string `json:"entity_type"`
-		EntityID   int    `json:"entity_id"`
-	}
+	var body UnsubscribeRequest
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}

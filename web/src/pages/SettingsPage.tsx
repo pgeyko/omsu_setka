@@ -14,8 +14,16 @@ import { useSubscriptionsStore } from '../store/useSubscriptions';
 import { useSidebarStore } from '../store/useSidebar';
 import { NotificationSettingsModal } from '../components/ui/NotificationSettingsModal';
 import { getNotificationSettings, updateNotificationSettings, unsubscribeFromNotifications } from '../api/client';
+import type { NotificationSettings } from '../api/client';
 import { Toast } from '../components/ui/Toast';
 import styles from './SettingsPage.module.css';
+
+const defaultNotificationSettings: NotificationSettings = {
+  notify_on_change: true,
+  notify_daily_digest: false,
+  digest_time: '19:00',
+  subgroup: ''
+};
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +32,7 @@ export const SettingsPage: React.FC = () => {
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeSubscription, setActiveSubscription] = useState<{id: number, type: string, name: string} | null>(null);
-  const [notificationSettings, setNotificationSettings] = useState<any>(null);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [isSettingsLoading, setIsSettingsLoading] = useState(false);
   
   const [toastMessage, setToastMessage] = useState('');
@@ -54,7 +62,7 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleSaveSettings = async (settings: any) => {
+  const handleSaveSettings = async (settings: NotificationSettings) => {
     if (!activeSubscription) return;
     setIsSettingsLoading(true);
     try {
@@ -188,7 +196,7 @@ export const SettingsPage: React.FC = () => {
         onClose={() => setIsSettingsModalOpen(false)}
         onSave={handleSaveSettings}
         onUnsubscribe={handleUnsubscribeProxy}
-        initialSettings={notificationSettings}
+        initialSettings={notificationSettings || defaultNotificationSettings}
         isLoading={isSettingsLoading}
       />
     </div>

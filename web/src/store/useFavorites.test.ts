@@ -4,7 +4,14 @@ import { useFavoritesStore } from './useFavorites';
 describe('useFavoritesStore', () => {
   beforeEach(() => {
     // Reset state before each test
-    useFavoritesStore.setState({ favorites: [], recent: [], subgroup: null });
+    useFavoritesStore.setState({
+      favorites: [],
+      recent: [],
+      recentTutors: [],
+      recentAuditories: [],
+      subgroup: null,
+      pinnedEntity: null
+    });
   });
 
   it('adds and removes favorites', () => {
@@ -48,5 +55,28 @@ describe('useFavoritesStore', () => {
     const state = useFavoritesStore.getState();
     expect(state.recent).toHaveLength(2);
     expect(state.recent[0].id).toBe(1); // Item 1 should be at top now
+  });
+
+  it('keeps recent groups, tutors, and auditories in separate lists', () => {
+    const store = useFavoritesStore.getState();
+
+    store.addRecent({ id: 1, name: 'Группа 1', type: 'group' });
+    store.addRecent({ id: 2, name: 'Преподаватель 1', type: 'tutor' });
+    store.addRecent({ id: 3, name: 'Аудитория 1', type: 'auditory' });
+
+    const state = useFavoritesStore.getState();
+    expect(state.recent.map(item => item.id)).toEqual([1]);
+    expect(state.recentTutors.map(item => item.id)).toEqual([2]);
+    expect(state.recentAuditories.map(item => item.id)).toEqual([3]);
+  });
+
+  it('pins and unpins an entity for the home page', () => {
+    const item = { id: 1, name: 'Группа 1', type: 'group' as const };
+
+    useFavoritesStore.getState().pinEntity(item);
+    expect(useFavoritesStore.getState().pinnedEntity).toEqual(item);
+
+    useFavoritesStore.getState().unpinEntity();
+    expect(useFavoritesStore.getState().pinnedEntity).toBeNull();
   });
 });

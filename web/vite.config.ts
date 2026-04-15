@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -9,7 +9,17 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'inline',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'icons.svg'],
+      includeAssets: [
+        'favicon.ico',
+        'apple-touch-icon.png',
+        'favicon-96x96.png',
+        'web-app-manifest-192x192.png',
+        'web-app-manifest-512x512.png',
+        'logo.svg',
+        'mask-icon.svg',
+        'notification-badge-96x96.png',
+        'icons.svg'
+      ],
       manifest: {
         name: 'Setka — Расписание',
         short_name: 'Setka',
@@ -89,7 +99,6 @@ export default defineConfig({
       }
     })
   ],
-  // @ts-ignore
   test: {
     globals: true,
     environment: 'node',

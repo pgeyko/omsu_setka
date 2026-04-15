@@ -1,17 +1,40 @@
 # Binaries
 omsu_mirror
+*.exe
+*.test
+*.out
 
 # Dependencies
 vendor/
+node_modules/
 
 # Environment
 .env
+.env.*
+!.env.example
 
 # Project specific
 data/
+coverage.out
+*.log
 *.db
 *.db-wal
 *.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Build output
+dist/
+build/
+tmp/
 
 # IDEs
 .idea/

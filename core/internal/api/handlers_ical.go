@@ -12,6 +12,48 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// @Summary Export group schedule as iCalendar
+// @Description Returns the schedule for a group in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.
+// @Tags Schedules
+// @Produce text/calendar
+// @Param id path int true "Group ID (real_group_id)"
+// @Param token query string false "Optional iCal access token"
+// @Success 200 {string} string "iCalendar payload"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 503 {object} map[string]string
+// @Router /schedule/group/{id}/ical [get]
+func _() {}
+
+// @Summary Export tutor schedule as iCalendar
+// @Description Returns the schedule for a tutor in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.
+// @Tags Schedules
+// @Produce text/calendar
+// @Param id path int true "Tutor ID"
+// @Param token query string false "Optional iCal access token"
+// @Success 200 {string} string "iCalendar payload"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 503 {object} map[string]string
+// @Router /schedule/tutor/{id}/ical [get]
+func _() {}
+
+// @Summary Export auditory schedule as iCalendar
+// @Description Returns the schedule for an auditory in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.
+// @Tags Schedules
+// @Produce text/calendar
+// @Param id path int true "Auditory ID"
+// @Param token query string false "Optional iCal access token"
+// @Success 200 {string} string "iCalendar payload"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 503 {object} map[string]string
+// @Router /schedule/auditory/{id}/ical [get]
+func _() {}
+
 func (s *Server) handleGetICal(entityType string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		idStr := c.Params("id")

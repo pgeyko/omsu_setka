@@ -5,6 +5,7 @@ import { Star, School, User, MapPin, ArrowLeft, Trash2, Menu } from 'lucide-reac
 import { useFavoritesStore } from '../store/useFavorites';
 import { useSidebarStore } from '../store/useSidebar';
 import { GlassCard } from '../components/ui/GlassCard';
+import type { SearchResult } from '../api/client';
 import styles from './FavoritesPage.module.css';
 
 export const FavoritesPage: React.FC = () => {
@@ -15,7 +16,7 @@ export const FavoritesPage: React.FC = () => {
   } = useFavoritesStore();
   const { open: openSidebar } = useSidebarStore();
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: SearchResult) => {
     navigate(`/schedule/${item.type}/${item.id}`, { state: { name: item.name } });
   };
 
