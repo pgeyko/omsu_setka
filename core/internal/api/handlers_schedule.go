@@ -83,7 +83,7 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		if data != nil && time.Now().Before(meta.ExpiresAt) {
 			s.MemoryCache.Set(key, data) // Warm up L1
 			c.Set("X-Cache-Status", "HIT-L2")
-			
+
 			if weekStartStr != "" {
 				var cached struct {
 					Data     json.RawMessage `json:"data"`
@@ -153,12 +153,12 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 			log.Error().Err(err).Msg("Failed to marshal schedule response")
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 		}
-		
+
 		// Update persistent L2
 		if err := s.ScheduleRepo.PutSchedule(c.Context(), key, entityType, id, jsonData, "", s.Cfg.CacheScheduleTTL); err != nil {
 			log.Error().Err(err).Msgf("Failed to update L2 cache for %s", key)
 		}
-		
+
 		// Update L1
 		s.MemoryCache.Set(key, jsonData)
 
@@ -183,7 +183,7 @@ func (s *Server) filterSchedule(schedule []models.Day, weekStartStr string) mode
 
 	weekEnd := weekStart.AddDate(0, 0, 7)
 	filtered := make([]models.Day, 0)
-	
+
 	hasNext := false
 	hasPrev := false
 
@@ -196,7 +196,7 @@ func (s *Server) filterSchedule(schedule []models.Day, weekStartStr string) mode
 		if (dayTime.Equal(weekStart) || dayTime.After(weekStart)) && dayTime.Before(weekEnd) {
 			filtered = append(filtered, day)
 		}
-		
+
 		if dayTime.Before(weekStart) {
 			hasPrev = true
 		}
@@ -217,9 +217,13 @@ func (s *Server) filterSchedule(schedule []models.Day, weekStartStr string) mode
 
 func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	entityType := c.Params("type")
+	if !isValidEntityType(entityType) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid entity type"})
+	}
+
 	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
-	if err != nil {
+	if err != nil || id < 1 || id > 999999 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID"})
 	}
 

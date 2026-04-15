@@ -3,17 +3,19 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	_ "modernc.org/sqlite"
 	"omsu_mirror/internal/config"
 	"os"
 	"path/filepath"
 	"time"
-	"github.com/rs/zerolog/log"
 )
 
 type SQLite struct {
 	DB *sql.DB
 }
+
+const currentSchemaVersion = 1
 
 func NewSQLite(cfg *config.Config) (*SQLite, error) {
 	// Ensure directory exists
@@ -128,13 +130,18 @@ func (s *SQLite) migrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_changes_entity ON schedule_changes(entity_type, entity_id);`,
 
 		`CREATE TABLE IF NOT EXISTS user_subscriptions (
-			fcm_token    TEXT NOT NULL,
-			entity_type  TEXT NOT NULL,
-			entity_id    INTEGER NOT NULL,
-			created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (fcm_token, entity_type, entity_id)
-		);`,
+				fcm_token    TEXT NOT NULL,
+				entity_type  TEXT NOT NULL,
+				entity_id    INTEGER NOT NULL,
+				created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY (fcm_token, entity_type, entity_id)
+			);`,
 		`CREATE INDEX IF NOT EXISTS idx_sub_entity ON user_subscriptions(entity_type, entity_id);`,
+		`CREATE TABLE IF NOT EXISTS schema_version (
+				id          INTEGER PRIMARY KEY CHECK (id = 1),
+				version     INTEGER NOT NULL,
+				updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
 	}
 
 	for _, q := range queries {
@@ -187,7 +194,22 @@ func (s *SQLite) migrate() error {
 		}
 	}
 
+	if err := s.setSchemaVersion(currentSchemaVersion); err != nil {
+		return fmt.Errorf("failed to update schema version: %w", err)
+	}
+
 	return nil
+}
+
+func (s *SQLite) setSchemaVersion(version int) error {
+	_, err := s.DB.Exec(`
+		INSERT INTO schema_version (id, version, updated_at)
+		VALUES (1, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(id) DO UPDATE SET
+			version = excluded.version,
+			updated_at = CURRENT_TIMESTAMP
+	`, version)
+	return err
 }
 
 func (s *SQLite) Close() error {
