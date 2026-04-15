@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Bell, Clock, Info } from 'lucide-react';
 import type { NotificationSettings } from '../../api/client';
+import { drawerMotion, drawerTransition, overlayMotion, overlayTransition } from '../../utils/motion';
 import styles from './NotificationSettingsModal.module.css';
 
 const defaultSettings: NotificationSettings = {
@@ -52,18 +53,21 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     <AnimatePresence>
       {isOpen && (
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          variants={overlayMotion}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          transition={overlayTransition}
           className={styles.modalOverlay} 
           onClick={onClose}
         >
           <motion.div 
             className={styles.modalContent}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            variants={drawerMotion}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={drawerTransition}
             onClick={e => e.stopPropagation()}
           >
             <div className={styles.header}>
@@ -71,7 +75,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                 <Bell size={20} className={styles.titleIcon} />
                 <h3 className={styles.title}>Настройка уведомлений</h3>
               </div>
-              <button className={styles.closeBtn} onClick={onClose}>
+              <button className={styles.closeBtn} onClick={onClose} aria-label="Закрыть настройки уведомлений">
                 <X size={20} />
               </button>
             </div>

@@ -11,7 +11,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--overlay-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 4000;
@@ -103,9 +103,9 @@
   right: 0;
   width: 10px;
   height: 10px;
-  background: #ffffff;
+  background: var(--accent-color);
   border-radius: 50%;
-  border: 2px solid #1a1a1a;
+  border: 2px solid var(--surface-color);
 }
 
 @media (min-width: 1100px) {

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { useLayoutEffect, useEffect } from 'react';
 import { Home } from './pages/Home';
 import { ScheduleView } from './pages/ScheduleView';
@@ -69,26 +70,29 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <MainLayout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/schedule/:type/:id" element={<ScheduleView />} />
-          <Route path="/status" element={<StatusPage />} />
-          <Route path="/tutors" element={<TutorsPage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />        </Routes>
-      </MainLayout>
-      <Footer />
-      <Toast 
-        isVisible={showToast} 
-        message={toastMessage} 
-        onClose={() => setShowToast(false)} 
-      />
-    </BrowserRouter>
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <ScrollToTop />
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/schedule/:type/:id" element={<ScheduleView />} />
+            <Route path="/status" element={<StatusPage />} />
+            <Route path="/tutors" element={<TutorsPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </MainLayout>
+        <Footer />
+        <Toast
+          isVisible={showToast}
+          message={toastMessage}
+          onClose={() => setShowToast(false)}
+        />
+      </BrowserRouter>
+    </MotionConfig>
   );
 }
 

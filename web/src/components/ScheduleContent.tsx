@@ -24,6 +24,7 @@ import { FloatingActions } from '../components/ui/FloatingActions';
 import { CustomDatePicker } from '../components/ui/CustomDatePicker';
 import { NotificationSettingsModal } from '../components/ui/NotificationSettingsModal';
 import { getBreakInfo, type BreakInfo } from '../utils/scheduleBreaks';
+import { drawerMotion, drawerTransition, listContainerMotion, listItemMotion, overlayMotion, overlayTransition } from '../utils/motion';
 import styles from '../pages/ScheduleView.module.css';
 
 const parseDate = (dateStr: string) => {
@@ -346,6 +347,23 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     return '';
   };
 
+  const getWeekLessonStyle = (type: string): React.CSSProperties => {
+    if (type.includes('Экзамен')) {
+      return {
+        borderLeftColor: 'var(--warning)',
+        background: 'var(--warning-muted)',
+        cursor: 'pointer'
+      };
+    }
+    if (type.includes('Лек')) {
+      return { borderLeftColor: 'var(--info)', cursor: 'pointer' };
+    }
+    if (type.includes('Прак')) {
+      return { borderLeftColor: 'var(--danger)', cursor: 'pointer' };
+    }
+    return { borderLeftColor: 'var(--success)', cursor: 'pointer' };
+  };
+
   useEffect(() => {
     if (selectedGroup) {
       document.body.style.overflow = 'hidden';
@@ -639,6 +657,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                   whileTap={{ scale: 0.95 }} 
                   onClick={handleBack} 
                   className={styles.backBtn}
+                  aria-label="Назад"
                 >
                   <ArrowLeft size={24} />
                 </motion.button>
@@ -714,6 +733,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
             className={`${styles.weekNav} ${!paginationMeta.hasPrev ? styles.navDisabled : ''}`} 
             onClick={() => changeWeek(-1)}
             disabled={!paginationMeta.hasPrev}
+            aria-label="Предыдущая неделя"
           >
             ←
           </button>
@@ -722,6 +742,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
             className={`${styles.weekNav} ${!paginationMeta.hasNext ? styles.navDisabled : ''}`} 
             onClick={() => changeWeek(1)}
             disabled={!paginationMeta.hasNext}
+            aria-label="Следующая неделя"
           >
             →
           </button>
@@ -733,7 +754,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
             {schedule.map((day, idx) => {
               const date = parseDate(day.day);
               return (
-                <button key={day.day} className={`${styles.dayTab} ${activeDayIdx === idx ? styles.activeTab : ''}`} onClick={() => setActiveDayIdx(idx)}>
+                <button key={day.day} className={`${styles.dayTab} ${activeDayIdx === idx ? styles.activeTab : ''}`} onClick={() => setActiveDayIdx(idx)} aria-pressed={activeDayIdx === idx} aria-label={`Открыть день ${day.day}`}>
                   <span className={styles.tabDay}>{['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'][date.getDay()]}</span>
                   <span className={styles.tabDate}>{date.getDate()}</span>
                 </button>
@@ -832,12 +853,12 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                   return (
                     <div key={dayOffset} className={styles.gridCell}>
                       {slotLessons.length > 1 ? (
-                        <div className={styles.gridLesson} onClick={() => setSelectedGroup(slotLessons)} style={{ borderLeftColor: 'var(--accent-color)', background: 'rgba(170, 59, 255, 0.1)', cursor: 'pointer' }}>
+                        <div className={styles.gridLesson} onClick={() => setSelectedGroup(slotLessons)} style={{ borderLeftColor: 'var(--accent-color)', background: 'var(--info-muted)', cursor: 'pointer' }}>
                           <span className={styles.gridLessonType}>Несколько</span>Занятий ({slotLessons.length})
                           <div style={{ opacity: 0.8, fontSize: '9px', marginTop: '4px', textTransform: 'uppercase', fontStyle: 'italic' }}>Нажмите, чтобы открыть</div>
                         </div>
                       ) : slotLessons.map((l, i) => (
-                        <div key={i} className={styles.gridLesson} onClick={() => setSelectedGroup([l])} style={{ borderLeftColor: l.type_work.includes('Экзамен') ? '#f59e0b' : l.type_work.includes('Лек') ? '#3b82f6' : l.type_work.includes('Прак') ? '#ef4444' : '#10b981', background: l.type_work.includes('Экзамен') ? 'rgba(245, 158, 11, 0.1)' : undefined, cursor: 'pointer' }}>
+                        <div key={i} className={styles.gridLesson} onClick={() => setSelectedGroup([l])} style={getWeekLessonStyle(l.type_work)}>
                           <span className={`${styles.gridLessonType} ${getTypeColorClass(l.type_work)}`}>{l.type_work}</span>{l.lesson}
                           <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
                         </div>
@@ -866,15 +887,37 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       {createPortal(
         <AnimatePresence>
           {showSubgroupDrawer && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className={styles.modalOverlay} onClick={() => setShowSubgroupDrawer(false)}>
-              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.4 }} className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}><div className={styles.modalTimeTitle}><h3>Выбор подгруппы</h3></div><button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn}><X size={24} /></button></div>
-                <div className={styles.subgroupOptions}>
-                  <button onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }} className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}>Все занятия</button>
+            <motion.div
+              variants={overlayMotion}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={overlayTransition}
+              className={styles.modalOverlay}
+              onClick={() => setShowSubgroupDrawer(false)}
+            >
+              <motion.div
+                variants={drawerMotion}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={drawerTransition}
+                className={styles.modalContent}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className={styles.modalHeader}><div className={styles.modalTimeTitle}><h3>Выбор подгруппы</h3></div><button onClick={() => setShowSubgroupDrawer(false)} className={styles.closeBtn} aria-label="Закрыть выбор подгруппы"><X size={24} /></button></div>
+                <motion.div
+                  className={styles.subgroupOptions}
+                  variants={listContainerMotion}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <motion.button variants={listItemMotion} onClick={() => { setSubgroup(null); setShowSubgroupDrawer(false); }} className={`${styles.subgroupOption} ${subgroup === null ? styles.optionActive : ''}`}>Все занятия</motion.button>
                   {detectedSubgroups.map(num => (
-                    <button key={num} onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }} className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}>{num} подгруппа</button>
+                    <motion.button variants={listItemMotion} key={num} onClick={() => { setSubgroup(num); setShowSubgroupDrawer(false); }} className={`${styles.subgroupOption} ${subgroup === num ? styles.optionActive : ''}`}>{num} подгруппа</motion.button>
                   ))}
-                </div>
+                </motion.div>
               </motion.div>
             </motion.div>
           )}
@@ -885,12 +928,35 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       {createPortal(
         <AnimatePresence>
           {selectedGroup && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className={styles.modalOverlay} onClick={() => setSelectedGroup(null)}>
-              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.4 }} className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}><div className={styles.modalTimeTitle}><span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span><h3>Занятия</h3></div><button onClick={() => setSelectedGroup(null)} className={styles.closeBtn}><X size={24} /></button></div>
-                <div className={styles.modalList}>
+            <motion.div
+              variants={overlayMotion}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={overlayTransition}
+              className={styles.modalOverlay}
+              onClick={() => setSelectedGroup(null)}
+            >
+              <motion.div
+                variants={drawerMotion}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={drawerTransition}
+                className={styles.modalContent}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className={styles.modalHeader}><div className={styles.modalTimeTitle}><span className={styles.modalTime}>{TIME_SLOTS[selectedGroup[0].time]?.start} – {TIME_SLOTS[selectedGroup[0].time]?.end}</span><h3>Занятия</h3></div><button onClick={() => setSelectedGroup(null)} className={styles.closeBtn} aria-label="Закрыть список занятий"><X size={24} /></button></div>
+                <motion.div
+                  className={styles.modalList}
+                  variants={listContainerMotion}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
                   {selectedGroup.map((lesson, idx) => (
-                    <GlassCard key={`${lesson.id}-${idx}`} className={styles.modalLessonCard}>
+                    <motion.div key={`${lesson.id}-${idx}`} variants={listItemMotion}>
+                    <GlassCard className={styles.modalLessonCard}>
                       <h3 className={styles.discipline}>{lesson.lesson}</h3>
                       <div className={styles.meta}>
                         <span className={`${styles.type} ${getTypeColorClass(lesson.type_work)}`}>{lesson.type_work}</span>
@@ -902,8 +968,9 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                         ) : lesson.group && <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>}
                       </div>
                     </GlassCard>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </motion.div>
             </motion.div>
           )}
@@ -921,7 +988,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       />
 
       <NotificationSettingsModal
-        key={`${entityType}-${entityID}-${isSettingsModalOpen}-${notificationSettings.notify_on_change}-${notificationSettings.notify_daily_digest}-${notificationSettings.digest_time}`}
+        key={`${entityType}-${entityID}-${notificationSettings.notify_on_change}-${notificationSettings.notify_daily_digest}-${notificationSettings.digest_time}`}
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         onSave={handleSaveSettings}

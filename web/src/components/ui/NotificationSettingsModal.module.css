@@ -5,7 +5,7 @@
   right: 0;
   bottom: 0;
   height: 100dvh;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--overlay-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 9000;
@@ -134,10 +134,10 @@
   display: flex;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
-  background: rgba(170, 59, 255, 0.05);
+  background: var(--info-muted);
   border-radius: var(--radius-md);
   margin-top: var(--spacing-xl);
-  border: 1px solid rgba(170, 59, 255, 0.1);
+  border: 1px solid var(--info-border);
 }
 
 .infoBox p {
@@ -173,17 +173,17 @@
   padding: 14px;
   border-radius: var(--radius-md);
   background: transparent;
-  color: #ff4d4d;
+  color: var(--danger);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  border: 1px solid rgba(255, 77, 77, 0.2);
+  border: 1px solid var(--danger-border);
   transition: all 0.2s ease;
 }
 
 .unsubscribeBtn:hover {
-  background: rgba(255, 77, 77, 0.05);
-  border-color: #ff4d4d;
+  background: var(--danger-muted);
+  border-color: var(--danger);
 }
 
 .cancelBtn {
@@ -231,7 +231,7 @@
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: #fff;
+  background-color: var(--text-primary);
   transition: .4s;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -251,7 +251,7 @@ input:checked + .slider:before {
   width: 20px;
   height: 20px;
   border: 2px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #000;
+  border-left-color: var(--bg-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Bell, 
@@ -13,9 +14,13 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { useSubscriptionsStore } from '../store/useSubscriptions';
 import { useSidebarStore } from '../store/useSidebar';
 import { NotificationSettingsModal } from '../components/ui/NotificationSettingsModal';
+import { EmptyState } from '../components/ui/EmptyState';
+import { IconButton } from '../components/ui/IconButton';
+import { PageHeader } from '../components/ui/PageHeader';
 import { getNotificationSettings, updateNotificationSettings, unsubscribeFromNotifications } from '../api/client';
 import type { NotificationSettings } from '../api/client';
 import { Toast } from '../components/ui/Toast';
+import { listItemMotion } from '../utils/motion';
 import styles from './SettingsPage.module.css';
 
 const defaultNotificationSettings: NotificationSettings = {
@@ -128,24 +133,12 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="app-container animate-fade-in">
       <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
-      
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={() => navigate(-1)} className={styles.backBtn}>
-              <ArrowLeft size={24} />
-            </button>
-            <h1 className={styles.title}>Настройки</h1>
-          </div>
-          <button
-            className={`${styles.backBtn} mobile-only`}
-            onClick={openSidebar}
-            aria-label="Открыть меню"
-          >
-            <Menu size={24} />
-          </button>
-        </div>
-      </header>
+
+      <PageHeader
+        title="Настройки"
+        left={<IconButton icon={<ArrowLeft size={24} />} onClick={() => navigate(-1)} aria-label="Назад" />}
+        right={<IconButton icon={<Menu size={24} />} onClick={openSidebar} aria-label="Открыть меню" className="mobile-only" />}
+      />
 
       <main className={styles.content}>
         
@@ -159,32 +152,44 @@ export const SettingsPage: React.FC = () => {
           <div className={styles.subList}>
             {subscriptions.length === 0 ? (
               <GlassCard className={styles.emptyCard}>
-                <div className={styles.emptyState}>
-                  <Bell size={32} style={{ opacity: 0.3 }} />
-                  <p>У вас пока нет активных подписок. Вы можете подписаться на изменения в расписании на странице группы или преподавателя.</p>
-                </div>
+                <EmptyState
+                  icon={<Bell size={32} />}
+                  title="Нет активных подписок"
+                  description="Вы можете подписаться на изменения в расписании на странице группы или преподавателя."
+                  className={styles.emptyStateCompact}
+                />
               </GlassCard>
             ) : (
-              subscriptions.map(sub => (
-                <GlassCard 
-                  key={`${sub.type}-${sub.id}`}
-                  className={styles.subCard}
-                  onClick={() => handleOpenSubscription(sub)}
-                >
-                  <div className={styles.subInfo}>
-                    <div className={styles.subIcon}>
-                      {renderIcon(sub.type)}
-                    </div>
-                    <div className={styles.subDetails}>
-                      <span className={styles.subName}>{sub.name}</span>
-                      <span className={styles.subType}>{getTypeLabel(sub.type)}</span>
-                    </div>
-                  </div>
-                  <div className={styles.subAction}>
-                    <Settings size={20} />
-                  </div>
-                </GlassCard>
-              ))
+              <AnimatePresence initial={false}>
+                {subscriptions.map(sub => (
+                  <motion.div
+                    key={`${sub.type}-${sub.id}`}
+                    layout
+                    variants={listItemMotion}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <GlassCard
+                      className={styles.subCard}
+                      onClick={() => handleOpenSubscription(sub)}
+                    >
+                      <div className={styles.subInfo}>
+                        <div className={styles.subIcon}>
+                          {renderIcon(sub.type)}
+                        </div>
+                        <div className={styles.subDetails}>
+                          <span className={styles.subName}>{sub.name}</span>
+                          <span className={styles.subType}>{getTypeLabel(sub.type)}</span>
+                        </div>
+                      </div>
+                      <div className={styles.subAction}>
+                        <Settings size={20} />
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </section>
@@ -192,6 +197,7 @@ export const SettingsPage: React.FC = () => {
       </main>
 
       <NotificationSettingsModal
+        key={`${activeSubscription?.type ?? 'none'}-${activeSubscription?.id ?? 0}-${notificationSettings?.notify_on_change ?? true}-${notificationSettings?.notify_daily_digest ?? false}-${notificationSettings?.digest_time ?? '19:00'}`}
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         onSave={handleSaveSettings}
