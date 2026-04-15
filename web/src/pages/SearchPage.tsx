@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Search, ArrowLeft, School, User, MapPin, X, History, Menu } from 'lucide-react';
 import { GlassInput } from '../components/ui/GlassInput';
+import { IconButton } from '../components/ui/IconButton';
+import { PageHeader } from '../components/ui/PageHeader';
 import { fetchSearch } from '../api/client';
 import type { SearchResult, GroupedSearchResult } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { useSidebarStore } from '../store/useSidebar';
+import { listContainerMotion, listItemMotion } from '../utils/motion';
 import styles from './SearchPage.module.css';
 
 export const SearchPage: React.FC = () => {
@@ -68,13 +72,18 @@ export const SearchPage: React.FC = () => {
   };
 
   const renderResultItem = (res: SearchResult) => (
-    <div key={`${res.type}-${res.id}`} className={styles.resultItem} onClick={() => handleSelect(res)}>
+    <motion.div
+      key={`${res.type}-${res.id}`}
+      variants={listItemMotion}
+      className={styles.resultItem}
+      onClick={() => handleSelect(res)}
+    >
       <span className={styles.resultIcon}>{getIcon(res.type)}</span>
       <div className={styles.resultInfo}>
         <span className={styles.resultLabel}>{res.name}</span>
         {res.building && <span className={styles.resultSub}>{res.building}</span>}
       </div>
-    </div>
+    </motion.div>
   );
 
   const hasResults = Array.isArray(results) ? results.length > 0 : (results.groups.length > 0 || results.tutors.length > 0 || results.auditories.length > 0);
@@ -82,80 +91,91 @@ export const SearchPage: React.FC = () => {
 
   return (
     <div className="app-container animate-fade-in">
-      <header className={styles.header}>
-        <div className={styles.searchBar}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-            <button onClick={() => navigate(-1)} className={styles.backBtn}>
-              <ArrowLeft size={24} />
-            </button>
-            <div className={styles.inputWrapper}>
-              <GlassInput
-                ref={inputRef}
-                icon={<Search size={20} />}
-                placeholder="Группа, преподаватель или аудитория"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              {query && (
-                <button className={styles.clearBtn} onClick={() => setQuery('')}>
-                  <X size={18} />
-                </button>
-              )}
-            </div>
-          </div>
-          <button
-            className={`${styles.backBtn} mobile-only`}
-            onClick={openSidebar}
-            aria-label="Открыть меню"
-            style={{ marginLeft: '12px' }}
-          >
-            <Menu size={24} />
-          </button>
-        </div>
-      </header>
-
-      <main className={styles.content}>
-        {loading && <div className={styles.loading}>Поиск...</div>}
-
-        {hasResults && (
-          <div className={styles.results}>
-            {Array.isArray(results) ? (
-              results.map(renderResultItem)
-            ) : (
-              <>
-                {results.groups.length > 0 && (
-                  <div className={styles.section}>
-                    <div className={styles.sectionHeader}>Группы</div>
-                    {results.groups.map(renderResultItem)}
-                  </div>
-                )}
-                {results.tutors.length > 0 && (
-                  <div className={styles.section}>
-                    <div className={styles.sectionHeader}>Преподаватели</div>
-                    {results.tutors.map(renderResultItem)}
-                  </div>
-                )}
-                {results.auditories.length > 0 && (
-                  <div className={styles.section}>
-                    <div className={styles.sectionHeader}>Аудитории</div>
-                    {results.auditories.map(renderResultItem)}
-                  </div>
-                )}
-              </>
+      <PageHeader
+        left={<IconButton icon={<ArrowLeft size={24} />} onClick={() => navigate(-1)} aria-label="Назад" />}
+        center={(
+          <div className={styles.inputWrapper}>
+            <GlassInput
+              ref={inputRef}
+              icon={<Search size={20} />}
+              placeholder="Группа, преподаватель или аудитория"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button className={styles.clearBtn} onClick={() => setQuery('')} aria-label="Очистить поиск">
+                <X size={18} />
+              </button>
             )}
           </div>
         )}
+        right={<IconButton icon={<Menu size={24} />} onClick={openSidebar} aria-label="Открыть меню" className="mobile-only" />}
+      />
 
-        {showRecent && (
-          <div className={styles.recent}>
-            <div className={styles.sectionHeader}><History size={14} style={{ marginRight: 8 }} /> Недавние</div>
-            {[...recent, ...recentTutors, ...recentAuditories].slice(0, 10).map(renderResultItem)}
-          </div>
-        )}
+      <main className={styles.content}>
+        <AnimatePresence mode="wait">
+          {loading && (
+            <motion.div key="loading" variants={listItemMotion} initial="hidden" animate="visible" exit="exit" className={styles.loading}>
+              Поиск...
+            </motion.div>
+          )}
 
-        {!loading && !hasResults && query.length >= 2 && (
-          <div className={styles.noResults}>Ничего не найдено</div>
-        )}
+          {!loading && hasResults && (
+            <motion.div
+              key="results"
+              className={styles.results}
+              variants={listContainerMotion}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              {Array.isArray(results) ? (
+                results.map(renderResultItem)
+              ) : (
+                <>
+                  {results.groups.length > 0 && (
+                    <div className={styles.section}>
+                      <div className={styles.sectionHeader}>Группы</div>
+                      {results.groups.map(renderResultItem)}
+                    </div>
+                  )}
+                  {results.tutors.length > 0 && (
+                    <div className={styles.section}>
+                      <div className={styles.sectionHeader}>Преподаватели</div>
+                      {results.tutors.map(renderResultItem)}
+                    </div>
+                  )}
+                  {results.auditories.length > 0 && (
+                    <div className={styles.section}>
+                      <div className={styles.sectionHeader}>Аудитории</div>
+                      {results.auditories.map(renderResultItem)}
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.div>
+          )}
+
+          {!loading && showRecent && (
+            <motion.div
+              key="recent"
+              className={styles.recent}
+              variants={listContainerMotion}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <div className={styles.sectionHeader}><History size={14} style={{ marginRight: 8 }} /> Недавние</div>
+              {[...recent, ...recentTutors, ...recentAuditories].slice(0, 10).map(renderResultItem)}
+            </motion.div>
+          )}
+
+          {!loading && !hasResults && query.length >= 2 && (
+            <motion.div key="empty" variants={listItemMotion} initial="hidden" animate="visible" exit="exit" className={styles.noResults}>
+              Ничего не найдено
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Search, User, ChevronDown, ChevronUp, Calendar, Star, Menu } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassInput } from '../components/ui/GlassInput';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { LoadingState } from '../components/ui/LoadingState';
+import { IconButton } from '../components/ui/IconButton';
+import { PageHeader } from '../components/ui/PageHeader';
 import { fetchTutors, fetchSchedule, onRateLimit } from '../api/client';
 import type { Tutor, SearchResult, Day, Lesson } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
 import { useSidebarStore } from '../store/useSidebar';
 import { Toast } from '../components/ui/Toast';
+import { collapseMotion, listContainerMotion, listItemMotion } from '../utils/motion';
 import styles from './TutorsPage.module.css';
 
 export const TutorsPage: React.FC = () => {
@@ -138,28 +143,18 @@ export const TutorsPage: React.FC = () => {
 
   if (loading) return (
     <div className="app-container">
-      <div className={styles.loading}>Загрузка списка преподавателей...</div>
+      <LoadingState label="Загрузка списка преподавателей..." />
     </div>
   );
   return (
     <div className="app-container animate-fade-in">
       <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
 
-      <header className={styles.stickyHeader}>
-        <nav className={styles.nav}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={() => navigate(-1)} className={styles.backBtn}><ArrowLeft size={24} /></button>
-            <div className={styles.navTitle}>Преподаватели</div>
-          </div>
-          <button
-            className={`${styles.backBtn} mobile-only`}
-            onClick={openSidebar}
-            aria-label="Открыть меню"
-          >
-            <Menu size={24} />
-          </button>
-        </nav>
-      </header>
+      <PageHeader
+        title="Преподаватели"
+        left={<IconButton icon={<ArrowLeft size={24} />} onClick={() => navigate(-1)} aria-label="Назад" />}
+        right={<IconButton icon={<Menu size={24} />} onClick={openSidebar} aria-label="Открыть меню" className="mobile-only" />}
+      />
 
       <main className={styles.container}>
         <section className={styles.searchWrapper}>
@@ -172,19 +167,27 @@ export const TutorsPage: React.FC = () => {
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           />
 
-          {isFocused && searchQuery.length < 2 && recentTutors.length > 0 && (
-            <div className={styles.resultsDropdown}>
-              <div className={styles.dropdownHeader}>Недавние преподаватели</div>
-              {recentTutors.map(rec => (
-                <div key={rec.id} className={styles.resultItem} onClick={() => handleSelectRecent(rec)}>
-                  <User size={18} className={styles.resultIcon} />
-                  <div className={styles.resultInfo}>
-                    <div className={styles.resultLabel}>{rec.name}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <AnimatePresence>
+            {isFocused && searchQuery.length < 2 && recentTutors.length > 0 && (
+              <motion.div
+                className={styles.resultsDropdown}
+                variants={listContainerMotion}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <div className={styles.dropdownHeader}>Недавние преподаватели</div>
+                {recentTutors.map(rec => (
+                  <motion.div key={rec.id} variants={listItemMotion} className={styles.resultItem} onClick={() => handleSelectRecent(rec)}>
+                    <User size={18} className={styles.resultIcon} />
+                    <div className={styles.resultInfo}>
+                      <div className={styles.resultLabel}>{rec.name}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
 
         <div className={styles.tutorList}>
@@ -209,6 +212,7 @@ export const TutorsPage: React.FC = () => {
                       className={`${styles.actionButton} ${isTutorFavorite(tutor.id) ? styles.active : ''}`}
                       onClick={(e) => toggleFavorite(e, tutor)}
                       title="В избранное"
+                      aria-label={isTutorFavorite(tutor.id) ? 'Удалить из избранного' : 'Добавить в избранное'}
                     >
                       <Star size={18} fill={isTutorFavorite(tutor.id) ? 'currentColor' : 'none'} />
                     </button>
@@ -216,32 +220,41 @@ export const TutorsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isExpanded && (
-                  <div className={styles.details} onClick={e => e.stopPropagation()}>
-                    {isLoading ? (
-                      <div className={styles.loading}>Загрузка предметов...</div>
-                    ) : (
-                      <>
-                        <span className={styles.sectionLabel}>Дисциплины (в текущем расписании)</span>
-                        <div className={styles.subjects}>
-                          {subjects.length > 0 ? (
-                            subjects.map((sub, i) => (
-                              <span key={i} className={styles.subjectBadge}>{sub}</span>
-                            ))
-                          ) : (
-                            <span className={styles.empty}>Предметы не найдены</span>
-                          )}
-                        </div>
-                        <button
-                          className={styles.viewScheduleBtn}
-                          onClick={() => navigate(`/schedule/tutor/${tutor.id}`, { state: { name: `Преподаватель: ${tutor.name}` } })}
-                        >
-                          <Calendar size={18} /> Открыть полное расписание
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      className={styles.details}
+                      variants={collapseMotion}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {isLoading ? (
+                        <LoadingState label="Загрузка предметов..." className={styles.inlineLoading} />
+                      ) : (
+                        <>
+                          <span className={styles.sectionLabel}>Дисциплины (в текущем расписании)</span>
+                          <div className={styles.subjects}>
+                            {subjects.length > 0 ? (
+                              subjects.map((sub, i) => (
+                                <span key={i} className={styles.subjectBadge}>{sub}</span>
+                              ))
+                            ) : (
+                              <span className={styles.empty}>Предметы не найдены</span>
+                            )}
+                          </div>
+                          <button
+                            className={styles.viewScheduleBtn}
+                            onClick={() => navigate(`/schedule/tutor/${tutor.id}`, { state: { name: `Преподаватель: ${tutor.name}` } })}
+                          >
+                            <Calendar size={18} /> Открыть полное расписание
+                          </button>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </GlassCard>
             );
           })}
@@ -258,4 +271,3 @@ export const TutorsPage: React.FC = () => {
     </div>
   );
 };
-

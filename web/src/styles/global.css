@@ -50,6 +50,19 @@ input {
   outline: none;
 }
 
+button:focus-visible,
+input:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+}
+
 /* Base Glass Container Utility */
 .glass {
   background: var(--glass-bg);

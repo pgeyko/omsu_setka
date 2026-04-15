@@ -1,0 +1,32 @@
+.button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
+}
+
+.button:hover {
+  background: var(--surface-hover);
+  border-color: var(--text-secondary);
+}
+
+.button:active {
+  transform: scale(0.95);
+}
+
+.button svg {
+  color: inherit;
+}
+
+.plain {
+  background: transparent;
+  border-color: transparent;
+}

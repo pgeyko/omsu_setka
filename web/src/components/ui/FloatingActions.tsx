@@ -11,6 +11,7 @@ import {
   List, 
   Star,
 } from 'lucide-react';
+import { listItemMotion, overlayMotion, overlayTransition } from '../../utils/motion';
 import styles from './FloatingActions.module.css';
 
 interface FloatingActionsProps {
@@ -65,7 +66,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       label: isFavorite ? 'В избранном' : 'В избранное', 
       onClick: onToggleFavorite,
       isActive: isFavorite,
-      activeColor: '#f59e0b' // Warning/Gold
+      activeColor: 'var(--warning)'
     },
   ];
 
@@ -75,7 +76,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       label: 'Подгруппа',
       onClick: onShowSubgroups,
       isActive: !!isSubgroupActive,
-      activeColor: '#10b981' // Green
+      activeColor: 'var(--success)'
     });
   }
 
@@ -87,9 +88,11 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
             <>
               <motion.div 
                 className={styles.overlay}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                variants={overlayMotion}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={overlayTransition}
                 onClick={() => setIsOpen(false)}
               />
               
@@ -98,10 +101,11 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
                   <motion.div
                     key={index}
                     className={styles.actionWrapper}
-                    initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                    transition={{ delay: index * 0.05 }}
+                    variants={listItemMotion}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    transition={{ delay: index * 0.035 }}
                   >
                     <span className={styles.label}>{action.label}</span>
                     <button 
@@ -130,6 +134,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <motion.button
         className={`${styles.mainBtn} ${isOpen ? styles.active : ''}`}
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? 'Закрыть быстрые действия' : 'Открыть быстрые действия'}
         whileTap={{ scale: 0.9 }}
       >
         <motion.div

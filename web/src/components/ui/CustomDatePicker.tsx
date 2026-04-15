@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
+import { drawerMotion, drawerTransition, overlayMotion, overlayTransition } from '../../utils/motion';
 import styles from './CustomDatePicker.module.css';
 
 interface CustomDatePickerProps {
@@ -63,7 +64,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
 
   return (
     <div className={styles.container}>
-      <button className={styles.trigger} onClick={() => setIsOpen(!isOpen)}>
+      <button className={styles.trigger} onClick={() => setIsOpen(!isOpen)} aria-label="Открыть выбор даты">
         <CalendarIcon size={20} />
       </button>
 
@@ -71,34 +72,36 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              variants={overlayMotion}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={overlayTransition}
               className={styles.modalOverlay}
               onClick={() => setIsOpen(false)}
             >
               <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                variants={drawerMotion}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={drawerTransition}
                 className={styles.modalContent}
                 onClick={e => e.stopPropagation()}
               >
                 <div className={styles.drawerHeader}>
                   <h3>Выбор даты</h3>
-                  <button onClick={() => setIsOpen(false)} className={styles.closeBtn}>
+                  <button onClick={() => setIsOpen(false)} className={styles.closeBtn} aria-label="Закрыть выбор даты">
                     <X size={24} />
                   </button>
                 </div>
 
                 <div className={styles.header}>
-                  <button onClick={() => changeMonth(-1)} className={styles.navBtn}><ChevronLeft size={18} /></button>
+                  <button onClick={() => changeMonth(-1)} className={styles.navBtn} aria-label="Предыдущий месяц"><ChevronLeft size={18} /></button>
                   <div className={styles.currentMonth}>
                     {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                   </div>
-                  <button onClick={() => changeMonth(1)} className={styles.navBtn}><ChevronRight size={18} /></button>
+                  <button onClick={() => changeMonth(1)} className={styles.navBtn} aria-label="Следующий месяц"><ChevronRight size={18} /></button>
                 </div>
 
                 <div className={styles.weekDays}>

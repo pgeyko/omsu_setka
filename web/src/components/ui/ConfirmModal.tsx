@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { drawerMotion, drawerTransition, overlayMotion, overlayTransition } from '../../utils/motion';
 import styles from './ConfirmModal.module.css';
 
 interface ConfirmModalProps {
@@ -29,23 +30,26 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          variants={overlayMotion}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          transition={overlayTransition}
           className={styles.modalOverlay} 
           onClick={onCancel}
         >
           <motion.div 
             className={styles.modalContent}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            variants={drawerMotion}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={drawerTransition}
             onClick={e => e.stopPropagation()}
           >
             <div className={styles.header}>
               <h3 className={styles.title}>{title}</h3>
-              <button className={styles.closeBtn} onClick={onCancel}>
+              <button className={styles.closeBtn} onClick={onCancel} aria-label="Закрыть окно подтверждения">
                 <X size={20} />
               </button>
             </div>

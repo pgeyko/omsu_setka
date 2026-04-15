@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           minHeight: '100vh', padding: '20px', textAlign: 'center', background: 'var(--bg-color)'
         }}>
-          <AlertCircle size={48} color="#ef4444" style={{ marginBottom: '16px' }} />
+          <AlertCircle size={48} color="var(--danger)" style={{ marginBottom: '16px' }} />
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>Ой, что-то пошло не так</h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
             В приложении произошла критическая ошибка. Мы уже её локализовали.

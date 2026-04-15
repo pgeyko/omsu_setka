@@ -1,53 +1,4 @@
-.header {
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--surface-border);
-}
-
-.nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.backBtn {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-}
-
-.title {
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.emptyIcon {
-  margin-bottom: 20px;
-  opacity: 0.2;
-}
-
-.empty h3 {
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
 .goHomeBtn {
-  margin-top: 24px;
   padding: 12px 24px;
   background: var(--text-primary);
   color: var(--bg-color);
@@ -83,7 +34,7 @@
 
 .pinned {
   border-color: var(--text-primary) !important;
-  background: rgba(255, 255, 255, 0.03) !important;
+  background: var(--surface-subtle) !important;
 }
 
 .cardMain {

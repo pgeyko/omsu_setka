@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { fetchHealth, fetchIncidents } from '../api/client';
 import type { HealthData, Incident } from '../api/client';
+import { LoadingState } from '../components/ui/LoadingState';
+import { IconButton } from '../components/ui/IconButton';
+import { PageHeader } from '../components/ui/PageHeader';
 import styles from './StatusPage.module.css';
 
 export const StatusPage: React.FC = () => {
@@ -42,19 +44,13 @@ export const StatusPage: React.FC = () => {
 
   return (
     <div className="app-container animate-fade-in">
-      <header className={styles.stickyHeader}>
-        <nav className={styles.nav}>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate(-1)} className={styles.backBtn}>
-            <ArrowLeft size={24} />
-          </motion.button>
-          <div className={styles.navTitle}>Мониторинг систем</div>
-          <div className={styles.navActions} style={{ width: '44px' }}>
-          </div>
-        </nav>
-      </header>
+      <PageHeader
+        title="Мониторинг систем"
+        left={<IconButton icon={<ArrowLeft size={24} />} onClick={() => navigate(-1)} aria-label="Назад" />}
+      />
 
       {loading && !health ? (
-        <div className={styles.loading}>Загрузка статуса...</div>
+        <LoadingState label="Загрузка статуса..." />
       ) : (
         <main className={styles.container}>
           <div className={`${styles.heroCard} ${isHealthy ? styles.heroHealthy : styles.heroUnhealthy}`} style={{ marginTop: '16px' }}>

@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <div className={styles.header}>
         <span className={styles.logo}>setka</span>
         {!isDesktop && (
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Закрыть меню">
             <X size={24} />
           </button>
         )}
@@ -143,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       </div>
 
       <div className={styles.footer}>
-        <button className={styles.themeToggle} onClick={toggleTheme}>
+        <button className={styles.themeToggle} onClick={toggleTheme} aria-label="Переключить тему">
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           <span>{theme === 'dark' ? 'Светлая тема' : 'Темная тема'}</span>
         </button>

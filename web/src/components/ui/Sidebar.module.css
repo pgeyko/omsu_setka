@@ -124,7 +124,7 @@
 }
 
 [data-theme='dark'] .active {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-subtle);
 }
 
 .extIcon {
@@ -169,14 +169,14 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .statusInfo:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
 }
 
 .statusDot {
@@ -187,13 +187,13 @@
 }
 
 .healthy {
-  background-color: #ffffff;
-  color: #ffffff;
+  background-color: var(--success);
+  color: var(--success);
 }
 
 .unhealthy {
-  background-color: #ef4444;
-  color: #ef4444;
+  background-color: var(--danger);
+  color: var(--danger);
 }
 
 .statusLabel {
