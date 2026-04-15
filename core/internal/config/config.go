@@ -25,13 +25,13 @@ type Config struct {
 	// Synchronization
 	SyncDictInterval     time.Duration `env:"SYNC_DICT_INTERVAL" envDefault:"12h"`
 	SyncScheduleInterval time.Duration `env:"SYNC_SCHEDULE_INTERVAL" envDefault:"15m"`
-	SyncAuditInterval     time.Duration `env:"SYNC_AUDIT_INTERVAL" envDefault:"24h"`
+	SyncAuditInterval    time.Duration `env:"SYNC_AUDIT_INTERVAL" envDefault:"24h"`
 	SyncOnStartup        bool          `env:"SYNC_ON_STARTUP" envDefault:"true"`
 
 	// Cache
-	CacheScheduleTTL      time.Duration `env:"CACHE_SCHEDULE_TTL" envDefault:"15m"`
-	CacheDictTTL          time.Duration `env:"CACHE_DICT_TTL" envDefault:"12h"`
-	CacheActiveThreshold  time.Duration `env:"CACHE_ACTIVE_THRESHOLD" envDefault:"24h"`
+	CacheScheduleTTL     time.Duration `env:"CACHE_SCHEDULE_TTL" envDefault:"15m"`
+	CacheDictTTL         time.Duration `env:"CACHE_DICT_TTL" envDefault:"12h"`
+	CacheActiveThreshold time.Duration `env:"CACHE_ACTIVE_THRESHOLD" envDefault:"24h"`
 
 	// SQLite
 	SQLitePath        string `env:"SQLITE_PATH" envDefault:"./data/mirror.db"`
@@ -39,13 +39,14 @@ type Config struct {
 	SQLiteBusyTimeout int    `env:"SQLITE_BUSY_TIMEOUT" envDefault:"5000"`
 
 	// Logging
-	LogLevel   string `env:"LOG_LEVEL" envDefault:"info"`
-	LogFormat  string `env:"LOG_FORMAT" envDefault:"json"`
+	LogLevel  string `env:"LOG_LEVEL" envDefault:"info"`
+	LogFormat string `env:"LOG_FORMAT" envDefault:"json"`
 
 	// Security
-	AdminKey            string        `env:"ADMIN_KEY" envDefault:""`
-	CORSAllowedOrigins  string        `env:"CORS_ALLOWED_ORIGINS" envDefault:""`
-	ICalAccessToken     string        `env:"ICAL_ACCESS_TOKEN" envDefault:""`
+	AdminKey           string `env:"ADMIN_KEY" envDefault:""`
+	CORSAllowedOrigins string `env:"CORS_ALLOWED_ORIGINS" envDefault:""`
+	ICalAccessToken    string `env:"ICAL_ACCESS_TOKEN" envDefault:""`
+	SwaggerEnabled     bool   `env:"SWAGGER_ENABLED" envDefault:"false"`
 
 	// Rate Limiting
 	RateLimitGeneral int           `env:"RATE_LIMIT_GENERAL" envDefault:"120"`

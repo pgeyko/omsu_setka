@@ -174,7 +174,11 @@ export const unsubscribeFromNotifications = async (token: string, type: string, 
   return data;
 };
 export const getNotificationSettings = async (token: string, type: string, id: number) => {
-  const { data } = await apiClient.get(`/notifications/settings/${type}/${id}?token=${token}`);
+  const { data } = await apiClient.get(`/notifications/settings/${type}/${id}`, {
+    headers: {
+      'X-FCM-Token': token,
+    },
+  });
   return data;
 };
 

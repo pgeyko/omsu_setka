@@ -45,12 +45,12 @@ func NewServer(
 	fcm *notifications.FCMClient,
 ) *Server {
 	app := fiber.New(fiber.Config{
-		Prefork:       cfg.ServerPrefork,
-		ReadTimeout:   cfg.ServerReadTimeout,
-		WriteTimeout:  cfg.ServerWriteTimeout,
-		AppName:       "omsu_mirror v1.0",
-		CaseSensitive: true,
-		BodyLimit:     1024,         // 1 KB — API doesn't accept large bodies
+		Prefork:        cfg.ServerPrefork,
+		ReadTimeout:    cfg.ServerReadTimeout,
+		WriteTimeout:   cfg.ServerWriteTimeout,
+		AppName:        "omsu_mirror v1.0",
+		CaseSensitive:  true,
+		BodyLimit:      1024, // 1 KB — API doesn't accept large bodies
 		ReadBufferSize: 4096,
 		ProxyHeader:    fiber.HeaderXForwardedFor, // Correctly detect client IP behind Nginx
 		// 19.3 Enable trusted proxies (Docker bridge subnet by default)
@@ -87,8 +87,8 @@ func NewServer(
 }
 
 func (s *Server) setupRoutes() {
-	// Hide Swagger in production
-	if s.Cfg.AppEnv != "production" {
+	// Swagger is disabled by default and only enabled explicitly in non-production environments.
+	if s.Cfg.SwaggerEnabled && s.Cfg.AppEnv != "production" {
 		s.App.Get("/swagger/*", AdminAuth(s.Cfg), swagger.HandlerDefault)
 	}
 

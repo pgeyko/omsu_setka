@@ -24,20 +24,21 @@ type UpstreamStatus struct {
 }
 
 type Syncer struct {
-	cfg          *config.Config
-	client       *upstream.Client
-	dictRepo     *storage.DictRepo
+	cfg              *config.Config
+	client           *upstream.Client
+	dictRepo         *storage.DictRepo
 	scheduleRepo     *storage.ScheduleRepo
 	incidentRepo     *storage.IncidentRepo
 	changeRepo       *storage.ChangeRepo
 	subscriptionRepo *storage.SubscriptionRepo
 	fcm              *notifications.FCMClient
 	memoryCache      *cache.MemoryCache
-	searchIndex  *cache.SearchIndex
-	mu           sync.Mutex
-	status       *UpstreamStatus
-	dictSema     chan struct{}
-	schedSema    chan struct{}
+	searchIndex      *cache.SearchIndex
+	mu               sync.Mutex
+	status           *UpstreamStatus
+	dictSema         chan struct{}
+	schedSema        chan struct{}
+	auditorySema     chan struct{}
 }
 
 func NewSyncer(
@@ -66,8 +67,9 @@ func NewSyncer(
 		status: &UpstreamStatus{
 			IsHealthy: true, // Optimistically assume healthy until proven otherwise
 		},
-		dictSema:  make(chan struct{}, 1),
-		schedSema: make(chan struct{}, 1),
+		dictSema:     make(chan struct{}, 1),
+		schedSema:    make(chan struct{}, 1),
+		auditorySema: make(chan struct{}, 1),
 	}
 }
 
@@ -143,11 +145,13 @@ func (s *Syncer) Run(ctx context.Context) {
 
 	dictTicker := time.NewTicker(s.cfg.SyncDictInterval)
 	schedTicker := time.NewTicker(s.cfg.SyncScheduleInterval)
+	auditoryTicker := time.NewTicker(s.cfg.SyncAuditInterval)
 	notifyTicker := time.NewTicker(1 * time.Minute)
 	cleanTicker := time.NewTicker(1 * time.Hour) // Cleanup old cache and incidents periodically
 
 	defer dictTicker.Stop()
 	defer schedTicker.Stop()
+	defer auditoryTicker.Stop()
 	defer notifyTicker.Stop()
 	defer cleanTicker.Stop()
 
@@ -182,6 +186,19 @@ func (s *Syncer) Run(ctx context.Context) {
 					log.Warn().Msg("Active schedules sync skipped: already in progress")
 				}
 			}()
+		case <-auditoryTicker.C:
+			go func() {
+				select {
+				case s.auditorySema <- struct{}{}:
+					defer func() { <-s.auditorySema }()
+					log.Info().Msg("Starting periodic auditory schedules synchronization...")
+					if err := s.SyncAuditorySchedules(ctx); err != nil {
+						log.Error().Err(err).Msg("Periodic auditory schedules sync failed")
+					}
+				default:
+					log.Warn().Msg("Auditory schedules sync skipped: already in progress")
+				}
+			}()
 		case <-notifyTicker.C:
 			// Notifications are lightweight so we just run them
 			// but still in a goroutine to not block the select if it somehow hangs
@@ -198,7 +215,7 @@ func (s *Syncer) Run(ctx context.Context) {
 				} else if n > 0 {
 					log.Info().Msgf("Cleaned %d expired schedule entries", n)
 				}
-				
+
 				if n, err := s.incidentRepo.CleanOld(ctx, 500); err != nil {
 					log.Error().Err(err).Msg("Failed to clean old incidents")
 				} else if n > 0 {
