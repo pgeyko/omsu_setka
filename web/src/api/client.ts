@@ -89,6 +89,12 @@ export const fetchSchedule = async (type: string, id: number, weekStart?: string
   return data;
 };
 
+export const fetchScheduleDay = async (type: string, id: number, date: string): Promise<BFFResponse<Day[]>> => {
+  const { data } = await apiClient.get<BFFResponse<Day[]>>(`/schedule/${type}/${id}/day?date=${date}`);
+  return data;
+};
+
+
 export const fetchTutors = async (): Promise<Tutor[]> => {
   const { data } = await apiClient.get<BFFResponse<Tutor[]>>('/tutors');
   return data.data;

@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, User, Clock, X, Menu, Search, Bell, Coffee } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { 
-  fetchSchedule, 
-  TIME_SLOTS, 
-  subscribeToNotifications, 
-  unsubscribeFromNotifications, 
-  fetchChanges, 
+import {
+  fetchSchedule,
+  fetchScheduleDay,
+  TIME_SLOTS,
+  subscribeToNotifications,
+  unsubscribeFromNotifications,
+  fetchChanges,
   getNotificationSettings,
   updateNotificationSettings
 } from '../api/client';
+
 import { requestForToken } from '../utils/firebase';
 import type { Day, Lesson, NotificationSettings, SearchResult } from '../api/client';
 import { useFavoritesStore } from '../store/useFavorites';
@@ -41,6 +43,31 @@ const getMonday = (d: Date) => {
   return monday;
 };
 
+/**
+ * Fills in the 6 weekdays (Mon–Sat) of the week containing `monday`.
+ * Days missing from `days` (backend didn't return them) get an empty lessons array.
+ * Sunday is never included.
+ */
+const fillWeekDays = (days: { day: string; lessons: unknown[] }[], monday: Date) => {
+  const byDateStr = new Map<string, typeof days[0]>();
+  for (const d of days) byDateStr.set(d.day, d);
+
+  const result: typeof days = [];
+  for (let offset = 0; offset < 6; offset++) {          // Mon=0 … Sat=5
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + offset);
+    date.setHours(0, 0, 0, 0);
+    // Format as DD.MM.YYYY to match the backend Day.day format
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const key = `${dd}.${mm}.${yyyy}`;
+    result.push(byDateStr.get(key) ?? { day: key, lessons: [] });
+  }
+  return result;
+};
+
+
 const getDefaultDate = () => {
   const now = new Date();
   const day = now.getDay(); // 0 - Sun, 1 - Mon ... 6 - Sat
@@ -51,7 +78,7 @@ const getDefaultDate = () => {
   // 1. Sunday -> Tomorrow (Monday)
   if (day === 0) {
     defaultDate.setDate(now.getDate() + 1);
-  } 
+  }
   // 2. Saturday evening (>= 18:00) -> Monday (+2 days)
   else if (day === 6 && hour >= 18) {
     defaultDate.setDate(now.getDate() + 2);
@@ -88,9 +115,9 @@ const prefixes: Record<string, string> = {
   auditory: 'Аудитория'
 };
 
-export const ScheduleContent: React.FC<ScheduleContentProps> = ({ 
-  entityType, 
-  entityID, 
+export const ScheduleContent: React.FC<ScheduleContentProps> = ({
+  entityType,
+  entityID,
   initialName = '',
   showBackButton = true
 }) => {
@@ -112,12 +139,15 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const [loading, setLoading] = useState(true);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [dateFilter, setDateFilter] = useState('');
-  
+
   const [activeWeekStart, setActiveWeekStart] = useState<Date>(() => {
     const fromURL = parseYYYYMMDD(weekParam);
     if (fromURL) return getMonday(fromURL);
     return getMonday(getDefaultDate());
   });
+
+  // Store the activeWeekStart as a stable string to use in deps
+  const activeWeekStartStr = activeWeekStart.toISOString().split('T')[0];
 
   const [selectedGroup, setSelectedGroup] = useState<LessonWithGroups[] | null>(null);
   const [toastMessage, setToastMessage] = useState('');
@@ -145,7 +175,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   // Favorites Store
@@ -228,7 +258,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
   const handleOpenSettings = async () => {
     const token = localStorage.getItem(`fcm_token_${entityType}_${entityID}`);
     if (!token) return;
-    
+
     setIsSettingsLoading(true);
     setIsSettingsModalOpen(true);
     try {
@@ -390,12 +420,13 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
 
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-    
+
     try {
       const resp = await fetchSchedule(entityType, entityID, weekStartStr);
       const data = resp.data;
-      const sortedData = [...data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
-      
+      const rawSorted = [...data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
+      const sortedData = fillWeekDays(rawSorted, weekToFetch) as Day[];
+
       setSchedule(sortedData);
       setPaginationMeta({ hasPrev: resp.has_prev, hasNext: resp.has_next });
 
@@ -425,7 +456,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       if (resp.has_next) {
         const nextMonday = new Date(weekToFetch);
         nextMonday.setDate(weekToFetch.getDate() + 7);
-        fetchSchedule(entityType, entityID, nextMonday.toISOString().split('T')[0]).catch(() => {});
+        fetchSchedule(entityType, entityID, nextMonday.toISOString().split('T')[0]).catch(() => { });
       }
 
     } catch (err) {
@@ -434,11 +465,28 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [entityType, entityID, initialName, activeWeekStart]);
+  }, [entityType, entityID, initialName, activeWeekStartStr]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // When schedule data loads, auto-select the right day.
+  // We only run this when the schedule array itself changes (new week loaded).
+  const scheduleKey = schedule.map(d => d.day).join(',');
+  useEffect(() => {
+    if (schedule.length === 0) return;
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
+      const idx = schedule.findIndex(d => parseDate(d.day).toDateString() === filterDate.toDateString());
+      setActiveDayIdx(idx !== -1 ? idx : 0);
+    } else {
+      const defaultDate = getDefaultDate();
+      const idx = schedule.findIndex(d => parseDate(d.day).toDateString() === defaultDate.toDateString());
+      setActiveDayIdx(idx !== -1 ? idx : 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleKey]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (window.scrollY <= 0) setStartY(e.touches[0].clientY);
@@ -457,36 +505,6 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     setPullDistance(0);
   };
 
-  useEffect(() => {
-    let weekStart = activeWeekStart;
-    if (dateFilter) {
-      weekStart = getMonday(new Date(dateFilter));
-      setActiveWeekStart(weekStart);
-      setSearchParams({ week: weekStart.toISOString().split('T')[0] });
-    }
-    
-    if (dateFilter) {
-      const filterDate = new Date(dateFilter);
-      const idx = schedule.findIndex(d => parseDate(d.day).toDateString() === filterDate.toDateString());
-      setActiveDayIdx(idx !== -1 ? idx : 0);
-    } else {
-      const defaultDate = getDefaultDate();
-      const idx = schedule.findIndex(d => parseDate(d.day).toDateString() === defaultDate.toDateString());
-      setActiveDayIdx(idx !== -1 ? idx : 0);
-    }
-  }, [activeWeekStart, dateFilter, schedule, setSearchParams]);
-
-  // Sync state with URL when it changes
-  useEffect(() => {
-    const urlDate = parseYYYYMMDD(weekParam);
-    if (urlDate) {
-      const monday = getMonday(urlDate);
-      if (monday.getTime() !== activeWeekStart.getTime()) {
-        setActiveWeekStart(monday);
-      }
-    }
-  }, [weekParam, activeWeekStart]);
-
   const changeWeek = (direction: number) => {
     const newMonday = new Date(activeWeekStart);
     newMonday.setDate(activeWeekStart.getDate() + direction * 7);
@@ -494,6 +512,43 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     setSearchParams({ week: newMonday.toISOString().split('T')[0] });
     setDateFilter('');
   };
+
+  const handleDatePick = async (dateStr: string) => {
+    // dateStr is YYYY-MM-DD from CustomDatePicker
+    const picked = new Date(dateStr + 'T00:00:00');
+    setDateFilter(dateStr);
+    setLoading(true);
+
+    try {
+      const resp = await fetchScheduleDay(entityType, entityID, dateStr);
+
+      // Compute Monday so the week header is correct
+      const weekday = picked.getDay() === 0 ? 7 : picked.getDay();
+      const monday = new Date(picked);
+      monday.setDate(picked.getDate() - (weekday - 1));
+      monday.setHours(0, 0, 0, 0);
+
+      // The /day endpoint returns only 1 day — fill the whole Mon–Sat week
+      const rawSorted = [...resp.data].sort((a, b) => parseDate(a.day).getTime() - parseDate(b.day).getTime());
+      const sortedData = fillWeekDays(rawSorted, monday) as Day[];
+
+      setSchedule(sortedData);
+      setPaginationMeta({ hasPrev: resp.has_prev, hasNext: resp.has_next });
+      setActiveWeekStart(monday);
+      setSearchParams({ week: monday.toISOString().split('T')[0] });
+
+      // Select the day within the filled week
+      const idx = sortedData.findIndex(d => parseDate(d.day).toDateString() === picked.toDateString());
+      setActiveDayIdx(idx !== -1 ? idx : 0);
+    } catch (err) {
+      console.error('Failed to load day schedule:', err);
+      setToastMessage('Ошибка при загрузке расписания');
+      setShowToast(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const toggleFavorite = () => {
     if (favorite) {
@@ -652,10 +707,10 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           <nav className={styles.nav}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
               {showBackButton ? (
-                <motion.button 
-                  whileHover={{ scale: 1.05 }} 
-                  whileTap={{ scale: 0.95 }} 
-                  onClick={handleBack} 
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleBack}
                   className={styles.backBtn}
                   aria-label="Назад"
                 >
@@ -713,7 +768,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
               )}
               <div className={styles.desktopOnly} style={{ width: showBackButton ? 44 : 88 }}>
                 <div className={styles.navActions} style={{ justifyContent: 'flex-end' }}>
-                   <button
+                  <button
                     className={`${styles.themeToggle} ${isSubscribed ? styles.active : ''}`}
                     onClick={toggleNotifications}
                     aria-label="Настройки уведомлений"
@@ -729,8 +784,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         </header>
 
         <div className={styles.weekSelector}>
-          <button 
-            className={`${styles.weekNav} ${!paginationMeta.hasPrev ? styles.navDisabled : ''}`} 
+          <button
+            className={`${styles.weekNav} ${!paginationMeta.hasPrev ? styles.navDisabled : ''}`}
             onClick={() => changeWeek(-1)}
             disabled={!paginationMeta.hasPrev}
             aria-label="Предыдущая неделя"
@@ -738,15 +793,15 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
             ←
           </button>
           <div className={styles.weekInfo}><span className={styles.weekLabel}>{formatWeekRange(activeWeekStart)}</span></div>
-          <button 
-            className={`${styles.weekNav} ${!paginationMeta.hasNext ? styles.navDisabled : ''}`} 
+          <button
+            className={`${styles.weekNav} ${!paginationMeta.hasNext ? styles.navDisabled : ''}`}
             onClick={() => changeWeek(1)}
             disabled={!paginationMeta.hasNext}
             aria-label="Следующая неделя"
           >
             →
           </button>
-          <CustomDatePicker value={dateFilter} onChange={setDateFilter} />
+          <CustomDatePicker value={dateFilter} onChange={handleDatePick} />
         </div>
 
         {viewMode === 'day' && (
@@ -760,7 +815,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                 </button>
               );
             })}
-            {schedule.length === 0 && <div className={styles.noFilterResults}>На этой неделе занятий нет</div>}
+
+
           </div>
         )}
 
@@ -768,7 +824,13 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           <main className={styles.content}>
             {breakInfo && <BreakBanner info={breakInfo} />}
             <div className={styles.lessonList}>
-              {currentDay?.lessons.length === 0 ? <div className={styles.empty}>Пар нет, можно отдыхать! 🥳</div> : (
+              {currentDay?.lessons.length === 0 ? (
+                <GlassCard className={`${styles.lessonCard} ${styles.emptyDayCard}`}>
+                  <div className={styles.lessonInfo} style={{ textAlign: 'center', width: '100%' }}>
+                    <h3 className={styles.discipline} style={{ margin: 0 }}>Пар нет, можно отдыхать!</h3>
+                  </div>
+                </GlassCard>
+              ) : (
                 (() => {
                   const grouped = currentDay?.lessons.reduce<Record<number, Lesson[]>>((acc, lesson) => {
                     if (!acc[lesson.time]) acc[lesson.time] = [];
@@ -871,7 +933,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           </div>
         )}
       </div>
-      <FloatingActions 
+      <FloatingActions
         viewMode={viewMode}
         setViewMode={setViewMode}
         isSubscribed={isSubscribed}
@@ -956,18 +1018,18 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                 >
                   {selectedGroup.map((lesson, idx) => (
                     <motion.div key={`${lesson.id}-${idx}`} variants={listItemMotion}>
-                    <GlassCard className={styles.modalLessonCard}>
-                      <h3 className={styles.discipline}>{lesson.lesson}</h3>
-                      <div className={styles.meta}>
-                        <span className={`${styles.type} ${getTypeColorClass(lesson.type_work)}`}>{lesson.type_work}</span>
-                        {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
-                        {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
-                        {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
-                        {lesson.groups && lesson.groups.length > 0 ? (
-                          <span className={styles.lessonGroup}><User size={12} /> Группы: {lesson.groups.join(', ')}</span>
-                        ) : lesson.group && <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>}
-                      </div>
-                    </GlassCard>
+                      <GlassCard className={styles.modalLessonCard}>
+                        <h3 className={styles.discipline}>{lesson.lesson}</h3>
+                        <div className={styles.meta}>
+                          <span className={`${styles.type} ${getTypeColorClass(lesson.type_work)}`}>{lesson.type_work}</span>
+                          {lesson.teacher && <span><User size={12} /> {lesson.teacher}</span>}
+                          {lesson.auditCorps && <span><MapPin size={12} /> {lesson.auditCorps}</span>}
+                          {lesson.subgroupName && <span className={styles.subgroup}>{lesson.subgroupName}</span>}
+                          {lesson.groups && lesson.groups.length > 0 ? (
+                            <span className={styles.lessonGroup}><User size={12} /> Группы: {lesson.groups.join(', ')}</span>
+                          ) : lesson.group && <span className={styles.lessonGroup}><User size={12} /> Группа: {lesson.group}</span>}
+                        </div>
+                      </GlassCard>
                     </motion.div>
                   ))}
                 </motion.div>
@@ -978,13 +1040,13 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
         document.body
       )}
 
-      <ConfirmModal 
-        isOpen={confirmModal.isOpen} 
-        title={confirmModal.title} 
-        message={confirmModal.message} 
-        onConfirm={confirmModal.onConfirm} 
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
-        isLoading={isConfirmLoading} 
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        isLoading={isConfirmLoading}
       />
 
       <NotificationSettingsModal

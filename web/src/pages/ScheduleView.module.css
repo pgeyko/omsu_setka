@@ -399,6 +399,18 @@
   opacity: 0.7;
 }
 
+.emptyDayCard {
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.emptyDayCard .discipline {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .lessonTime {
   display: flex;
   flex-direction: column;
