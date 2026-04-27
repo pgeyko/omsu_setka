@@ -57,13 +57,13 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 		// Get next study day schedule
 		targetDate := now.AddDate(0, 0, 1)
 		var schedule []models.Lesson
+		var fetchErr error
 		
 		// Look ahead up to 3 days if tomorrow is weekend and has no lessons
 		for i := 0; i < 3; i++ {
-			var err error
-			schedule, err = s.getScheduleForDay(ctx, sub.EntityType, sub.EntityID, targetDate, sub.Subgroup)
-			if err != nil {
-				log.Warn().Err(err).Msgf("Digest: skipping notification for token=%.8s... because schedule data is unavailable", sub.FCMToken)
+			schedule, fetchErr = s.getScheduleForDay(ctx, sub.EntityType, sub.EntityID, targetDate, sub.Subgroup)
+			if fetchErr != nil {
+				log.Warn().Err(fetchErr).Msgf("Digest: skipping notification for token=%.8s... because schedule data is unavailable", sub.FCMToken)
 				break
 			}
 			if len(schedule) > 0 {
@@ -77,10 +77,20 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 			}
 		}
 
+		if fetchErr != nil {
+			continue // Prevent sending fake "no lessons" notification on cache miss
+		}
+
 		var title, body string
 		if len(schedule) == 0 {
-			title = "На ближайшие дни занятий нет! 🎉"
-			body = "Можно отдыхать и набираться сил."
+			if targetDate.Format("2006-01-02") == now.AddDate(0, 0, 1).Format("2006-01-02") {
+				title = "Завтра занятий нет! 🎉"
+				body = "Можно немного перевести дух."
+			} else {
+				title = "На ближайшие дни занятий нет! 🎉"
+				body = "Можно отдыхать и набираться сил."
+			}
+
 		} else {
 			// Count unique time slots to handle overlapping lessons (e.g. split subgroups)
 			uniqueSlots := make(map[int]struct{})
