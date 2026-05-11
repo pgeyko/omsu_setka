@@ -371,6 +371,10 @@ func (s *Server) handleGetScheduleDay(entityType string) fiber.Handler {
 				if resp, ok := extractDay(data, "stale", time.Time{}); ok {
 					return c.JSON(resp)
 				}
+				// If cached payload cannot be transformed to a single-day response,
+				// still return cached data instead of failing hard.
+				c.Set("Content-Type", "application/json")
+				return c.Send(data)
 			}
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "upstream unavailable and no cache found"})
 		}
