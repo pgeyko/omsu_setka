@@ -2,6 +2,7 @@ package upstream
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,6 +27,7 @@ func NewClient(cfg *config.Config) *Client {
 			ReadTimeout:  cfg.UpstreamTimeout,
 			WriteTimeout: cfg.UpstreamTimeout,
 			MaxConnsPerHost: 10,
+			TLSConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 		cfg:     cfg,
 		limiter: time.NewTicker(time.Second / time.Duration(cfg.UpstreamRateLimit)),
