@@ -52,6 +52,11 @@ type Config struct {
 	RateLimitGeneral int           `env:"RATE_LIMIT_GENERAL" envDefault:"120"`
 	RateLimitSearch  int           `env:"RATE_LIMIT_SEARCH" envDefault:"30"`
 	RateLimitWindow  time.Duration `env:"RATE_LIMIT_WINDOW" envDefault:"1m"`
+
+	// Webhook Notifier
+	WebhookRetryAttempts int           `env:"WEBHOOK_RETRY_ATTEMPTS" envDefault:"3"`
+	WebhookRetryDelay    time.Duration `env:"WEBHOOK_RETRY_DELAY"    envDefault:"5s"`
+	WebhookTimeout       time.Duration `env:"WEBHOOK_TIMEOUT"        envDefault:"10s"`
 }
 
 func Load() *Config {

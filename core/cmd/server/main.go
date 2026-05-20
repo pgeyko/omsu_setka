@@ -9,6 +9,7 @@ import (
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/sync"
 	"omsu_mirror/internal/upstream"
+	"omsu_mirror/internal/webhook"
 	"os"
 	"os/signal"
 	"strings"
@@ -55,11 +56,15 @@ func main() {
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
+	webhookRepo := storage.NewWebhookRepo(db)
 
 	// 4. Initialize Upstream Client
 	client := upstream.NewClient(cfg)
 
-	// 5. Initialize FCM Client
+	// 5. Initialize Webhook Notifier
+	webhookNotifier := webhook.NewNotifier(webhookRepo, cfg.WebhookTimeout, cfg.WebhookRetryAttempts, cfg.WebhookRetryDelay)
+
+	// 6. Initialize FCM Client
 	fcm := notifications.NewFCMClient(cfg)
 
 	// 6. Initialize Cache & Index
@@ -67,10 +72,10 @@ func main() {
 	searchIndex := cache.NewSearchIndex()
 
 	// 7. Initialize Syncer
-	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, fcm)
+	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, webhookNotifier, fcm)
 
 	// 8. Initialize API Server
-	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, fcm)
+	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, fcm)
 
 	// Context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

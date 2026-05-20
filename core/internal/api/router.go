@@ -24,6 +24,7 @@ type Server struct {
 	ScheduleRepo     *storage.ScheduleRepo
 	ChangeRepo       *storage.ChangeRepo
 	SubscriptionRepo *storage.SubscriptionRepo
+	WebhookRepo      *storage.WebhookRepo
 	FCM              *notifications.FCMClient
 	MemoryCache      *cache.MemoryCache
 	SearchIndex      *cache.SearchIndex
@@ -42,6 +43,7 @@ func NewServer(
 	incidentRepo *storage.IncidentRepo,
 	changeRepo *storage.ChangeRepo,
 	subscriptionRepo *storage.SubscriptionRepo,
+	webhookRepo *storage.WebhookRepo,
 	fcm *notifications.FCMClient,
 ) *Server {
 	app := fiber.New(fiber.Config{
@@ -74,6 +76,7 @@ func NewServer(
 		ScheduleRepo:     scheduleRepo,
 		ChangeRepo:       changeRepo,
 		SubscriptionRepo: subscriptionRepo,
+		WebhookRepo:      webhookRepo,
 		FCM:              fcm,
 		MemoryCache:      memoryCache,
 		SearchIndex:      searchIndex,
@@ -138,6 +141,12 @@ func (s *Server) setupRoutes() {
 	v1.Get("/incidents", s.handleGetIncidents)
 	v1.Get("/sync/status", s.handleSyncStatus)
 	v1.Post("/sync/trigger", AdminAuth(s.Cfg), s.handleSyncTrigger)
+
+	// Admin webhook management
+	admin := v1.Group("/admin", AdminAuth(s.Cfg))
+	admin.Post("/webhooks", s.handleCreateWebhook)
+	admin.Get("/webhooks", s.handleListWebhooks)
+	admin.Delete("/webhooks/:id", s.handleDeleteWebhook)
 }
 
 func (s *Server) Start() error {
