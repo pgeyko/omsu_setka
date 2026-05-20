@@ -9,6 +9,7 @@ import (
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/sync"
 	"omsu_mirror/internal/upstream"
+	"omsu_mirror/internal/webhook"
 	"testing"
 	"time"
 )
@@ -32,14 +33,16 @@ func setupTestServer() *Server {
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
+	webhookRepo := storage.NewWebhookRepo(db)
 	fcm := notifications.NewFCMClient(cfg)
 
 	client := upstream.NewClient(cfg)
 	memoryCache := cache.NewMemoryCache()
 	searchIndex := cache.NewSearchIndex()
-	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, fcm)
+	webhookNotifier := webhook.NewNotifier(webhookRepo, 10*time.Second, 3, 5*time.Second)
+	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, webhookNotifier, fcm)
 
-	return NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, fcm)
+	return NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, fcm)
 }
 
 func TestSecurityHeaders(t *testing.T) {

@@ -133,14 +133,17 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
 
   const [searchParams, setSearchParams] = useSearchParams();
   const weekParam = searchParams.get('week');
+  const dateParam = searchParams.get('date');
 
   // State
   const [schedule, setSchedule] = useState<Day[]>([]); // holds only the active week
   const [loading, setLoading] = useState(true);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(dateParam || '');
 
   const [activeWeekStart, setActiveWeekStart] = useState<Date>(() => {
+    const fromDate = parseYYYYMMDD(dateParam);
+    if (fromDate) return getMonday(fromDate);
     const fromURL = parseYYYYMMDD(weekParam);
     if (fromURL) return getMonday(fromURL);
     return getMonday(getDefaultDate());
@@ -535,7 +538,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       setSchedule(sortedData);
       setPaginationMeta({ hasPrev: resp.has_prev, hasNext: resp.has_next });
       setActiveWeekStart(monday);
-      setSearchParams({ week: monday.toISOString().split('T')[0] });
+      setSearchParams({ week: monday.toISOString().split('T')[0], date: dateStr });
 
       // Select the day within the filled week
       const idx = sortedData.findIndex(d => parseDate(d.day).toDateString() === picked.toDateString());

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
+	"omsu_mirror/internal/webhook"
 	"strconv"
 	"strings"
 	"time"
@@ -182,12 +183,12 @@ func (s *Syncer) UpdateSchedule(ctx context.Context, key string, entityType stri
 	return nil
 }
 
-func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, entityID int, oldSched, newSched []models.Day) {
-	type lessonWithDay struct {
-		models.Lesson
-		Day string
-	}
+type lessonWithDay struct {
+	models.Lesson
+	Day string
+}
 
+func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, entityID int, oldSched, newSched []models.Day) {
 	oldLessons := make(map[int]lessonWithDay)
 	for _, day := range oldSched {
 		for _, lesson := range day.Lessons {
@@ -203,12 +204,12 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 	}
 
 	hasChanges := false
+	var webhookChanges []webhook.Change
 
 	// Check for removed or modified
 	for id, oldL := range oldLessons {
 		newL, exists := newLessons[id]
 		if !exists {
-			// Removed
 			oldJSON, _ := json.Marshal(oldL.Lesson)
 			s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
@@ -218,8 +219,16 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 				OldData:    string(oldJSON),
 			})
 			hasChanges = true
+			oldLessonJSON, _ := json.Marshal(oldL.Lesson)
+			webhookChanges = append(webhookChanges, webhook.Change{
+				Date:    convertDate(oldL.Day),
+				Pair:    oldL.Time,
+				Field:   "full",
+				Old:     string(oldLessonJSON),
+				New:     "",
+				Subject: oldL.Lesson.Lesson,
+			})
 		} else if oldL.Day != newL.Day || !s.isLessonEqual(oldL.Lesson, newL.Lesson) {
-			// Modified or Moved to another day
 			oldJSON, _ := json.Marshal(oldL.Lesson)
 			newJSON, _ := json.Marshal(newL.Lesson)
 			s.changeRepo.LogChange(ctx, storage.ScheduleChange{
@@ -231,13 +240,13 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 				NewData:    string(newJSON),
 			})
 			hasChanges = true
+			webhookChanges = append(webhookChanges, lessonDiffToChanges(oldL, newL)...)
 		}
 	}
 
 	// Check for added
 	for id, newL := range newLessons {
 		if _, exists := oldLessons[id]; !exists {
-			// Added
 			newJSON, _ := json.Marshal(newL.Lesson)
 			s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
@@ -247,6 +256,15 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 				NewData:    string(newJSON),
 			})
 			hasChanges = true
+			newLessonJSON, _ := json.Marshal(newL.Lesson)
+			webhookChanges = append(webhookChanges, webhook.Change{
+				Date:    convertDate(newL.Day),
+				Pair:    newL.Time,
+				Field:   "full",
+				Old:     "",
+				New:     string(newLessonJSON),
+				Subject: newL.Lesson.Lesson,
+			})
 		}
 	}
 
@@ -268,7 +286,86 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 				}
 			}
 		}
+
+		if s.webhookNotifier != nil {
+			s.webhookNotifier.Notify(ctx, entityID, webhookChanges)
+		}
 	}
+}
+
+func lessonDiffToChanges(oldL, newL lessonWithDay) []webhook.Change {
+	var changes []webhook.Change
+
+	if oldL.Lesson.Lesson != newL.Lesson.Lesson {
+		changes = append(changes, webhook.Change{
+			Date:    convertDate(newL.Day),
+			Pair:    newL.Time,
+			Field:   "subject",
+			Old:     oldL.Lesson.Lesson,
+			New:     newL.Lesson.Lesson,
+			Subject: newL.Lesson.Lesson,
+		})
+	}
+	if oldL.Teacher != newL.Teacher {
+		changes = append(changes, webhook.Change{
+			Date:    convertDate(newL.Day),
+			Pair:    newL.Time,
+			Field:   "teacher",
+			Old:     oldL.Teacher,
+			New:     newL.Teacher,
+			Subject: newL.Lesson.Lesson,
+		})
+	}
+	if oldL.AuditCorps != newL.AuditCorps {
+		changes = append(changes, webhook.Change{
+			Date:    convertDate(newL.Day),
+			Pair:    newL.Time,
+			Field:   "building",
+			Old:     oldL.AuditCorps,
+			New:     newL.AuditCorps,
+			Subject: newL.Lesson.Lesson,
+		})
+	}
+	if oldL.Time != newL.Time {
+		changes = append(changes, webhook.Change{
+			Date:    convertDate(newL.Day),
+			Pair:    newL.Time,
+			Field:   "pair",
+			Old:     strconv.Itoa(oldL.Time),
+			New:     strconv.Itoa(newL.Time),
+			Subject: newL.Lesson.Lesson,
+		})
+	}
+	if oldL.Day != newL.Day {
+		changes = append(changes, webhook.Change{
+			Date:    convertDate(newL.Day),
+			Pair:    newL.Time,
+			Field:   "date",
+			Old:     convertDate(oldL.Day),
+			New:     convertDate(newL.Day),
+			Subject: newL.Lesson.Lesson,
+		})
+	}
+	if oldL.SubgroupName != newL.SubgroupName {
+		changes = append(changes, webhook.Change{
+			Date:    convertDate(newL.Day),
+			Pair:    newL.Time,
+			Field:   "subgroup",
+			Old:     oldL.SubgroupName,
+			New:     newL.SubgroupName,
+			Subject: newL.Lesson.Lesson,
+		})
+	}
+
+	return changes
+}
+
+func convertDate(dayStr string) string {
+	t, err := time.Parse("02.01.2006", dayStr)
+	if err != nil {
+		return dayStr
+	}
+	return t.Format("2006-01-02")
 }
 
 func (s *Syncer) isLessonEqual(l1, l2 models.Lesson) bool {

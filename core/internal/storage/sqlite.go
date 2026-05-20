@@ -137,6 +137,15 @@ func (s *SQLite) migrate() error {
 				PRIMARY KEY (fcm_token, entity_type, entity_id)
 			);`,
 		`CREATE INDEX IF NOT EXISTS idx_sub_entity ON user_subscriptions(entity_type, entity_id);`,
+
+		`CREATE TABLE IF NOT EXISTS webhook_subscribers (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			url        TEXT NOT NULL,
+			secret     TEXT NOT NULL,
+			group_ids  TEXT NOT NULL DEFAULT '[]',
+			enabled    INTEGER NOT NULL DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
 		`CREATE TABLE IF NOT EXISTS schema_version (
 				id          INTEGER PRIMARY KEY CHECK (id = 1),
 				version     INTEGER NOT NULL,

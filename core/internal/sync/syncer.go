@@ -7,6 +7,7 @@ import (
 	"omsu_mirror/internal/notifications"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/upstream"
+	"omsu_mirror/internal/webhook"
 	"sync"
 	"time"
 
@@ -31,6 +32,8 @@ type Syncer struct {
 	incidentRepo     *storage.IncidentRepo
 	changeRepo       *storage.ChangeRepo
 	subscriptionRepo *storage.SubscriptionRepo
+	webhookRepo      *storage.WebhookRepo
+	webhookNotifier  *webhook.Notifier
 	fcm              *notifications.FCMClient
 	memoryCache      *cache.MemoryCache
 	searchIndex      *cache.SearchIndex
@@ -51,6 +54,8 @@ func NewSyncer(
 	incidentRepo *storage.IncidentRepo,
 	changeRepo *storage.ChangeRepo,
 	subscriptionRepo *storage.SubscriptionRepo,
+	webhookRepo *storage.WebhookRepo,
+	webhookNotifier *webhook.Notifier,
 	fcm *notifications.FCMClient,
 ) *Syncer {
 	return &Syncer{
@@ -61,6 +66,8 @@ func NewSyncer(
 		incidentRepo:     incidentRepo,
 		changeRepo:       changeRepo,
 		subscriptionRepo: subscriptionRepo,
+		webhookRepo:      webhookRepo,
+		webhookNotifier:  webhookNotifier,
 		fcm:              fcm,
 		memoryCache:      memoryCache,
 		searchIndex:      searchIndex,
