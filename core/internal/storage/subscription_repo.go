@@ -55,7 +55,7 @@ func (r *SubscriptionRepo) Subscribe(ctx context.Context, sub Subscription) erro
 			timezone = excluded.timezone,
 			subgroup = excluded.subgroup,
 			last_digest_at = NULL
-	`, 
+	`,
 		sub.FCMToken, sub.EntityType, sub.EntityID,
 		sub.NotifyOnChange, sub.NotifyDailyDigest, sub.DigestTime,
 		sub.NotifyBeforeLesson, sub.BeforeMinutes, sub.Timezone, sub.Subgroup,

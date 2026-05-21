@@ -48,12 +48,12 @@ func TestMemoryCache_InvalidateAndClear(t *testing.T) {
 	cache := NewMemoryCache()
 	cache.Set("k1", []byte("v1"))
 	cache.Set("k2", []byte("v2"))
-	
+
 	cache.Invalidate("k1")
 	if _, ok := cache.Get("k1"); ok {
 		t.Error("Expected k1 to be invalidated")
 	}
-	
+
 	cache.Clear()
 	if _, ok := cache.Get("k2"); ok {
 		t.Error("Expected k2 to be cleared")

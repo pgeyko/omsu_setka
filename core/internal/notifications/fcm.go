@@ -56,7 +56,7 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 	}
 
 	// FCM v1 allows sending to multiple tokens via Multicast
-	// We move everything to Data map to let the Service Worker 
+	// We move everything to Data map to let the Service Worker
 	// handle the notification display. This prevents duplication
 	// between the browser's automatic display and the SW manual display.
 	if data == nil {

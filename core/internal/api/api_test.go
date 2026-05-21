@@ -64,7 +64,7 @@ func TestSecurityHeaders(t *testing.T) {
 
 func TestRateLimiter(t *testing.T) {
 	s := setupTestServer()
-	
+
 	// Exhaust rate limit (limit is 10 for general)
 	for i := 0; i < 10; i++ {
 		req := httptest.NewRequest("GET", "/api/v1/health", nil)

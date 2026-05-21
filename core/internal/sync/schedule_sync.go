@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/webhook"
@@ -81,70 +80,6 @@ func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
 	}
 
 	s.recordSuccess(ctx, "sync_active_schedules")
-	return nil
-}
-
-func (s *Syncer) SyncAuditorySchedules(ctx context.Context) error {
-	keys, err := s.scheduleRepo.GetActiveScheduleKeys(ctx, 24*time.Hour)
-	if err != nil {
-		return err
-	}
-
-	var auditoryKeys []string
-	for _, key := range keys {
-		if strings.HasPrefix(key, "auditory:") {
-			auditoryKeys = append(auditoryKeys, key)
-		}
-	}
-
-	log.Info().Msgf("Syncing %d active auditory schedules...", len(auditoryKeys))
-
-	var hasErrors bool
-	var lastErr error
-
-	for _, key := range auditoryKeys {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		parts := strings.Split(key, ":")
-		if len(parts) != 2 {
-			continue
-		}
-
-		entityID, err := strconv.Atoi(parts[1])
-		if err != nil {
-			log.Warn().Err(err).Msgf("Invalid auditory key format: %s", key)
-			continue
-		}
-
-		schedule, err := s.client.FetchAuditorySchedule(ctx, entityID)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to sync auditory schedule for %s", key)
-			hasErrors = true
-			lastErr = err
-			continue
-		}
-
-		if err := s.UpdateSchedule(ctx, key, "auditory", entityID, schedule); err != nil {
-			log.Error().Err(err).Msgf("Failed to update cache for %s", key)
-			hasErrors = true
-			lastErr = err
-		}
-	}
-
-	if hasErrors {
-		s.recordFailure(ctx, "sync_auditory_schedules", lastErr)
-		return fmt.Errorf("auditory sync completed with errors: %w", lastErr)
-	}
-
-	if err := s.scheduleRepo.PutSyncMeta(ctx, "last_auditory_sync", time.Now().Format(time.RFC3339)); err != nil {
-		log.Warn().Err(err).Msg("Failed to update auditory sync metadata")
-	}
-
-	s.recordSuccess(ctx, "sync_auditory_schedules")
 	return nil
 }
 
@@ -317,10 +252,22 @@ func lessonDiffToChanges(oldL, newL lessonWithDay) []webhook.Change {
 		})
 	}
 	if oldL.AuditCorps != newL.AuditCorps {
+		field := "building"
+		oldParts := strings.Split(oldL.AuditCorps, "-")
+		newParts := strings.Split(newL.AuditCorps, "-")
+		if len(oldParts) == 2 && len(newParts) == 2 {
+			oldB := strings.TrimSpace(oldParts[0])
+			newB := strings.TrimSpace(newParts[0])
+			oldR := strings.TrimSpace(oldParts[1])
+			newR := strings.TrimSpace(newParts[1])
+			if oldB == newB && oldR != newR {
+				field = "room"
+			}
+		}
 		changes = append(changes, webhook.Change{
 			Date:    convertDate(newL.Day),
 			Pair:    newL.Time,
-			Field:   "building",
+			Field:   field,
 			Old:     oldL.AuditCorps,
 			New:     newL.AuditCorps,
 			Subject: newL.Lesson.Lesson,

@@ -405,7 +405,6 @@ func (s *Server) handleGetScheduleDay(entityType string) fiber.Handler {
 	}
 }
 
-
 // @Summary Get schedule changes
 // @Description Returns recent schedule changes for a group, tutor, or auditory.
 // @Tags Changes
