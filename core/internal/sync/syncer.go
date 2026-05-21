@@ -41,7 +41,6 @@ type Syncer struct {
 	status           *UpstreamStatus
 	dictSema         chan struct{}
 	schedSema        chan struct{}
-	auditorySema     chan struct{}
 }
 
 func NewSyncer(
@@ -74,9 +73,8 @@ func NewSyncer(
 		status: &UpstreamStatus{
 			IsHealthy: true, // Optimistically assume healthy until proven otherwise
 		},
-		dictSema:     make(chan struct{}, 1),
-		schedSema:    make(chan struct{}, 1),
-		auditorySema: make(chan struct{}, 1),
+		dictSema:  make(chan struct{}, 1),
+		schedSema: make(chan struct{}, 1),
 	}
 }
 
@@ -152,13 +150,11 @@ func (s *Syncer) Run(ctx context.Context) {
 
 	dictTicker := time.NewTicker(s.cfg.SyncDictInterval)
 	schedTicker := time.NewTicker(s.cfg.SyncScheduleInterval)
-	auditoryTicker := time.NewTicker(s.cfg.SyncAuditInterval)
 	notifyTicker := time.NewTicker(1 * time.Minute)
 	cleanTicker := time.NewTicker(1 * time.Hour) // Cleanup old cache and incidents periodically
 
 	defer dictTicker.Stop()
 	defer schedTicker.Stop()
-	defer auditoryTicker.Stop()
 	defer notifyTicker.Stop()
 	defer cleanTicker.Stop()
 
@@ -191,19 +187,6 @@ func (s *Syncer) Run(ctx context.Context) {
 					}
 				default:
 					log.Warn().Msg("Active schedules sync skipped: already in progress")
-				}
-			}()
-		case <-auditoryTicker.C:
-			go func() {
-				select {
-				case s.auditorySema <- struct{}{}:
-					defer func() { <-s.auditorySema }()
-					log.Info().Msg("Starting periodic auditory schedules synchronization...")
-					if err := s.SyncAuditorySchedules(ctx); err != nil {
-						log.Error().Err(err).Msg("Periodic auditory schedules sync failed")
-					}
-				default:
-					log.Warn().Msg("Auditory schedules sync skipped: already in progress")
 				}
 			}()
 		case <-notifyTicker.C:

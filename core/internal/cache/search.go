@@ -15,11 +15,11 @@ const (
 )
 
 type SearchResult struct {
-	ID          int        `json:"id"`
-	Name        string     `json:"name"`
-	Type        SearchType `json:"type"`
-	RealID      int        `json:"real_group_id,omitempty"` // For groups
-	Building    string     `json:"building,omitempty"`      // For auditories
+	ID       int        `json:"id"`
+	Name     string     `json:"name"`
+	Type     SearchType `json:"type"`
+	RealID   int        `json:"real_group_id,omitempty"` // For groups
+	Building string     `json:"building,omitempty"`      // For auditories
 }
 
 type node struct {
@@ -113,15 +113,15 @@ func (idx *SearchIndex) Search(query string, filterType string, limit int) []Sea
 		if filterType != "all" && string(res.Type) != filterType {
 			continue
 		}
-		
+
 		key := string(res.Type) + ":" + res.Name
 		if seen[key] {
 			continue
 		}
-		
+
 		results = append(results, res)
 		seen[key] = true
-		
+
 		if len(results) >= limit {
 			break
 		}

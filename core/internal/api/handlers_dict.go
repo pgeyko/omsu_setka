@@ -50,7 +50,7 @@ func (s *Server) handleGetTutors(c *fiber.Ctx) error {
 func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (interface{}, error)) error {
 	// 1. Try L1 Cache (pre-rendered JSON or GZIP)
 	wantsGzip := strings.Contains(c.Get("Accept-Encoding"), "gzip")
-	
+
 	if wantsGzip {
 		if gzData, ok := s.MemoryCache.GetGzip(key); ok {
 			c.Set("X-Cache-Status", "HIT-GZIP")
@@ -80,7 +80,7 @@ func (s *Server) serveCollection(c *fiber.Ctx, key string, fetcher func() (inter
 		CachedAt: time.Now(),
 		Source:   "cache",
 	}
-	
+
 	jsonData, err := json.Marshal(resp)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to marshal response")

@@ -20,19 +20,19 @@ var startTime = time.Now()
 // @Router /health [get]
 func (s *Server) handleHealth(c *fiber.Ctx) error {
 	stats := s.MemoryCache.Stats()
-	
+
 	dictSync, _ := s.ScheduleRepo.GetSyncMeta(c.Context(), "last_dict_sync")
 	schedSync, _ := s.ScheduleRepo.GetSyncMeta(c.Context(), "last_schedule_sync")
 
 	health := fiber.Map{
-		"status": "ok",
-		"uptime": time.Since(startTime).Truncate(time.Second).String(),
+		"status":   "ok",
+		"uptime":   time.Since(startTime).Truncate(time.Second).String(),
 		"upstream": s.Syncer.GetUpstreamStatus(),
 		"last_sync": fiber.Map{
 			"dictionaries": dictSync,
 			"schedules":    schedSync,
 		},
-		"cache":  stats,
+		"cache": stats,
 	}
 
 	return c.JSON(models.BFFResponse{

@@ -23,11 +23,11 @@ type Client struct {
 func NewClient(cfg *config.Config) *Client {
 	return &Client{
 		client: &fasthttp.Client{
-			Name:         cfg.UpstreamUserAgent,
-			ReadTimeout:  cfg.UpstreamTimeout,
-			WriteTimeout: cfg.UpstreamTimeout,
+			Name:            cfg.UpstreamUserAgent,
+			ReadTimeout:     cfg.UpstreamTimeout,
+			WriteTimeout:    cfg.UpstreamTimeout,
 			MaxConnsPerHost: 10,
-			TLSConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSConfig:       &tls.Config{InsecureSkipVerify: true},
 		},
 		cfg:     cfg,
 		limiter: time.NewTicker(time.Second / time.Duration(cfg.UpstreamRateLimit)),

@@ -58,7 +58,7 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 		targetDate := now.AddDate(0, 0, 1)
 		var schedule []models.Lesson
 		var fetchErr error
-		
+
 		// Look ahead up to 3 days if tomorrow is weekend and has no lessons
 		for i := 0; i < 3; i++ {
 			schedule, fetchErr = s.getScheduleForDay(ctx, sub.EntityType, sub.EntityID, targetDate, sub.Subgroup)
@@ -165,7 +165,7 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 				// Match! Send notification
 				title := fmt.Sprintf("Скоро: %s", lesson.Lesson)
 				body := fmt.Sprintf("Начнется в %s (%s)", startTime, lesson.AuditCorps)
-				
+
 				s.fcm.SendToTokens(ctx, []string{sub.FCMToken}, title, body, map[string]string{
 					"type": sub.EntityType,
 					"id":   fmt.Sprintf("%d", sub.EntityID),
@@ -212,9 +212,9 @@ func (s *Syncer) getScheduleForDay(ctx context.Context, entityType string, entit
 			// Filter by subgroup
 			var filtered []models.Lesson
 			for _, lesson := range day.Lessons {
-				if lesson.SubgroupName == "" || 
-				   lesson.SubgroupName == subgroup || 
-				   strings.HasSuffix(lesson.SubgroupName, "/"+subgroup) {
+				if lesson.SubgroupName == "" ||
+					lesson.SubgroupName == subgroup ||
+					strings.HasSuffix(lesson.SubgroupName, "/"+subgroup) {
 					filtered = append(filtered, lesson)
 				}
 			}
@@ -224,8 +224,6 @@ func (s *Syncer) getScheduleForDay(ctx context.Context, entityType string, entit
 
 	return nil, nil
 }
-
-
 
 func getLessonWord(count int) string {
 	if count%10 == 1 && count%100 != 11 {

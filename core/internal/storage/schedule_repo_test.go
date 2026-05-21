@@ -54,7 +54,7 @@ func TestScheduleRepo_PutAndGet(t *testing.T) {
 	if val != "2026" {
 		t.Errorf("Expected 2026, got %s", val)
 	}
-	
+
 	// Test expired cleaning
 	repo.PutSchedule(ctx, "group:old", "group", 2, []byte("old"), "", -time.Minute)
 	deleted, err := repo.CleanExpired(ctx)

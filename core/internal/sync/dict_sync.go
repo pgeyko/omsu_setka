@@ -102,6 +102,6 @@ func (s *Syncer) cacheCollection(key string, data interface{}) error {
 			s.memoryCache.SetGzip(key, buf.Bytes())
 		}
 	}
-	
+
 	return nil
 }

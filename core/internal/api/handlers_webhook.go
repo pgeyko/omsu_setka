@@ -44,7 +44,7 @@ func (s *Server) handleCreateWebhook(c *fiber.Ctx) error {
 }
 
 func (s *Server) handleListWebhooks(c *fiber.Ctx) error {
-	subs, err := s.WebhookRepo.GetEnabled(c.Context())
+	subs, err := s.WebhookRepo.GetAll(c.Context())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to list webhook subscribers"})
 	}

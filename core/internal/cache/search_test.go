@@ -50,7 +50,12 @@ func TestSearchIndex(t *testing.T) {
 				t.Errorf("%s: Expected %d results, got %d", tt.name, tt.expected, len(results))
 			}
 			if tt.expected > 0 && (len(results) == 0 || results[0].Name != tt.firstMatch) {
-				t.Errorf("%s: Expected first match %s, got %s", tt.name, tt.firstMatch, func() string { if len(results) > 0 { return results[0].Name }; return "none" }())
+				t.Errorf("%s: Expected first match %s, got %s", tt.name, tt.firstMatch, func() string {
+					if len(results) > 0 {
+						return results[0].Name
+					}
+					return "none"
+				}())
 			}
 		})
 	}

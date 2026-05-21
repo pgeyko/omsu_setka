@@ -50,6 +50,31 @@ func (r *WebhookRepo) GetEnabled(ctx context.Context) ([]WebhookSubscriber, erro
 	return subscribers, nil
 }
 
+func (r *WebhookRepo) GetAll(ctx context.Context) ([]WebhookSubscriber, error) {
+	rows, err := r.db.DB.QueryContext(ctx, `
+		SELECT id, url, secret, group_ids, enabled, created_at
+		FROM webhook_subscribers
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subscribers []WebhookSubscriber
+	for rows.Next() {
+		var s WebhookSubscriber
+		var groupIDsStr string
+		if err := rows.Scan(&s.ID, &s.URL, &s.Secret, &groupIDsStr, &s.Enabled, &s.CreatedAt); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(groupIDsStr), &s.GroupIDs); err != nil {
+			s.GroupIDs = []int{}
+		}
+		subscribers = append(subscribers, s)
+	}
+	return subscribers, nil
+}
+
 func (r *WebhookRepo) Create(ctx context.Context, s WebhookSubscriber) (int, error) {
 	groupIDsJSON, err := json.Marshal(s.GroupIDs)
 	if err != nil {
