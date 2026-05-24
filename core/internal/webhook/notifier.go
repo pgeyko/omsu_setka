@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -24,9 +25,13 @@ type Change struct {
 }
 
 type Payload struct {
-	Type    string   `json:"type"`
-	GroupID int      `json:"group_id"`
-	Changes []Change `json:"changes"`
+	Type       string   `json:"type"`
+	GroupID    int      `json:"group_id"`
+	EntityType string   `json:"entity_type,omitempty"`
+	EntityID   int      `json:"entity_id,omitempty"`
+	EventID    string   `json:"event_id,omitempty"`
+	OccurredAt string   `json:"occurred_at,omitempty"`
+	Changes    []Change `json:"changes"`
 }
 
 type Notifier struct {
@@ -48,7 +53,7 @@ func NewNotifier(repo *storage.WebhookRepo, timeout time.Duration, retry int, de
 	}
 }
 
-func (n *Notifier) Notify(ctx context.Context, groupID int, changes []Change) {
+func (n *Notifier) Notify(ctx context.Context, entityType string, entityID int, changes []Change) {
 	if len(changes) == 0 {
 		return
 	}
@@ -63,10 +68,23 @@ func (n *Notifier) Notify(ctx context.Context, groupID int, changes []Change) {
 		return
 	}
 
+	// Generate unique event ID for replay protection (P1#11)
+	eventID := make([]byte, 16)
+	if _, err := rand.Read(eventID); err != nil {
+		log.Error().Err(err).Msg("Failed to generate event ID")
+		return
+	}
+	eventIDStr := hex.EncodeToString(eventID)
+	occurredAt := time.Now().UTC().Format(time.RFC3339)
+
 	payload := Payload{
-		Type:    "change",
-		GroupID: groupID,
-		Changes: changes,
+		Type:       "change",
+		GroupID:    entityID,
+		EntityType: entityType,
+		EntityID:   entityID,
+		EventID:    eventIDStr,
+		OccurredAt: occurredAt,
+		Changes:    changes,
 	}
 
 	body, err := json.Marshal(payload)
@@ -76,11 +94,11 @@ func (n *Notifier) Notify(ctx context.Context, groupID int, changes []Change) {
 	}
 
 	for _, sub := range subscribers {
-		if !n.matchesGroup(sub, groupID) {
+		if !n.matchesGroup(sub, entityID) {
 			continue
 		}
 
-		n.sendWithRetry(ctx, sub, body)
+		n.sendWithRetry(ctx, sub, eventIDStr, occurredAt, body)
 	}
 }
 
@@ -96,8 +114,10 @@ func (n *Notifier) matchesGroup(sub storage.WebhookSubscriber, groupID int) bool
 	return false
 }
 
-func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscriber, body []byte) {
-	sig := computeHMAC(body, sub.Secret)
+func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscriber, eventID, timestamp string, body []byte) {
+	// Sign timestamp + "." + body for replay protection (P1#11)
+	signedPayload := timestamp + "." + string(body)
+	sig := computeHMAC([]byte(signedPayload), sub.Secret)
 
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
@@ -106,6 +126,8 @@ func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscri
 	req.Header.SetMethod("POST")
 	req.Header.SetContentType("application/json")
 	req.Header.Set("X-Webhook-Signature", sig)
+	req.Header.Set("X-Webhook-Timestamp", timestamp)
+	req.Header.Set("X-Webhook-Event-ID", eventID)
 	req.SetBody(body)
 
 	var lastErr error
@@ -128,6 +150,7 @@ func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscri
 				Str("url", sub.URL).
 				Int("attempt", attempt+1).
 				Int("status", statusCode).
+				Str("event_id", eventID).
 				Msg("Webhook delivered successfully")
 			return
 		}
@@ -156,8 +179,8 @@ func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscri
 		Msg("Webhook delivery failed after all retries")
 }
 
-func computeHMAC(body []byte, secret string) string {
+func computeHMAC(data []byte, secret string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
+	mac.Write(data)
 	return hex.EncodeToString(mac.Sum(nil))
 }
