@@ -49,6 +49,83 @@ curl -X POST http://localhost:8080/api/v1/sync/trigger \
 
 ---
 
+## Управление вебхуками (интеграция с omsu_bot)
+
+Вебхуки используются для отправки уведомлений об изменениях расписания во внешние системы. Основной потребитель — **omsu_bot (GroupBot)**, Telegram-бот, который анонсирует изменения в чатах студенческих групп.
+
+Схема работы:
+1. `omsu_bot` регистрирует свой URL как подписчика вебхука через Admin API `omsu_setka`.
+2. При каждой синхронизации расписания `omsu_setka` обнаруживает изменения.
+3. Для каждого активного подписчика формируется HMAC-подписанный POST-запрос с payload об изменениях.
+4. `omsu_bot` верифицирует подпись и обрабатывает изменения.
+
+### Эндпоинты Admin API (требуют `X-Admin-Key`)
+
+Все эндпоинты находятся под `/api/v1/admin/webhooks`:
+
+| Метод | Путь | Описание |
+|---|---|---|
+| `POST` | `/api/v1/admin/webhooks` | Создать нового подписчика |
+| `PUT` | `/api/v1/admin/webhooks/by-url` | Создать или обновить по URL (идемпотентно) |
+| `GET` | `/api/v1/admin/webhooks` | Список всех подписчиков |
+| `PATCH` | `/api/v1/admin/webhooks/:id` | Обновить подписчика по ID |
+| `DELETE` | `/api/v1/admin/webhooks/:id` | Удалить подписчика |
+
+### Пример: регистрация вебхука для omsu_bot
+
+```bash
+curl -X POST https://your-domain.ru/api/v1/admin/webhooks \
+  -H "X-Admin-Key: your-secret-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://bot.example.com/webhook/schedule",
+    "secret": "shared-hmac-secret",
+    "group_ids": [],
+    "enabled": true
+  }'
+```
+
+- `url` — URL, на который будут отправляться POST-запросы с изменениями.
+- `secret` — общий секрет для HMAC-SHA256 подписи.
+- `group_ids` — фильтр по группам (пустой массив = все группы).
+- `enabled` — флаг активности.
+
+### Формат входящего вебхука (POST на URL подписчика)
+
+**Payload:**
+
+```json
+{
+  "type": "change",
+  "group_id": 123,
+  "entity_type": "group",
+  "entity_id": 123,
+  "event_id": "a1b2c3d4e5f6...",
+  "occurred_at": "2025-05-24T12:00:00Z",
+  "changes": [
+    {"date": "2025-05-25", "pair": 1, "field": "subject", "old": "Лекция", "new": "Семинар"}
+  ]
+}
+```
+
+**Заголовки запроса:**
+
+| Заголовок | Описание |
+|---|---|
+| `X-Webhook-Signature` | HMAC-SHA256 подпись от `timestamp + "." + body` |
+| `X-Webhook-Timestamp` | Время события (RFC3339) для защиты от повторов (clock skew ≤ 5 мин) |
+| `X-Webhook-Event-ID` | Уникальный ID события (hex) для дедупликации (TTL 24ч) |
+
+**Параметры окружения:**
+
+| Переменная | По умолчанию | Описание |
+|---|---|---|
+| `WEBHOOK_RETRY_ATTEMPTS` | `3` | Количество повторных попыток при неудачной доставке |
+| `WEBHOOK_RETRY_DELAY` | `5s` | Задержка между попытками |
+| `WEBHOOK_TIMEOUT` | `10s` | Таймаут одного HTTP-запроса |
+
+---
+
 ## Нагрузочное тестирование API
 
 Для проверки реальной нагрузки на сервер используйте отдельный Python-скрипт `tools/api_loadtest.py`. Его можно запускать с рабочей машины или другого внешнего хоста против публичного URL проекта.
