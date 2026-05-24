@@ -25,6 +25,16 @@
 - **Frontend**: React 19, TypeScript, Vite, Zustand, React Query, Framer Motion.
 - **DevOps**: Docker, Docker Compose, Multi-stage builds.
 
+## Экосистема
+
+`omsu_setka` интегрирован с **omsu_bot (GroupBot)** — Telegram-ботом для студенческих групп. При обнаружении изменений в расписании `omsu_setka` отправляет вебхук с HMAC-подписью в `omsu_bot`, который анонсирует изменения в соответствующих чатах.
+
+Интеграция работает в одну сторону через HTTP:
+- `omsu_setka` → `omsu_bot`: уведомления об изменениях расписания (POST).
+- `omsu_bot` → `omsu_setka`: регистрация вебхука при старте (POST/PUT через Admin API).
+
+Управление вебхуками — через Admin API (`/api/v1/admin/webhooks`). Подробнее в [docs/ADMIN_GUIDE.md](./docs/ADMIN_GUIDE.md).
+
 ## Быстрый запуск
 
 Для сборки и запуска всего проекта (фронтенд + бэкенд) одной командой используйте:

@@ -76,6 +76,28 @@ Standards:
 - `blueprint` for multi-session or multi-PR work
 - `commit` for any git commit
 
+## Ecosystem Integration
+
+`omsu_setka` integrates with **omsu_bot** (Telegram бот GroupBot) через вебхук-систему:
+
+- **omsu_setka → omsu_bot**: `POST` на URL подписчика с HMAC-подписанным payload при изменениях расписания.
+- **omsu_bot → omsu_setka**: `POST /api/v1/admin/webhooks` (или `PUT /api/v1/admin/webhooks/by-url`) для регистрации/обновления подписки.
+
+Оба проекта находятся в отдельных репозиториях. Интеграция — только через HTTP.
+
+### Webhook Contract
+
+| Аспект | Детали |
+|---|---|
+| Метод | `POST` (на URL подписчика) |
+| Content-Type | `application/json` |
+| Подпись | HMAC-SHA256, заголовок `X-Webhook-Signature` |
+| Защита от повторов | `X-Webhook-Timestamp` + `X-Webhook-Event-ID` |
+| Retry | 3 попытки с задержкой 5с (настраивается) |
+| Payload | `{"type":"change","group_id":<int>,"entity_type":"group","entity_id":<int>,"event_id":"<hex>","occurred_at":"<RFC3339>","changes":[...]}` |
+
+При изменении контракта синхронизируйте изменения в обоих проектах (`omsu_setka/core/internal/webhook/notifier.go` ↔ `omsu_bot/internal/handler/handler_webhook.go`).
+
 ## Architecture
 
 The project follows a tiered architecture:
@@ -88,7 +110,9 @@ The project follows a tiered architecture:
   - L3 upstream Omsu API accessed through background sync.
 - Search: in-memory prefix tree (Trie) for autocomplete of groups, tutors, and
   auditories.
-- Notifications: Firebase Cloud Messaging for schedule change alerts.
+- Notifications:
+  - Firebase Cloud Messaging for push notifications to users.
+  - Webhook notifier for external integrations (omsu_bot Telegram bot).
 
 ## Development Commands
 
@@ -155,6 +179,8 @@ the exact blocker and the command attempted.
 - Use structured `zerolog` logging.
 - Use environment variables for configuration.
 - Preserve the schedule diff engine and `schedule_changes` history semantics.
+- Webhook payloads use HMAC-SHA256 with timestamp-signed body for replay protection.
+- Webhook subscribers are idempotent (upsert by URL) to prevent duplicates on restart.
 - Use parameterized SQL and validate schema/index changes against SQLite.
 
 ## Frontend Conventions
@@ -188,5 +214,8 @@ the exact blocker and the command attempted.
 - `dev/FRONTEND_PLAN.md` - frontend plan and roadmap.
 - `dev/API_DATA.md` - upstream API documentation.
 - `core/` - backend source code.
+- `core/internal/webhook/notifier.go` - webhook dispatcher (sends schedule change notifications to omsu_bot).
+- `core/internal/api/handlers_webhook.go` - webhook subscriber CRUD endpoints.
+- `core/internal/storage/webhook_repo.go` - webhook subscriber storage layer.
 - `web/` - frontend source code.
 - `docker-compose.dev.yml` and `docker-compose.prod.yml` - orchestration.
