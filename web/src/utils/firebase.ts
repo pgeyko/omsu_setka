@@ -11,16 +11,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-console.log('Firebase Config Present:', !!firebaseConfig.apiKey);
-if (!firebaseConfig.apiKey) {
-  console.error('Firebase configuration is missing! Push notifications will not work.');
+const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+
+if (!isFirebaseConfigured) {
+  console.warn('Firebase not configured — push notifications disabled.');
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+const messaging = isFirebaseConfigured ? getMessaging(app!) : null;
 
 export const requestForToken = async () => {
+  if (!messaging) return null;
   try {
     const currentToken = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
@@ -39,6 +40,7 @@ export const requestForToken = async () => {
 };
 
 export const onForegroundMessage = (callback: (payload: MessagePayload) => void) => {
+  if (!messaging) return () => {};
   return onMessage(messaging, (payload) => {
     console.log('Foreground message received: ', payload);
     callback(payload);

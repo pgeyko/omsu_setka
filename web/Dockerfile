@@ -9,8 +9,8 @@ RUN npm install --legacy-peer-deps
 
 # Передаем переменные окружения через build-args вместо копирования .env
 # Это предотвращает попадание секретов в слои образа
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ARG VITE_API_BASE
+ENV VITE_API_BASE=$VITE_API_BASE
 
 ARG VITE_CF_ANALYTICS_TOKEN
 ENV VITE_CF_ANALYTICS_TOKEN=$VITE_CF_ANALYTICS_TOKEN
