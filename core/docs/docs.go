@@ -15,6 +15,306 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/webhooks": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get all registered webhook subscribers",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List webhook subscribers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Register a new webhook subscriber for schedule change notifications",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create webhook subscriber",
+                "parameters": [
+                    {
+                        "description": "Webhook subscriber data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/webhooks/by-url": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create or update a webhook subscriber by URL (idempotent)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Upsert webhook subscriber by URL",
+                "parameters": [
+                    {
+                        "description": "Webhook subscriber data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/webhooks/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Remove a webhook subscriber by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete webhook subscriber",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Webhook subscriber ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update an existing webhook subscriber by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update webhook subscriber",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Webhook subscriber ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Webhook fields to update",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auditories": {
             "get": {
                 "description": "Returns a list of all auditories and buildings.",
@@ -31,7 +331,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -39,7 +339,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Auditory"
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Auditory"
                                             }
                                         }
                                     }
@@ -75,13 +375,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Auditory"
+                                            "$ref": "#/definitions/omsu_mirror_internal_models.Auditory"
                                         }
                                     }
                                 }
@@ -132,7 +432,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -140,7 +440,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/storage.ScheduleChange"
+                                                "$ref": "#/definitions/omsu_mirror_internal_storage.ScheduleChange"
                                             }
                                         }
                                     }
@@ -185,7 +485,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -193,7 +493,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Group"
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Group"
                                             }
                                         }
                                     }
@@ -229,13 +529,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Group"
+                                            "$ref": "#/definitions/omsu_mirror_internal_models.Group"
                                         }
                                     }
                                 }
@@ -268,7 +568,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BFFResponse"
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                         }
                     }
                 }
@@ -288,7 +588,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BFFResponse"
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                         }
                     }
                 }
@@ -314,7 +614,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/storage.Subscription"
+                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
                         }
                     }
                 ],
@@ -377,7 +677,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/storage.Subscription"
+                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
                         }
                     },
                     "400": {
@@ -432,7 +732,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -440,7 +740,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Day"
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
                                             }
                                         }
                                     }
@@ -571,7 +871,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -579,7 +879,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Day"
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
                                             }
                                         }
                                     }
@@ -710,7 +1010,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -718,7 +1018,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Day"
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
                                             }
                                         }
                                     }
@@ -818,6 +1118,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/schedule/{type}/{id}/day": {
+            "get": {
+                "description": "Returns the schedule for a specific day. Loads the whole week from cache if needed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Get single day schedule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity type: group, tutor, auditory",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Entity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target date in YYYY-MM-DD format",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/search": {
             "get": {
                 "description": "Prefix search with autocomplete.",
@@ -855,7 +1231,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BFFResponse"
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                         }
                     }
                 }
@@ -881,7 +1257,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/storage.Subscription"
+                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
                         }
                     }
                 ],
@@ -948,7 +1324,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BFFResponse"
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                         }
                     }
                 }
@@ -979,7 +1355,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BFFResponse"
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                         }
                     },
                     "401": {
@@ -1010,7 +1386,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1018,7 +1394,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.Tutor"
+                                                "$ref": "#/definitions/omsu_mirror_internal_models.Tutor"
                                             }
                                         }
                                     }
@@ -1054,13 +1430,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.BFFResponse"
+                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.Tutor"
+                                            "$ref": "#/definitions/omsu_mirror_internal_models.Tutor"
                                         }
                                     }
                                 }
@@ -1099,7 +1475,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.UnsubscribeRequest"
+                            "$ref": "#/definitions/internal_api.UnsubscribeRequest"
                         }
                     }
                 ],
@@ -1145,7 +1521,27 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.UnsubscribeRequest": {
+        "internal_api.CreateWebhookRequest": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "group_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "secret": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.UnsubscribeRequest": {
             "type": "object",
             "properties": {
                 "entity_id": {
@@ -1159,7 +1555,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Auditory": {
+        "omsu_mirror_internal_models.Auditory": {
             "type": "object",
             "properties": {
                 "building": {
@@ -1173,7 +1569,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BFFResponse": {
+        "omsu_mirror_internal_models.BFFResponse": {
             "type": "object",
             "properties": {
                 "cached_at": {
@@ -1201,7 +1597,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Day": {
+        "omsu_mirror_internal_models.Day": {
             "type": "object",
             "properties": {
                 "day": {
@@ -1210,12 +1606,12 @@ const docTemplate = `{
                 "lessons": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Lesson"
+                        "$ref": "#/definitions/omsu_mirror_internal_models.Lesson"
                     }
                 }
             }
         },
-        "models.Group": {
+        "omsu_mirror_internal_models.Group": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1229,7 +1625,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Lesson": {
+        "omsu_mirror_internal_models.Lesson": {
             "type": "object",
             "properties": {
                 "auditCorps": {
@@ -1264,7 +1660,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Tutor": {
+        "omsu_mirror_internal_models.Tutor": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1275,7 +1671,7 @@ const docTemplate = `{
                 }
             }
         },
-        "storage.ScheduleChange": {
+        "omsu_mirror_internal_storage.ScheduleChange": {
             "type": "object",
             "properties": {
                 "change_type": {
@@ -1305,7 +1701,7 @@ const docTemplate = `{
                 }
             }
         },
-        "storage.Subscription": {
+        "omsu_mirror_internal_storage.Subscription": {
             "type": "object",
             "properties": {
                 "before_minutes": {
