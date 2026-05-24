@@ -144,7 +144,9 @@ func (s *Server) setupRoutes() {
 	// Admin webhook management
 	admin := v1.Group("/admin", AdminAuth(s.Cfg))
 	admin.Post("/webhooks", s.handleCreateWebhook)
+	admin.Put("/webhooks/by-url", s.handleUpsertWebhook)
 	admin.Get("/webhooks", s.handleListWebhooks)
+	admin.Patch("/webhooks/:id", s.handleUpdateWebhook)
 	admin.Delete("/webhooks/:id", s.handleDeleteWebhook)
 }
 

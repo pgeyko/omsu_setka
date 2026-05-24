@@ -72,3 +72,78 @@ func (s *Server) handleDeleteWebhook(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"success": true})
 }
+
+func (s *Server) handleUpdateWebhook(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil || id < 1 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
+	}
+
+	existing, err := s.WebhookRepo.GetByID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to lookup webhook subscriber"})
+	}
+	if existing == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "webhook subscriber not found"})
+	}
+
+	var req createWebhookRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	secret := existing.Secret
+	if req.Secret != "" {
+		secret = req.Secret
+	}
+	groupIDs := existing.GroupIDs
+	if req.GroupIDs != nil {
+		groupIDs = req.GroupIDs
+	}
+	enabled := existing.Enabled
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
+	if err := s.WebhookRepo.Update(c.Context(), id, secret, groupIDs, enabled); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to update webhook subscriber"})
+	}
+
+	return c.JSON(fiber.Map{"success": true})
+}
+
+// handleUpsertWebhook creates or updates a webhook subscriber by URL (idempotent).
+// This prevents duplicate subscribers on restarts and re-registrations (P0#3).
+func (s *Server) handleUpsertWebhook(c *fiber.Ctx) error {
+	var req createWebhookRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	if req.URL == "" || req.Secret == "" {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "url and secret are required"})
+	}
+
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
+	sub := storage.WebhookSubscriber{
+		URL:      req.URL,
+		Secret:   req.Secret,
+		GroupIDs: req.GroupIDs,
+		Enabled:  enabled,
+	}
+
+	id, created, err := s.WebhookRepo.UpsertByURL(c.Context(), sub)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to upsert webhook subscriber"})
+	}
+
+	status := "updated"
+	if created {
+		status = "created"
+	}
+	return c.JSON(fiber.Map{"id": id, "status": status})
+}

@@ -146,6 +146,8 @@ func (s *SQLite) migrate() error {
 			enabled    INTEGER NOT NULL DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
+		// Unique index on url for idempotent upsert (P0#3)
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_webhook_subscribers_url ON webhook_subscribers(url);`,
 		`CREATE TABLE IF NOT EXISTS schema_version (
 				id          INTEGER PRIMARY KEY CHECK (id = 1),
 				version     INTEGER NOT NULL,

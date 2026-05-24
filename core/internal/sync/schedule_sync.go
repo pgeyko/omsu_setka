@@ -223,7 +223,7 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 		}
 
 		if s.webhookNotifier != nil {
-			s.webhookNotifier.Notify(ctx, entityID, webhookChanges)
+			s.webhookNotifier.Notify(ctx, entityType, entityID, webhookChanges)
 		}
 	}
 }

@@ -120,3 +120,64 @@ func (r *WebhookRepo) GetByID(ctx context.Context, id int) (*WebhookSubscriber, 
 	}
 	return &s, nil
 }
+
+// Update updates an existing webhook subscriber's fields.
+func (r *WebhookRepo) Update(ctx context.Context, id int, secret string, groupIDs []int, enabled bool) error {
+	groupIDsJSON, err := json.Marshal(groupIDs)
+	if err != nil {
+		return err
+	}
+	_, err = r.db.DB.ExecContext(ctx, `
+		UPDATE webhook_subscribers
+		SET secret = ?, group_ids = ?, enabled = ?, created_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, secret, string(groupIDsJSON), enabled, id)
+	return err
+}
+
+// UpsertByURL creates or updates a webhook subscriber by its URL.
+// Returns the subscriber ID and whether a new record was created.
+func (r *WebhookRepo) UpsertByURL(ctx context.Context, s WebhookSubscriber) (int, bool, error) {
+	groupIDsJSON, err := json.Marshal(s.GroupIDs)
+	if err != nil {
+		return 0, false, err
+	}
+
+	// Check if subscriber with this URL already exists
+	var existingID int
+	err = r.db.DB.QueryRowContext(ctx,
+		`SELECT id FROM webhook_subscribers WHERE url = ?`, s.URL,
+	).Scan(&existingID)
+
+	if err == nil {
+		// Update existing
+		_, err = r.db.DB.ExecContext(ctx, `
+			UPDATE webhook_subscribers
+			SET secret = ?, group_ids = ?, enabled = ?, created_at = CURRENT_TIMESTAMP
+			WHERE id = ?
+		`, s.Secret, string(groupIDsJSON), s.Enabled, existingID)
+		if err != nil {
+			return 0, false, err
+		}
+		return existingID, false, nil
+	}
+
+	if err != sql.ErrNoRows {
+		return 0, false, err
+	}
+
+	// Create new
+	result, err := r.db.DB.ExecContext(ctx, `
+		INSERT INTO webhook_subscribers (url, secret, group_ids, enabled)
+		VALUES (?, ?, ?, ?)
+	`, s.URL, s.Secret, string(groupIDsJSON), s.Enabled)
+	if err != nil {
+		return 0, false, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, false, err
+	}
+	return int(id), true, nil
+}
