@@ -6,15 +6,27 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type createWebhookRequest struct {
+type CreateWebhookRequest struct {
 	URL      string `json:"url"`
 	Secret   string `json:"secret"`
 	GroupIDs []int  `json:"group_ids"`
 	Enabled  *bool  `json:"enabled,omitempty"`
 }
 
+// @Summary Create webhook subscriber
+// @Description Register a new webhook subscriber for schedule change notifications
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param body body api.CreateWebhookRequest true "Webhook subscriber data"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 422 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /admin/webhooks [post]
 func (s *Server) handleCreateWebhook(c *fiber.Ctx) error {
-	var req createWebhookRequest
+	var req CreateWebhookRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
@@ -43,6 +55,14 @@ func (s *Server) handleCreateWebhook(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id})
 }
 
+// @Summary List webhook subscribers
+// @Description Get all registered webhook subscribers
+// @Tags Admin
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /admin/webhooks [get]
 func (s *Server) handleListWebhooks(c *fiber.Ctx) error {
 	subs, err := s.WebhookRepo.GetAll(c.Context())
 	if err != nil {
@@ -52,6 +72,17 @@ func (s *Server) handleListWebhooks(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"subscribers": subs})
 }
 
+// @Summary Delete webhook subscriber
+// @Description Remove a webhook subscriber by ID
+// @Tags Admin
+// @Produce json
+// @Param id path int true "Webhook subscriber ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /admin/webhooks/{id} [delete]
 func (s *Server) handleDeleteWebhook(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil || id < 1 {
@@ -73,6 +104,19 @@ func (s *Server) handleDeleteWebhook(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
+// @Summary Update webhook subscriber
+// @Description Update an existing webhook subscriber by ID
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param id path int true "Webhook subscriber ID"
+// @Param body body api.CreateWebhookRequest false "Webhook fields to update"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /admin/webhooks/{id} [patch]
 func (s *Server) handleUpdateWebhook(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil || id < 1 {
@@ -87,7 +131,7 @@ func (s *Server) handleUpdateWebhook(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "webhook subscriber not found"})
 	}
 
-	var req createWebhookRequest
+	var req CreateWebhookRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
@@ -114,8 +158,21 @@ func (s *Server) handleUpdateWebhook(c *fiber.Ctx) error {
 
 // handleUpsertWebhook creates or updates a webhook subscriber by URL (idempotent).
 // This prevents duplicate subscribers on restarts and re-registrations (P0#3).
+//
+// @Summary Upsert webhook subscriber by URL
+// @Description Create or update a webhook subscriber by URL (idempotent)
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param body body api.CreateWebhookRequest true "Webhook subscriber data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 422 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /admin/webhooks/by-url [put]
 func (s *Server) handleUpsertWebhook(c *fiber.Ctx) error {
-	var req createWebhookRequest
+	var req CreateWebhookRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
