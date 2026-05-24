@@ -3,8 +3,8 @@ services:
     image: ghcr.io/pgeyko/omsu_setka/backend:latest
     container_name: omsu_setka_backend
     restart: always
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - backend_data:/app/data
     environment:
