@@ -22,11 +22,20 @@ services:
           memory: 256M
         reservations:
           memory: 128M
+    networks:
+      - nginx-network
     healthcheck:
       test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:8080/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  frontend:
+    image: ghcr.io/pgeyko/omsu_setka/frontend:latest
+    container_name: omsu_setka_frontend
+    restart: always
+    depends_on:
+      - backend
     networks:
       - nginx-network
 
