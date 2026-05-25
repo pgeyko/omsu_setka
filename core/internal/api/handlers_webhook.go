@@ -13,8 +13,8 @@ type CreateWebhookRequest struct {
 	Enabled  *bool  `json:"enabled,omitempty"`
 }
 
-// @Summary Create webhook subscriber
-// @Description Register a new webhook subscriber for schedule change notifications
+// @Summary Create or update webhook subscriber
+// @Description Register a new webhook subscriber or update existing by URL (idempotent)
 // @Tags Admin
 // @Accept json
 // @Produce json
@@ -47,12 +47,16 @@ func (s *Server) handleCreateWebhook(c *fiber.Ctx) error {
 		Enabled:  enabled,
 	}
 
-	id, err := s.WebhookRepo.Create(c.Context(), sub)
+	id, created, err := s.WebhookRepo.UpsertByURL(c.Context(), sub)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create webhook subscriber"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to upsert webhook subscriber"})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id})
+	status := fiber.StatusOK
+	if created {
+		status = fiber.StatusCreated
+	}
+	return c.Status(status).JSON(fiber.Map{"id": id})
 }
 
 // @Summary List webhook subscribers
