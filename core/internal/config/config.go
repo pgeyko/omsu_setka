@@ -1,10 +1,10 @@
 package config
 
 import (
-	"log"
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -17,10 +17,11 @@ type Config struct {
 	ServerPrefork      bool          `env:"SERVER_PREFORK" envDefault:"false"`
 
 	// Upstream
-	UpstreamBaseURL   string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
-	UpstreamTimeout   time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
-	UpstreamRateLimit int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
-	UpstreamUserAgent string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
+	UpstreamBaseURL    string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
+	UpstreamTimeout    time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
+	UpstreamRateLimit  int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
+	UpstreamUserAgent  string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
+	UpstreamMaxConns   int           `env:"UPSTREAM_MAX_CONNS" envDefault:"10"`
 
 	// Synchronization
 	SyncDictInterval     time.Duration `env:"SYNC_DICT_INTERVAL" envDefault:"12h"`
@@ -62,7 +63,7 @@ type Config struct {
 func Load() *Config {
 	cfg := Config{}
 	if err := env.Parse(&cfg); err != nil {
-		log.Fatalf("Failed to parse config: %v", err)
+		log.Fatal().Err(err).Msg("Failed to parse config")
 	}
 	return &cfg
 }

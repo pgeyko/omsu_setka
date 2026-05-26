@@ -14,11 +14,12 @@ type cacheItem struct {
 }
 
 type MemoryCache struct {
-	data      sync.Map
-	gzipData  sync.Map
-	hits      uint64
-	misses    uint64
-	itemCount int64
+	data          sync.Map
+	gzipData      sync.Map
+	hits          uint64
+	misses        uint64
+	itemCount     int64
+	gzipItemCount int64
 }
 
 func NewMemoryCache() *MemoryCache {
@@ -84,9 +85,34 @@ func (c *MemoryCache) Get(key string) ([]byte, bool) {
 }
 
 func (c *MemoryCache) SetGzip(key string, data []byte) {
+	if atomic.LoadInt64(&c.gzipItemCount) >= MaxCacheItems {
+		c.evictGzipApprox(MaxCacheItems / 5)
+	}
 	expiresAt := time.Now().Add(5 * time.Minute)
 	item := cacheItem{data: data, expiresAt: expiresAt}
-	c.gzipData.Store(key, item)
+	_, loaded := c.gzipData.LoadOrStore(key, item)
+	if !loaded {
+		atomic.AddInt64(&c.gzipItemCount, 1)
+	} else {
+		c.gzipData.Store(key, item)
+	}
+}
+
+func (c *MemoryCache) evictGzipApprox(n int) {
+	if n <= 0 {
+		return
+	}
+	remaining := int64(n)
+	c.gzipData.Range(func(key, value interface{}) bool {
+		if remaining <= 0 {
+			return false
+		}
+		if _, loaded := c.gzipData.LoadAndDelete(key); loaded {
+			atomic.AddInt64(&c.gzipItemCount, -1)
+			remaining--
+		}
+		return true
+	})
 }
 
 func (c *MemoryCache) GetGzip(key string) ([]byte, bool) {
@@ -106,7 +132,9 @@ func (c *MemoryCache) Invalidate(key string) {
 	if _, loaded := c.data.LoadAndDelete(key); loaded {
 		atomic.AddInt64(&c.itemCount, -1)
 	}
-	c.gzipData.Delete(key)
+	if _, loaded := c.gzipData.LoadAndDelete(key); loaded {
+		atomic.AddInt64(&c.gzipItemCount, -1)
+	}
 }
 
 // Clear removes all entries from the cache
@@ -120,6 +148,7 @@ func (c *MemoryCache) Clear() {
 		return true
 	})
 	atomic.StoreInt64(&c.itemCount, 0)
+	atomic.StoreInt64(&c.gzipItemCount, 0)
 }
 
 type CacheStats struct {

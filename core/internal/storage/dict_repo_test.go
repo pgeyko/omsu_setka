@@ -18,6 +18,7 @@ func setupTestDB(t *testing.T) *SQLite {
 	if err != nil {
 		t.Fatalf("Failed to setup in-memory db: %v", err)
 	}
+	db.DB.SetMaxOpenConns(1)
 	return db
 }
 

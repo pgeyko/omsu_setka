@@ -72,10 +72,34 @@ func main() {
 	searchIndex := cache.NewSearchIndex()
 
 	// 7. Initialize Syncer
-	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, webhookNotifier, fcm)
+	syncer := sync.NewSyncer(cfg, &sync.Deps{
+		Client:           client,
+		DictRepo:         dictRepo,
+		ScheduleRepo:     scheduleRepo,
+		MemoryCache:      memoryCache,
+		SearchIndex:      searchIndex,
+		IncidentRepo:     incidentRepo,
+		ChangeRepo:       changeRepo,
+		SubscriptionRepo: subscriptionRepo,
+		WebhookRepo:      webhookRepo,
+		WebhookNotifier:  webhookNotifier,
+		FCM:              fcm,
+	})
 
 	// 8. Initialize API Server
-	server := api.NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, fcm)
+	server := api.NewServer(cfg, &api.ServerDeps{
+		Client:           client,
+		DictRepo:         dictRepo,
+		ScheduleRepo:     scheduleRepo,
+		MemoryCache:      memoryCache,
+		SearchIndex:      searchIndex,
+		Syncer:           syncer,
+		IncidentRepo:     incidentRepo,
+		ChangeRepo:       changeRepo,
+		SubscriptionRepo: subscriptionRepo,
+		WebhookRepo:      webhookRepo,
+		FCM:              fcm,
+	})
 
 	// Context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

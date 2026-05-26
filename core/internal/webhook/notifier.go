@@ -77,9 +77,13 @@ func (n *Notifier) Notify(ctx context.Context, entityType string, entityID int, 
 	eventIDStr := hex.EncodeToString(eventID)
 	occurredAt := time.Now().UTC().Format(time.RFC3339)
 
+	var groupID int
+	if entityType == "group" {
+		groupID = entityID
+	}
 	payload := Payload{
 		Type:       "change",
-		GroupID:    entityID,
+		GroupID:    groupID,
 		EntityType: entityType,
 		EntityID:   entityID,
 		EventID:    eventIDStr,

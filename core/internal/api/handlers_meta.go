@@ -114,7 +114,8 @@ func (s *Server) handleGetIncidents(c *fiber.Ctx) error {
 func (s *Server) handleSyncTrigger(c *fiber.Ctx) error {
 	// Run in background to not block the request
 	go func() {
-		ctx := context.Background() // Use fresh context for background task
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
 		log.Info().Msg("Manual sync trigger received")
 		if err := s.Syncer.SyncDictionaries(ctx); err != nil {
 			log.Error().Err(err).Msg("Manual dictionary sync failed")

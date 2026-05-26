@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"omsu_mirror/internal/models"
@@ -62,7 +63,7 @@ func (s *Server) handleGetICal(entityType string) fiber.Handler {
 		log.Info().Msgf("iCal request: type=%s, id=%s", entityType, idStr)
 
 		// 1. Security Check (Optional Token)
-		if s.Cfg.ICalAccessToken != "" && token != s.Cfg.ICalAccessToken {
+		if s.Cfg.ICalAccessToken != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.Cfg.ICalAccessToken)) != 1 {
 			log.Warn().Msgf("iCal: invalid token for %s:%s", entityType, idStr)
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "invalid access token"})
 		}

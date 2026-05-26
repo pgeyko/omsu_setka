@@ -5,6 +5,7 @@ import (
 	"omsu_mirror/internal/cache"
 	"omsu_mirror/internal/config"
 	"omsu_mirror/internal/notifications"
+	"omsu_mirror/internal/service"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/sync"
 	"omsu_mirror/internal/upstream"
@@ -30,22 +31,24 @@ type Server struct {
 	SearchIndex      *cache.SearchIndex
 	Syncer           *sync.Syncer
 	IncidentRepo     *storage.IncidentRepo
+	ScheduleService  *service.ScheduleService
 }
 
-func NewServer(
-	cfg *config.Config,
-	client *upstream.Client,
-	dictRepo *storage.DictRepo,
-	scheduleRepo *storage.ScheduleRepo,
-	memoryCache *cache.MemoryCache,
-	searchIndex *cache.SearchIndex,
-	syncer *sync.Syncer,
-	incidentRepo *storage.IncidentRepo,
-	changeRepo *storage.ChangeRepo,
-	subscriptionRepo *storage.SubscriptionRepo,
-	webhookRepo *storage.WebhookRepo,
-	fcm *notifications.FCMClient,
-) *Server {
+type ServerDeps struct {
+	Client           *upstream.Client
+	DictRepo         *storage.DictRepo
+	ScheduleRepo     *storage.ScheduleRepo
+	MemoryCache      *cache.MemoryCache
+	SearchIndex      *cache.SearchIndex
+	Syncer           *sync.Syncer
+	IncidentRepo     *storage.IncidentRepo
+	ChangeRepo       *storage.ChangeRepo
+	SubscriptionRepo *storage.SubscriptionRepo
+	WebhookRepo      *storage.WebhookRepo
+	FCM              *notifications.FCMClient
+}
+
+func NewServer(cfg *config.Config, deps *ServerDeps) *Server {
 	app := fiber.New(fiber.Config{
 		Prefork:        cfg.ServerPrefork,
 		ReadTimeout:    cfg.ServerReadTimeout,
@@ -56,10 +59,11 @@ func NewServer(
 		ReadBufferSize: 4096,
 		ProxyHeader:    fiber.HeaderXForwardedFor, // Correctly detect client IP behind Nginx
 		// 19.3 Enable trusted proxies (Docker bridge subnet by default)
-		TrustedProxies: []string{"172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"},
+		TrustedProxies: []string{"172.17.0.0/16"},
 	})
 
 	// Global Middleware
+	app.Use(RequestIDMiddleware())
 	app.Use(recover.New())
 	app.Use(SecurityHeadersMiddleware())
 	app.Use(cors.New(cors.Config{
@@ -68,20 +72,23 @@ func NewServer(
 	app.Use(etag.New())
 	app.Use(LoggerMiddleware())
 
+	schedService := service.NewScheduleService(cfg, deps.MemoryCache, deps.ScheduleRepo, deps.Client)
+
 	s := &Server{
 		App:              app,
 		Cfg:              cfg,
-		Client:           client,
-		DictRepo:         dictRepo,
-		ScheduleRepo:     scheduleRepo,
-		ChangeRepo:       changeRepo,
-		SubscriptionRepo: subscriptionRepo,
-		WebhookRepo:      webhookRepo,
-		FCM:              fcm,
-		MemoryCache:      memoryCache,
-		SearchIndex:      searchIndex,
-		Syncer:           syncer,
-		IncidentRepo:     incidentRepo,
+		Client:           deps.Client,
+		DictRepo:         deps.DictRepo,
+		ScheduleRepo:     deps.ScheduleRepo,
+		ChangeRepo:       deps.ChangeRepo,
+		SubscriptionRepo: deps.SubscriptionRepo,
+		WebhookRepo:      deps.WebhookRepo,
+		FCM:              deps.FCM,
+		MemoryCache:      deps.MemoryCache,
+		SearchIndex:      deps.SearchIndex,
+		Syncer:           deps.Syncer,
+		IncidentRepo:     deps.IncidentRepo,
+		ScheduleService:  schedService,
 	}
 
 	s.setupRoutes()

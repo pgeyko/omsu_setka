@@ -1,7 +1,9 @@
 package api
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
+	"encoding/hex"
 	"omsu_mirror/internal/config"
 	"time"
 
@@ -60,6 +62,20 @@ func RateLimitMiddleware(maxRequests int, window time.Duration) fiber.Handler {
 }
 
 // SecurityHeadersMiddleware adds standard security headers to every response.
+func RequestIDMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		reqID := c.Get("X-Request-ID")
+		if reqID == "" {
+			id := make([]byte, 16)
+			if _, err := rand.Read(id); err == nil {
+				reqID = hex.EncodeToString(id)
+			}
+		}
+		c.Set("X-Request-ID", reqID)
+		return c.Next()
+	}
+}
+
 func SecurityHeadersMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		c.Set("X-Content-Type-Options", "nosniff")

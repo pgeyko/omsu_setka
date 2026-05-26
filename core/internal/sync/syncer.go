@@ -21,7 +21,21 @@ type UpstreamStatus struct {
 	LastError           string    `json:"last_error,omitempty"`
 	ConsecutiveFailures int       `json:"consecutive_failures"`
 	TotalFailures       int       `json:"total_failures"`
-	sync.RWMutex
+	mu                  sync.RWMutex
+}
+
+type Deps struct {
+	Client           *upstream.Client
+	DictRepo         *storage.DictRepo
+	ScheduleRepo     *storage.ScheduleRepo
+	MemoryCache      *cache.MemoryCache
+	SearchIndex      *cache.SearchIndex
+	IncidentRepo     *storage.IncidentRepo
+	ChangeRepo       *storage.ChangeRepo
+	SubscriptionRepo *storage.SubscriptionRepo
+	WebhookRepo      *storage.WebhookRepo
+	WebhookNotifier  *webhook.Notifier
+	FCM              *notifications.FCMClient
 }
 
 type Syncer struct {
@@ -43,35 +57,22 @@ type Syncer struct {
 	schedSema        chan struct{}
 }
 
-func NewSyncer(
-	cfg *config.Config,
-	client *upstream.Client,
-	dictRepo *storage.DictRepo,
-	scheduleRepo *storage.ScheduleRepo,
-	memoryCache *cache.MemoryCache,
-	searchIndex *cache.SearchIndex,
-	incidentRepo *storage.IncidentRepo,
-	changeRepo *storage.ChangeRepo,
-	subscriptionRepo *storage.SubscriptionRepo,
-	webhookRepo *storage.WebhookRepo,
-	webhookNotifier *webhook.Notifier,
-	fcm *notifications.FCMClient,
-) *Syncer {
+func NewSyncer(cfg *config.Config, deps *Deps) *Syncer {
 	return &Syncer{
 		cfg:              cfg,
-		client:           client,
-		dictRepo:         dictRepo,
-		scheduleRepo:     scheduleRepo,
-		incidentRepo:     incidentRepo,
-		changeRepo:       changeRepo,
-		subscriptionRepo: subscriptionRepo,
-		webhookRepo:      webhookRepo,
-		webhookNotifier:  webhookNotifier,
-		fcm:              fcm,
-		memoryCache:      memoryCache,
-		searchIndex:      searchIndex,
+		client:           deps.Client,
+		dictRepo:         deps.DictRepo,
+		scheduleRepo:     deps.ScheduleRepo,
+		incidentRepo:     deps.IncidentRepo,
+		changeRepo:       deps.ChangeRepo,
+		subscriptionRepo: deps.SubscriptionRepo,
+		webhookRepo:      deps.WebhookRepo,
+		webhookNotifier:  deps.WebhookNotifier,
+		fcm:              deps.FCM,
+		memoryCache:      deps.MemoryCache,
+		searchIndex:      deps.SearchIndex,
 		status: &UpstreamStatus{
-			IsHealthy: true, // Optimistically assume healthy until proven otherwise
+			IsHealthy: true,
 		},
 		dictSema:  make(chan struct{}, 1),
 		schedSema: make(chan struct{}, 1),
@@ -79,8 +80,8 @@ func NewSyncer(
 }
 
 func (s *Syncer) GetUpstreamStatus() UpstreamStatus {
-	s.status.RLock()
-	defer s.status.RUnlock()
+	s.status.mu.RLock()
+	defer s.status.mu.RUnlock()
 	return UpstreamStatus{
 		IsHealthy:           s.status.IsHealthy,
 		LastSuccessSync:     s.status.LastSuccessSync,
@@ -92,8 +93,8 @@ func (s *Syncer) GetUpstreamStatus() UpstreamStatus {
 }
 
 func (s *Syncer) recordSuccess(ctx context.Context, contextMsg string) {
-	s.status.Lock()
-	defer s.status.Unlock()
+	s.status.mu.Lock()
+	defer s.status.mu.Unlock()
 
 	if !s.status.IsHealthy {
 		log.Info().Msg("Upstream has recovered")
@@ -107,8 +108,8 @@ func (s *Syncer) recordSuccess(ctx context.Context, contextMsg string) {
 }
 
 func (s *Syncer) recordFailure(ctx context.Context, contextMsg string, err error) {
-	s.status.Lock()
-	defer s.status.Unlock()
+	s.status.mu.Lock()
+	defer s.status.mu.Unlock()
 
 	wasHealthy := s.status.IsHealthy
 	s.status.IsHealthy = false

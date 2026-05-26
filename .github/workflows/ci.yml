@@ -1,161 +1,81 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
-
-env:
-  REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/pgeyko/omsu_setka/backend
-  FRONTEND_IMAGE: ghcr.io/pgeyko/omsu_setka/frontend
 
 jobs:
-  backend-test:
-    name: Backend Test
+  lint:
     runs-on: ubuntu-latest
+    container: golang:1.23-alpine
+    defaults:
+      run:
+        working-directory: core
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Cache Go modules
+        uses: actions/cache@v4
         with:
-          go-version: '1.23'
-          cache-dependency-path: core/go.sum
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Run golangci-lint
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          golangci-lint run ./...
+
+  vet:
+    runs-on: ubuntu-latest
+    container: golang:1.23-alpine
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Run go vet
+        run: go vet ./...
+
+  test:
+    runs-on: ubuntu-latest
+    container: golang:1.23-alpine
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Run tests
-        run: |
-          cd core
-          go test -v ./...
+        run: go test -race ./...
 
-  frontend-test:
-    name: Frontend Test
+  build:
     runs-on: ubuntu-latest
+    container: golang:1.23-alpine
+    defaults:
+      run:
+        working-directory: core
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Cache Go modules
+        uses: actions/cache@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-      - name: Install dependencies
-        run: |
-          cd web
-          npm install --legacy-peer-deps
-      - name: Run ESLint
-        run: |
-          cd web
-          npm run lint
-      - name: Run tests
-        run: |
-          cd web
-          npm run test
-      - name: Verify build
-        run: |
-          cd web
-          npm run build
-
-  build-and-push:
-    name: Build & Push Images
-    runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Backend
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ env.BACKEND_IMAGE }}:latest
-            ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-
-      - name: Build and push Frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./web/Dockerfile
-          push: true
-          build-args: |
-            VITE_API_BASE=/api/v1
-            VITE_CF_ANALYTICS_TOKEN=${{ secrets.VITE_CF_ANALYTICS_TOKEN }}
-            VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
-            VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-            VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-            VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-            VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-            VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
-            VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
-            VITE_FIREBASE_VAPID_KEY=${{ secrets.VITE_FIREBASE_VAPID_KEY }}
-          tags: |
-            ${{ env.FRONTEND_IMAGE }}:latest
-            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-
-  deploy:
-    name: Deploy to Server
-    runs-on: ubuntu-latest
-    needs: [build-and-push]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Copy docker-compose.prod.yml to server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          source: "docker-compose.prod.yml"
-          target: ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
-        env:
-          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          envs: ADMIN_KEY,CORS_ALLOWED_ORIGINS,FIREBASE_SERVICE_ACCOUNT,APP_BASE_URL
-          script: |
-            mkdir -p ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
-            cd ${{ secrets.DEPLOY_PATH || '~/omsu_mirror' }}
-            
-            # Create a robust environment file
-            cat <<EOF > .env.prod
-            ADMIN_KEY=$ADMIN_KEY
-            CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
-            FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT
-            APP_BASE_URL=$APP_BASE_URL
-            EOF
-            
-            # Ensure the nginx-network exists
-            docker network inspect nginx-network >/dev/null 2>&1 || docker network create nginx-network
-            
-            # Restart containers using the env file
-            docker compose -f docker-compose.prod.yml --env-file .env.prod pull
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
-            
-            # Clean up: remove the sensitive env file after containers are up
-            rm .env.prod
-            
-            # Clean up old images
-            docker image prune -f
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Build
+        run: go build ./...

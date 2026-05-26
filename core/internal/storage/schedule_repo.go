@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ScheduleRepo struct {
@@ -26,7 +28,9 @@ func NewScheduleRepo(db *SQLite) *ScheduleRepo {
 func (r *ScheduleRepo) processHits() {
 	for key := range r.hitChan {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		_, _ = r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key)
+		if _, err := r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key); err != nil {
+			log.Error().Err(err).Str("key", key).Msg("Failed to increment hit count")
+		}
 		cancel()
 	}
 }
