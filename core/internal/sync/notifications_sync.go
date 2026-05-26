@@ -13,9 +13,10 @@ import (
 )
 
 func (s *Syncer) SyncScheduledNotifications(ctx context.Context) error {
-	loc, _ := time.LoadLocation("Asia/Omsk")
-	if loc == nil {
-		loc = time.FixedZone("OMST", 6*3600) // UTC+6
+	loc, err := time.LoadLocation("Asia/Omsk")
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to load timezone Asia/Omsk, using UTC+6")
+		loc = time.FixedZone("OMST", 6*3600)
 	}
 	now := time.Now().In(loc)
 	todayStr := now.Format("2006-01-02")

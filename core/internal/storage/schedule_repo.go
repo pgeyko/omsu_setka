@@ -11,12 +11,14 @@ import (
 type ScheduleRepo struct {
 	db      *SQLite
 	hitChan chan string
+	stopCh  <-chan struct{}
 }
 
-func NewScheduleRepo(db *SQLite) *ScheduleRepo {
+func NewScheduleRepo(db *SQLite, stopCh <-chan struct{}) *ScheduleRepo {
 	repo := &ScheduleRepo{
 		db:      db,
 		hitChan: make(chan string, 1000), // Buffered channel for hits
+		stopCh:  stopCh,
 	}
 
 	// 20.4 Start a single worker for hit count updates
@@ -25,13 +27,23 @@ func NewScheduleRepo(db *SQLite) *ScheduleRepo {
 	return repo
 }
 
+func (r *ScheduleRepo) GetDB() *sql.DB { return r.db.DB }
+
 func (r *ScheduleRepo) processHits() {
-	for key := range r.hitChan {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		if _, err := r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key); err != nil {
-			log.Error().Err(err).Str("key", key).Msg("Failed to increment hit count")
+	for {
+		select {
+		case <-r.stopCh:
+			return
+		case key, ok := <-r.hitChan:
+			if !ok {
+				return
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			if _, err := r.db.DB.ExecContext(ctx, "UPDATE schedule_cache SET hit_count = hit_count + 1, last_hit_at = CURRENT_TIMESTAMP WHERE cache_key = ?", key); err != nil {
+				log.Error().Err(err).Str("key", key).Msg("Failed to increment hit count")
+			}
+			cancel()
 		}
-		cancel()
 	}
 }
 

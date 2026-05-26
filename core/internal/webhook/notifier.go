@@ -15,38 +15,22 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type Change struct {
-	Date    string `json:"date"`
-	Pair    int    `json:"pair"`
-	Field   string `json:"field"`
-	Old     string `json:"old"`
-	New     string `json:"new"`
-	Subject string `json:"subject"`
-}
-
-type Payload struct {
-	Type       string   `json:"type"`
-	GroupID    int      `json:"group_id"`
-	EntityType string   `json:"entity_type,omitempty"`
-	EntityID   int      `json:"entity_id,omitempty"`
-	EventID    string   `json:"event_id,omitempty"`
-	OccurredAt string   `json:"occurred_at,omitempty"`
-	Changes    []Change `json:"changes"`
-}
-
 type Notifier struct {
-	repo   *storage.WebhookRepo
-	client *fasthttp.Client
-	retry  int
-	delay  time.Duration
+	repo              *storage.WebhookRepo
+	failedDeliveryRepo *storage.FailedDeliveryRepo
+	client            *fasthttp.Client
+	retry             int
+	delay             time.Duration
 }
 
-func NewNotifier(repo *storage.WebhookRepo, timeout time.Duration, retry int, delay time.Duration) *Notifier {
+func NewNotifier(repo *storage.WebhookRepo, failedDeliveryRepo *storage.FailedDeliveryRepo, timeout time.Duration, retry int, delay time.Duration) *Notifier {
 	return &Notifier{
-		repo: repo,
+		repo:               repo,
+		failedDeliveryRepo: failedDeliveryRepo,
 		client: &fasthttp.Client{
-			WriteTimeout: timeout,
-			ReadTimeout:  timeout,
+			WriteTimeout:    timeout,
+			ReadTimeout:     timeout,
+			MaxConnsPerHost: 10,
 		},
 		retry: retry,
 		delay: delay,
@@ -102,7 +86,7 @@ func (n *Notifier) Notify(ctx context.Context, entityType string, entityID int, 
 			continue
 		}
 
-		n.sendWithRetry(ctx, sub, eventIDStr, occurredAt, body)
+		n.sendWithRetry(ctx, sub, sub.ID, eventIDStr, occurredAt, body)
 	}
 }
 
@@ -118,7 +102,7 @@ func (n *Notifier) matchesGroup(sub storage.WebhookSubscriber, groupID int) bool
 	return false
 }
 
-func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscriber, eventID, timestamp string, body []byte) {
+func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscriber, subscriberID int, eventID, timestamp string, body []byte) {
 	// Sign timestamp + "." + body for replay protection (P1#11)
 	signedPayload := timestamp + "." + string(body)
 	sig := computeHMAC([]byte(signedPayload), sub.Secret)
@@ -181,6 +165,42 @@ func (n *Notifier) sendWithRetry(ctx context.Context, sub storage.WebhookSubscri
 		Int("retries", n.retry).
 		Err(lastErr).
 		Msg("Webhook delivery failed after all retries")
+
+	if n.failedDeliveryRepo != nil {
+		errStr := ""
+		if lastErr != nil {
+			errStr = lastErr.Error()
+		}
+		if _, err := n.failedDeliveryRepo.Save(ctx, subscriberID, sub.URL, body, eventID, timestamp, errStr); err != nil {
+			log.Error().Err(err).Msg("Failed to save failed delivery to dead-letter queue")
+		}
+	}
+}
+
+// ReplayFailed retries pending failed deliveries from the dead-letter queue.
+// It deletes the delivery record on success.
+func (n *Notifier) ReplayFailed(ctx context.Context, maxBatch int) {
+	deliveries, err := n.failedDeliveryRepo.GetPending(ctx, maxBatch)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get pending failed deliveries for replay")
+		return
+	}
+
+	for _, d := range deliveries {
+		// Delete the failed delivery record before retry to avoid duplicates
+		// if sendWithRetry saves it again on failure.
+		if err := n.failedDeliveryRepo.Delete(ctx, d.ID); err != nil {
+			log.Warn().Err(err).Int("delivery_id", d.ID).Msg("Failed to delete failed delivery before replay")
+		}
+
+		sub, err := n.repo.GetByID(ctx, d.SubscriberID)
+		if err != nil || sub == nil {
+			log.Warn().Int("subscriber_id", d.SubscriberID).Msg("Subscriber not found for replay, skipping")
+			continue
+		}
+
+		n.sendWithRetry(ctx, *sub, d.SubscriberID, d.EventID, d.Timestamp, d.Payload)
+	}
 }
 
 func computeHMAC(data []byte, secret string) string {

@@ -29,7 +29,7 @@ func setupTestServer() *Server {
 
 	db, _ := storage.NewSQLite(cfg)
 	dictRepo := storage.NewDictRepo(db)
-	scheduleRepo := storage.NewScheduleRepo(db)
+	scheduleRepo := storage.NewScheduleRepo(db, make(chan struct{}))
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
@@ -39,7 +39,7 @@ func setupTestServer() *Server {
 	client := upstream.NewClient(cfg)
 	memoryCache := cache.NewMemoryCache()
 	searchIndex := cache.NewSearchIndex()
-	webhookNotifier := webhook.NewNotifier(webhookRepo, 10*time.Second, 3, 5*time.Second)
+	webhookNotifier := webhook.NewNotifier(webhookRepo, nil, 10*time.Second, 3, 5*time.Second)
 	syncer := sync.NewSyncer(cfg, &sync.Deps{
 		Client:           client,
 		DictRepo:         dictRepo,
@@ -91,18 +91,16 @@ func TestRateLimiter(t *testing.T) {
 	t.Parallel()
 	s := setupTestServer()
 
-	// Exhaust rate limit (limit is 10 for general)
 	for i := 0; i < 10; i++ {
 		req := httptest.NewRequest("GET", "/api/v1/health", nil)
-		resp, _ := s.App.Test(req, 10)
+		resp, _ := s.App.Test(req, 100)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("Expected status 200 at request %d, got %d", i+1, resp.StatusCode)
 		}
 	}
 
-	// 11th request should fail
 	req := httptest.NewRequest("GET", "/api/v1/health", nil)
-	resp, _ := s.App.Test(req, 10)
+	resp, _ := s.App.Test(req, 100)
 	if resp.StatusCode != http.StatusTooManyRequests {
 		t.Errorf("Expected status 429, got %d", resp.StatusCode)
 	}

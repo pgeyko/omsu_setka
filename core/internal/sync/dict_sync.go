@@ -97,6 +97,7 @@ func (s *Syncer) cacheCollection(key string, data interface{}) error {
 	// Create GZIP version
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
+	defer gz.Close()
 	if _, err := gz.Write(jsonData); err == nil {
 		if err := gz.Close(); err == nil {
 			s.memoryCache.SetGzip(key, buf.Bytes())

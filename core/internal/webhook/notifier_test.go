@@ -131,7 +131,7 @@ func TestWebhookDelivery(t *testing.T) {
 		t.Fatalf("Failed to create subscriber: %v", err)
 	}
 
-	notifier := NewNotifier(repo, 5*time.Second, 3, 100*time.Millisecond)
+	notifier := NewNotifier(repo, nil, 5*time.Second, 3, 100*time.Millisecond)
 	changes := []Change{
 		{Date: "2024-01-01", Pair: 1, Field: "subject", Old: "Math", New: "Physics", Subject: "GroupA"},
 	}
@@ -219,7 +219,7 @@ func TestWebhookRetry(t *testing.T) {
 		t.Fatalf("Failed to create subscriber: %v", err)
 	}
 
-	notifier := NewNotifier(repo, 5*time.Second, 3, 50*time.Millisecond)
+	notifier := NewNotifier(repo, nil, 5*time.Second, 3, 50*time.Millisecond)
 	changes := []Change{
 		{Date: "2024-01-01", Pair: 1, Field: "subject", Old: "Math", New: "Physics", Subject: "GroupA"},
 	}

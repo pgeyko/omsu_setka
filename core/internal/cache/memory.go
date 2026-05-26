@@ -4,6 +4,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 const MaxCacheItems = 5000 // 20.3 Upper bound for MemoryCache items
@@ -13,13 +15,20 @@ type cacheItem struct {
 	expiresAt time.Time
 }
 
+type typedCacheItem struct {
+	data      interface{}
+	expiresAt time.Time
+}
+
 type MemoryCache struct {
 	data          sync.Map
 	gzipData      sync.Map
+	typedData     sync.Map
 	hits          uint64
 	misses        uint64
 	itemCount     int64
 	gzipItemCount int64
+	sfGroup       singleflight.Group
 }
 
 func NewMemoryCache() *MemoryCache {
@@ -84,6 +93,24 @@ func (c *MemoryCache) Get(key string) ([]byte, bool) {
 	return nil, false
 }
 
+func (c *MemoryCache) GetOrLoad(key string, fn func() ([]byte, error)) ([]byte, error) {
+	if data, ok := c.Get(key); ok {
+		return data, nil
+	}
+	result, err, _ := c.sfGroup.Do(key, func() (interface{}, error) {
+		data, err := fn()
+		if err != nil {
+			return nil, err
+		}
+		c.Set(key, data)
+		return data, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]byte), nil
+}
+
 func (c *MemoryCache) SetGzip(key string, data []byte) {
 	if atomic.LoadInt64(&c.gzipItemCount) >= MaxCacheItems {
 		c.evictGzipApprox(MaxCacheItems / 5)
@@ -120,12 +147,64 @@ func (c *MemoryCache) GetGzip(key string) ([]byte, bool) {
 	if ok {
 		item := val.(cacheItem)
 		if time.Now().After(item.expiresAt) {
-			c.gzipData.Delete(key)
+			c.Invalidate(key)
 			return nil, false
 		}
 		return item.data, true
 	}
 	return nil, false
+}
+
+func (c *MemoryCache) SetTyped(key string, data interface{}) {
+	if c.countTyped() >= MaxCacheItems {
+		c.evictTypedApprox(MaxCacheItems / 5)
+	}
+
+	item := typedCacheItem{data: data, expiresAt: time.Now().Add(5 * time.Minute)}
+	c.typedData.Store(key, item)
+}
+
+func (c *MemoryCache) GetTyped(key string) (interface{}, bool) {
+	val, ok := c.typedData.Load(key)
+	if !ok {
+		return nil, false
+	}
+
+	item, ok := val.(typedCacheItem)
+	if !ok {
+		return nil, false
+	}
+
+	if time.Now().After(item.expiresAt) {
+		c.typedData.Delete(key)
+		return nil, false
+	}
+
+	return item.data, true
+}
+
+func (c *MemoryCache) countTyped() int {
+	var count int
+	c.typedData.Range(func(_, _ interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+func (c *MemoryCache) evictTypedApprox(n int) {
+	if n <= 0 {
+		return
+	}
+	remaining := int64(n)
+	c.typedData.Range(func(key, value interface{}) bool {
+		if remaining <= 0 {
+			return false
+		}
+		c.typedData.Delete(key)
+		remaining--
+		return true
+	})
 }
 
 func (c *MemoryCache) Invalidate(key string) {
@@ -135,20 +214,52 @@ func (c *MemoryCache) Invalidate(key string) {
 	if _, loaded := c.gzipData.LoadAndDelete(key); loaded {
 		atomic.AddInt64(&c.gzipItemCount, -1)
 	}
+	c.typedData.Delete(key)
 }
 
 // Clear removes all entries from the cache
 func (c *MemoryCache) Clear() {
+	c.data = sync.Map{}
+	c.gzipData = sync.Map{}
+	c.typedData = sync.Map{}
+	atomic.StoreInt64(&c.itemCount, 0)
+	atomic.StoreInt64(&c.gzipItemCount, 0)
+}
+
+func (c *MemoryCache) evictExpired() {
 	c.data.Range(func(key, value interface{}) bool {
-		c.data.Delete(key)
+		item := value.(cacheItem)
+		if time.Now().After(item.expiresAt) {
+			if _, loaded := c.data.LoadAndDelete(key); loaded {
+				atomic.AddInt64(&c.itemCount, -1)
+			}
+		}
 		return true
 	})
 	c.gzipData.Range(func(key, value interface{}) bool {
-		c.gzipData.Delete(key)
+		item := value.(cacheItem)
+		if time.Now().After(item.expiresAt) {
+			if _, loaded := c.gzipData.LoadAndDelete(key); loaded {
+				atomic.AddInt64(&c.gzipItemCount, -1)
+			}
+		}
 		return true
 	})
-	atomic.StoreInt64(&c.itemCount, 0)
-	atomic.StoreInt64(&c.gzipItemCount, 0)
+}
+
+func (c *MemoryCache) StartEvictionTicker(interval time.Duration, stopCh <-chan struct{}) {
+	ticker := time.NewTicker(interval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				c.evictExpired()
+			case <-stopCh:
+				return
+			}
+		}
+	}()
 }
 
 type CacheStats struct {

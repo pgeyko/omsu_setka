@@ -1,10 +1,38 @@
 package api
 
 import (
+	"fmt"
+	"net"
+	"net/url"
 	"omsu_mirror/internal/storage"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+func validateWebhookURL(rawURL string, appEnv string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+	if parsed.Scheme == "" {
+		return fmt.Errorf("URL must have a scheme")
+	}
+	if appEnv == "production" && parsed.Scheme != "https" {
+		return fmt.Errorf("only https scheme is allowed in production mode")
+	}
+	if parsed.Scheme != "https" && parsed.Scheme != "http" {
+		return fmt.Errorf("unsupported URL scheme: %s", parsed.Scheme)
+	}
+	host := parsed.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL must have a host")
+	}
+	ip := net.ParseIP(host)
+	if ip != nil && (ip.IsPrivate() || ip.IsLoopback()) {
+		return fmt.Errorf("private and loopback IP addresses are not allowed for webhook URLs")
+	}
+	return nil
+}
 
 type CreateWebhookRequest struct {
 	URL      string `json:"url"`
@@ -33,6 +61,10 @@ func (s *Server) handleCreateWebhook(c *fiber.Ctx) error {
 
 	if req.URL == "" || req.Secret == "" {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "url and secret are required"})
+	}
+
+	if err := validateWebhookURL(req.URL, s.Cfg.AppEnv); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	enabled := true
@@ -185,6 +217,10 @@ func (s *Server) handleUpsertWebhook(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "url and secret are required"})
 	}
 
+	if err := validateWebhookURL(req.URL, s.Cfg.AppEnv); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+
 	enabled := true
 	if req.Enabled != nil {
 		enabled = *req.Enabled
@@ -207,4 +243,20 @@ func (s *Server) handleUpsertWebhook(c *fiber.Ctx) error {
 		status = "created"
 	}
 	return c.JSON(fiber.Map{"id": id, "status": status})
+}
+
+// @Summary List failed webhook deliveries
+// @Description Get all failed webhook deliveries (dead-letter queue)
+// @Tags Admin
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /admin/webhooks/failed [get]
+func (s *Server) handleListFailedDeliveries(c *fiber.Ctx) error {
+	deliveries, err := s.FailedDeliveryRepo.List(c.Context(), 0, 100)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to list failed deliveries"})
+	}
+	return c.JSON(fiber.Map{"deliveries": deliveries})
 }
