@@ -35,6 +35,6 @@ func BenchmarkUpsertGroups(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		repo.UpsertGroups(ctx, groups)
+		_ = repo.UpsertGroups(ctx, groups)
 	}
 }

@@ -87,7 +87,7 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 	if br.FailureCount > 0 {
 		log.Warn().Msgf("FCM: %d messages failed to deliver", br.FailureCount)
 		for i, resp := range br.Responses {
-			if resp.Error != nil && messaging.IsRegistrationTokenNotRegistered(resp.Error) {
+			if resp.Error != nil && messaging.IsUnregistered(resp.Error) {
 				invalidTokens = append(invalidTokens, tokens[i])
 			}
 		}

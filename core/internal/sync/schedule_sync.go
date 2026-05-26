@@ -146,7 +146,7 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 		newL, exists := newLessons[id]
 		if !exists {
 			oldJSON, _ := json.Marshal(oldL.Lesson)
-			s.changeRepo.LogChange(ctx, storage.ScheduleChange{
+			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "removed",
@@ -166,7 +166,7 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 		} else if oldL.Day != newL.Day || !s.isLessonEqual(oldL.Lesson, newL.Lesson) {
 			oldJSON, _ := json.Marshal(oldL.Lesson)
 			newJSON, _ := json.Marshal(newL.Lesson)
-			s.changeRepo.LogChange(ctx, storage.ScheduleChange{
+			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "modified",
@@ -183,7 +183,7 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 	for id, newL := range newLessons {
 		if _, exists := oldLessons[id]; !exists {
 			newJSON, _ := json.Marshal(newL.Lesson)
-			s.changeRepo.LogChange(ctx, storage.ScheduleChange{
+			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "added",
@@ -205,7 +205,7 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 
 	if hasChanges {
 		msg := "Schedule changed for " + entityType + ":" + strconv.Itoa(entityID)
-		s.incidentRepo.LogIncident(ctx, "schedule_change", msg, "")
+		_ = s.incidentRepo.LogIncident(ctx, "schedule_change", msg, "")
 		log.Info().Msg(msg)
 
 		// Send push notifications to subscribers

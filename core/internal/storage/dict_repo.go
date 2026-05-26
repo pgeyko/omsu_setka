@@ -25,7 +25,7 @@ func (r *DictRepo) UpsertGroups(ctx context.Context, groups []models.Group) erro
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	batchSize := 500
 	for i := 0; i < len(groups); i += batchSize {
@@ -85,7 +85,7 @@ func (r *DictRepo) UpsertAuditories(ctx context.Context, auds []models.Auditory)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO dict_auditories (id, name, building, updated_at)
@@ -132,7 +132,7 @@ func (r *DictRepo) UpsertTutors(ctx context.Context, tutors []models.Tutor) erro
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO dict_tutors (id, name, updated_at)

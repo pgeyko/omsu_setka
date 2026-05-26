@@ -20,7 +20,7 @@ func TestFetchGroups_Success(t *testing.T) {
 			Success: true,
 			Data:    json.RawMessage(`[{"id": 1, "name": "МБС-501", "real_group_id": 123}]`),
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer ts.Close()
 
@@ -79,7 +79,7 @@ func TestFetchGroups_APIError(t *testing.T) {
 			Success: false,
 			Message: "error msg",
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer ts.Close()
 
@@ -115,7 +115,7 @@ func TestRetryOnFailure(t *testing.T) {
 			Success: true,
 			Data:    json.RawMessage(`[{"id": 1, "name": "test", "real_group_id": 123}]`),
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer ts.Close()
 
