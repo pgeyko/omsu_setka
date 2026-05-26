@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -115,7 +115,7 @@ const prefixes: Record<string, string> = {
   auditory: 'Аудитория'
 };
 
-export const ScheduleContent: React.FC<ScheduleContentProps> = ({
+const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
   entityType,
   entityID,
   initialName = '',
@@ -358,14 +358,14 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     }
   };
 
-  const isLessonForSubgroup = (lesson: Lesson) => {
+  const isLessonForSubgroup = useCallback((lesson: Lesson) => {
     if (!subgroup || entityType !== 'group') return true;
     const lessonSubgroup = getSubgroupFromText(lesson.subgroupName) || getSubgroupFromText(lesson.group);
     if (lessonSubgroup) {
       return lessonSubgroup === subgroup;
     }
     return true;
-  };
+  }, [subgroup, entityType]);
 
   const getHighlightClass = (type: string) => {
     if (type.includes('Экзамен')) return styles.examHighlight;
@@ -641,6 +641,26 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     return now >= startDate && now <= endDate;
   };
 
+  const currentDay = schedule[activeDayIdx];
+  const isToday = currentDay ? parseDate(currentDay.day).toDateString() === now.toDateString() : false;
+  const visibleCurrentLessons = useMemo(
+    () => currentDay?.lessons.filter(isLessonForSubgroup) || [],
+    [currentDay, isLessonForSubgroup]
+  );
+  const breakInfo = useMemo(
+    () => getBreakInfo(visibleCurrentLessons, now, isToday),
+    [visibleCurrentLessons, now, isToday]
+  );
+  const groupedByTime = useMemo(() => {
+    if (!currentDay?.lessons) return undefined;
+    return currentDay.lessons.reduce<Record<number, Lesson[]>>((acc, lesson) => {
+      if (!acc[lesson.time]) acc[lesson.time] = [];
+      acc[lesson.time].push(lesson);
+      return acc;
+    }, {} as Record<number, Lesson[]>);
+  }, [currentDay]);
+  const weekRangeLabel = useMemo(() => formatWeekRange(activeWeekStart), [activeWeekStart]);
+
   if (loading && !refreshing) return (
     <div className="app-container">
       <nav className={styles.nav}>
@@ -681,11 +701,6 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
       </main>
     </div>
   );
-
-  const currentDay = schedule[activeDayIdx];
-  const isToday = currentDay ? parseDate(currentDay.day).toDateString() === now.toDateString() : false;
-  const visibleCurrentLessons = currentDay?.lessons.filter(isLessonForSubgroup) || [];
-  const breakInfo = getBreakInfo(visibleCurrentLessons, now, isToday);
 
   const BreakBanner = ({ info }: { info: BreakInfo }) => (
     <div className={`${styles.breakBanner} ${info.variant === 'between' ? styles.breakBannerBetween : ''}`}>
@@ -795,7 +810,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
           >
             ←
           </button>
-          <div className={styles.weekInfo}><span className={styles.weekLabel}>{formatWeekRange(activeWeekStart)}</span></div>
+          <div className={styles.weekInfo}><span className={styles.weekLabel}>{weekRangeLabel}</span></div>
           <button
             className={`${styles.weekNav} ${!paginationMeta.hasNext ? styles.navDisabled : ''}`}
             onClick={() => changeWeek(1)}
@@ -835,11 +850,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
                 </GlassCard>
               ) : (
                 (() => {
-                  const grouped = currentDay?.lessons.reduce<Record<number, Lesson[]>>((acc, lesson) => {
-                    if (!acc[lesson.time]) acc[lesson.time] = [];
-                    acc[lesson.time].push(lesson);
-                    return acc;
-                  }, {} as Record<number, Lesson[]>);
+                  const grouped = groupedByTime;
                   const timesList = Object.keys(grouped || {}).map(Number);
                   if (timesList.length === 0) return null;
                   const maxTime = Math.min(8, Math.max(...timesList));
@@ -1064,3 +1075,5 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({
     </>
   );
 };
+
+export const ScheduleContent = React.memo(ScheduleContentImpl);

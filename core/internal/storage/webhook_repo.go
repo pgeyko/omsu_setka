@@ -129,7 +129,7 @@ func (r *WebhookRepo) Update(ctx context.Context, id int, secret string, groupID
 	}
 	_, err = r.db.DB.ExecContext(ctx, `
 		UPDATE webhook_subscribers
-		SET secret = ?, group_ids = ?, enabled = ?, created_at = CURRENT_TIMESTAMP
+		SET secret = ?, group_ids = ?, enabled = ?
 		WHERE id = ?
 	`, secret, string(groupIDsJSON), enabled, id)
 	return err
@@ -153,9 +153,9 @@ func (r *WebhookRepo) UpsertByURL(ctx context.Context, s WebhookSubscriber) (int
 		// Update existing
 		_, err = r.db.DB.ExecContext(ctx, `
 			UPDATE webhook_subscribers
-			SET secret = ?, group_ids = ?, enabled = ?, created_at = CURRENT_TIMESTAMP
-			WHERE id = ?
-		`, s.Secret, string(groupIDsJSON), s.Enabled, existingID)
+		SET secret = ?, group_ids = ?, enabled = ?
+		WHERE id = ?
+	`, s.Secret, string(groupIDsJSON), s.Enabled, existingID)
 		if err != nil {
 			return 0, false, err
 		}

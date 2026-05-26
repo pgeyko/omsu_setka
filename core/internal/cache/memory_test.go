@@ -5,6 +5,7 @@ import (
 )
 
 func TestMemoryCache_SetAndGet(t *testing.T) {
+	t.Parallel()
 	cache := NewMemoryCache()
 	key := "test_key"
 	data := []byte("test_data")
@@ -29,6 +30,7 @@ func TestMemoryCache_SetAndGet(t *testing.T) {
 }
 
 func TestMemoryCache_Gzip(t *testing.T) {
+	t.Parallel()
 	cache := NewMemoryCache()
 	key := "test_gzip_key"
 	data := []byte("gzip_data")
@@ -45,6 +47,7 @@ func TestMemoryCache_Gzip(t *testing.T) {
 }
 
 func TestMemoryCache_InvalidateAndClear(t *testing.T) {
+	t.Parallel()
 	cache := NewMemoryCache()
 	cache.Set("k1", []byte("v1"))
 	cache.Set("k2", []byte("v2"))

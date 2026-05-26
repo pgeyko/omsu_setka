@@ -40,12 +40,37 @@ func setupTestServer() *Server {
 	memoryCache := cache.NewMemoryCache()
 	searchIndex := cache.NewSearchIndex()
 	webhookNotifier := webhook.NewNotifier(webhookRepo, 10*time.Second, 3, 5*time.Second)
-	syncer := sync.NewSyncer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, webhookNotifier, fcm)
+	syncer := sync.NewSyncer(cfg, &sync.Deps{
+		Client:           client,
+		DictRepo:         dictRepo,
+		ScheduleRepo:     scheduleRepo,
+		MemoryCache:      memoryCache,
+		SearchIndex:      searchIndex,
+		IncidentRepo:     incidentRepo,
+		ChangeRepo:       changeRepo,
+		SubscriptionRepo: subscriptionRepo,
+		WebhookRepo:      webhookRepo,
+		WebhookNotifier:  webhookNotifier,
+		FCM:              fcm,
+	})
 
-	return NewServer(cfg, client, dictRepo, scheduleRepo, memoryCache, searchIndex, syncer, incidentRepo, changeRepo, subscriptionRepo, webhookRepo, fcm)
+	return NewServer(cfg, &ServerDeps{
+		Client:           client,
+		DictRepo:         dictRepo,
+		ScheduleRepo:     scheduleRepo,
+		MemoryCache:      memoryCache,
+		SearchIndex:      searchIndex,
+		Syncer:           syncer,
+		IncidentRepo:     incidentRepo,
+		ChangeRepo:       changeRepo,
+		SubscriptionRepo: subscriptionRepo,
+		WebhookRepo:      webhookRepo,
+		FCM:              fcm,
+	})
 }
 
 func TestSecurityHeaders(t *testing.T) {
+	t.Parallel()
 	s := setupTestServer()
 	req := httptest.NewRequest("GET", "/api/v1/health", nil)
 	resp, _ := s.App.Test(req)
@@ -63,6 +88,7 @@ func TestSecurityHeaders(t *testing.T) {
 }
 
 func TestRateLimiter(t *testing.T) {
+	t.Parallel()
 	s := setupTestServer()
 
 	// Exhaust rate limit (limit is 10 for general)
@@ -83,6 +109,7 @@ func TestRateLimiter(t *testing.T) {
 }
 
 func TestETag(t *testing.T) {
+	t.Parallel()
 	s := setupTestServer()
 	req := httptest.NewRequest("GET", "/api/v1/sync/status", nil)
 	resp, _ := s.App.Test(req)

@@ -2,14 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
+	"omsu_mirror/internal/apperrors"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog/log"
 )
 
 // @Summary Get group schedule
@@ -50,136 +49,38 @@ func _() {}
 
 func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		idStr := c.Params("id")
-		id, err := strconv.Atoi(idStr)
+		id, err := strconv.Atoi(c.Params("id"))
 		if err != nil || id < 1 || id > 999999 {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID: must be a number between 1 and 999999"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": apperrors.ErrInvalidID.Error()})
 		}
-
-		key := fmt.Sprintf("%s:%d", entityType, id)
 
 		weekStartStr := c.Query("week_start")
 
-		// 1. Try L1 Cache
-		if data, ok := s.MemoryCache.Get(key); ok {
-			c.Set("X-Cache-Status", "HIT-L1")
-			// If we need filtering, we must unmarshal even from cache
-			if weekStartStr != "" {
-				var cached struct {
-					Data     json.RawMessage `json:"data"`
-					CachedAt time.Time       `json:"cached_at"`
-				}
-				if err := json.Unmarshal(data, &cached); err == nil {
-					var fullSchedule []models.Day
-					if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
-						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-						filteredResp.CachedAt = cached.CachedAt
-						filteredResp.Source = "cache"
-						return c.JSON(filteredResp)
-					}
-				}
-			}
-			c.Set("Content-Type", "application/json")
-			return c.Send(data)
-		}
-
-		// 2. Try L2 Cache (SQLite)
-		data, meta, err := s.ScheduleRepo.GetSchedule(c.Context(), key)
+		result, err := s.ScheduleService.GetSchedule(c.Context(), entityType, id)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to query L2 cache for %s", key)
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": apperrors.ErrUpstreamUnavailable.Error()})
 		}
 
-		if data != nil && time.Now().Before(meta.ExpiresAt) {
-			s.MemoryCache.Set(key, data) // Warm up L1
-			c.Set("X-Cache-Status", "HIT-L2")
+		c.Set("X-Cache-Status", result.Source)
 
-			if weekStartStr != "" {
-				var cached struct {
-					Data     json.RawMessage `json:"data"`
-					CachedAt time.Time       `json:"cached_at"`
-				}
-				if err := json.Unmarshal(data, &cached); err == nil {
-					var fullSchedule []models.Day
-					if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
-						filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-						filteredResp.CachedAt = cached.CachedAt
-						filteredResp.Source = "cache"
-						return c.JSON(filteredResp)
-					}
-				}
-			}
-			c.Set("Content-Type", "application/json")
-			return c.Send(data)
-		}
-
-		// 3. Lazy Fetch from Upstream
-		log.Info().Msgf("Lazy fetching schedule for %s...", key)
-		var schedule []models.Day
-		switch entityType {
-		case "group":
-			schedule, err = s.Client.FetchGroupSchedule(c.Context(), id)
-		case "tutor":
-			schedule, err = s.Client.FetchTutorSchedule(c.Context(), id)
-		case "auditory":
-			schedule, err = s.Client.FetchAuditorySchedule(c.Context(), id)
-		}
-
-		if err != nil {
-			// If upstream is down, try to serve stale L2 data if present
-			if data != nil {
-				c.Set("X-Cache-Status", "STALE")
-				if weekStartStr != "" {
-					var cached struct {
-						Data     json.RawMessage `json:"data"`
-						CachedAt time.Time       `json:"cached_at"`
-					}
-					if err := json.Unmarshal(data, &cached); err == nil {
-						var fullSchedule []models.Day
-						if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
-							filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-							filteredResp.CachedAt = cached.CachedAt
-							filteredResp.Source = "stale"
-							return c.JSON(filteredResp)
-						}
-					}
-				}
-				c.Set("Content-Type", "application/json")
-				return c.Send(data)
-			}
-			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "upstream unavailable and no cache found"})
-		}
-
-		// 4. Wrap and Cache
-		resp := models.BFFResponse{
-			Success:  true,
-			Data:     schedule,
-			CachedAt: time.Now(),
-			Source:   "upstream",
-		}
-
-		jsonData, err := json.Marshal(resp)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to marshal schedule response")
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-		}
-
-		// Update persistent L2
-		if err := s.ScheduleRepo.PutSchedule(c.Context(), key, entityType, id, jsonData, "", s.Cfg.CacheScheduleTTL); err != nil {
-			log.Error().Err(err).Msgf("Failed to update L2 cache for %s", key)
-		}
-
-		// Update L1
-		s.MemoryCache.Set(key, jsonData)
-
-		c.Set("X-Cache-Status", "MISS")
 		if weekStartStr != "" {
-			filteredResp := s.filterSchedule(schedule, weekStartStr)
-			filteredResp.CachedAt = resp.CachedAt
-			filteredResp.Source = resp.Source
-			return c.JSON(filteredResp)
+			var cached struct {
+				Data     json.RawMessage `json:"data"`
+				CachedAt time.Time       `json:"cached_at"`
+			}
+			if err := json.Unmarshal(result.Data, &cached); err == nil {
+				var fullSchedule []models.Day
+				if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
+					filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+					filteredResp.CachedAt = cached.CachedAt
+					filteredResp.Source = "cache"
+					return c.JSON(filteredResp)
+				}
+			}
 		}
 
-		return c.JSON(resp)
+		c.Set("Content-Type", "application/json")
+		return c.Send(result.Data)
 	}
 }
 
@@ -286,10 +187,9 @@ func (s *Server) filterScheduleDay(schedule []models.Day, weekStartStr string, t
 // @Router /schedule/{type}/{id}/day [get]
 func (s *Server) handleGetScheduleDay(entityType string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		idStr := c.Params("id")
-		id, err := strconv.Atoi(idStr)
+		id, err := strconv.Atoi(c.Params("id"))
 		if err != nil || id < 1 || id > 999999 {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid ID"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": apperrors.ErrInvalidID.Error()})
 		}
 
 		dateStr := c.Query("date")
@@ -302,105 +202,35 @@ func (s *Server) handleGetScheduleDay(entityType string) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid date format, expected YYYY-MM-DD"})
 		}
 
-		// Compute Monday of the requested date's week
 		weekday := int(targetDate.Weekday())
 		if weekday == 0 {
-			weekday = 7 // Sunday → 7 in ISO week
+			weekday = 7
 		}
 		monday := targetDate.AddDate(0, 0, -(weekday - 1))
 		monday = time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, time.UTC)
 		weekStartStr := monday.Format("2006-01-02")
 
-		key := fmt.Sprintf("%s:%d", entityType, id)
-
-		// Helper to unmarshal and filter to single day
-		extractDay := func(raw []byte, source string, cachedAt time.Time) (models.BFFResponse, bool) {
-			var wrapper struct {
-				Data json.RawMessage `json:"data"`
-			}
-			if err := json.Unmarshal(raw, &wrapper); err != nil {
-				return models.BFFResponse{}, false
-			}
-			var fullSchedule []models.Day
-			if err := json.Unmarshal(wrapper.Data, &fullSchedule); err != nil {
-				return models.BFFResponse{}, false
-			}
-			resp := s.filterScheduleDay(fullSchedule, weekStartStr, targetDate)
-			resp.CachedAt = cachedAt
-			resp.Source = source
-			return resp, true
-		}
-
-		// 1. L1 Memory cache
-		if data, ok := s.MemoryCache.Get(key); ok {
-			c.Set("X-Cache-Status", "HIT-L1")
-			if resp, ok := extractDay(data, "cache", time.Now()); ok {
-				return c.JSON(resp)
-			}
-		}
-
-		// 2. L2 SQLite cache
-		data, meta, err := s.ScheduleRepo.GetSchedule(c.Context(), key)
+		result, err := s.ScheduleService.GetSchedule(c.Context(), entityType, id)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to query L2 cache for %s", key)
-		}
-		if data != nil && time.Now().Before(meta.ExpiresAt) {
-			s.MemoryCache.Set(key, data)
-			c.Set("X-Cache-Status", "HIT-L2")
-			if resp, ok := extractDay(data, "cache", meta.ExpiresAt.Add(-s.Cfg.CacheScheduleTTL)); ok {
-				return c.JSON(resp)
-			}
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": apperrors.ErrUpstreamUnavailable.Error()})
 		}
 
-		// 3. Fetch from upstream
-		log.Info().Msgf("Lazy fetching schedule for %s (day request: %s)...", key, dateStr)
-		var schedule []models.Day
-		switch entityType {
-		case "group":
-			schedule, err = s.Client.FetchGroupSchedule(c.Context(), id)
-		case "tutor":
-			schedule, err = s.Client.FetchTutorSchedule(c.Context(), id)
-		case "auditory":
-			schedule, err = s.Client.FetchAuditorySchedule(c.Context(), id)
+		c.Set("X-Cache-Status", result.Source)
+
+		var wrapper struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(result.Data, &wrapper); err != nil {
+			return c.Send(result.Data)
+		}
+		var fullSchedule []models.Day
+		if err := json.Unmarshal(wrapper.Data, &fullSchedule); err != nil {
+			return c.Send(result.Data)
 		}
 
-		if err != nil {
-			// Serve stale if available
-			if data != nil {
-				c.Set("X-Cache-Status", "STALE")
-				if resp, ok := extractDay(data, "stale", time.Time{}); ok {
-					return c.JSON(resp)
-				}
-				// If cached payload cannot be transformed to a single-day response,
-				// still return cached data instead of failing hard.
-				c.Set("Content-Type", "application/json")
-				return c.Send(data)
-			}
-			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "upstream unavailable and no cache found"})
-		}
-
-		// 4. Cache and respond
-		fullResp := models.BFFResponse{
-			Success:  true,
-			Data:     schedule,
-			CachedAt: time.Now(),
-			Source:   "upstream",
-		}
-		jsonData, err := json.Marshal(fullResp)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to marshal schedule response")
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-		}
-
-		if err := s.ScheduleRepo.PutSchedule(c.Context(), key, entityType, id, jsonData, "", s.Cfg.CacheScheduleTTL); err != nil {
-			log.Error().Err(err).Msgf("Failed to update L2 cache for %s", key)
-		}
-		s.MemoryCache.Set(key, jsonData)
-
-		c.Set("X-Cache-Status", "MISS")
-		resp := s.filterScheduleDay(schedule, weekStartStr, targetDate)
-		resp.CachedAt = fullResp.CachedAt
-		resp.Source = fullResp.Source
+		resp := s.filterScheduleDay(fullSchedule, weekStartStr, targetDate)
+		resp.CachedAt = result.CachedAt
+		resp.Source = result.Source
 		return c.JSON(resp)
 	}
 }

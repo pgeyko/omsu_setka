@@ -6,6 +6,7 @@ import (
 )
 
 func TestSearchIndex(t *testing.T) {
+	t.Parallel()
 	idx := NewSearchIndex()
 
 	groups := []models.Group{
@@ -62,6 +63,7 @@ func TestSearchIndex(t *testing.T) {
 }
 
 func TestNormalize(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		input    string
 		expected string
