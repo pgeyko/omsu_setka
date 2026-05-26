@@ -1,0 +1,16 @@
+# Gitleaks configuration for omsu_setka
+# Extends default config with project-specific allowlists.
+
+title = "omsu_setka gitleaks config"
+
+[[allowlist]]
+description = "Example curl commands in documentation - not real secrets"
+regexes = [
+    # Match X-Admin-Key in docs/ADMIN_GUIDE.md curl examples
+    "(?i)X-Admin-Key:.*your-admin-key-here",
+    # Match any example/template secrets in documentation
+    "(?i)X-Admin-Key:.*<your",
+]
+paths = [
+    "docs/ADMIN_GUIDE.md",
+]
