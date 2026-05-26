@@ -98,7 +98,7 @@ func (s *Syncer) recordSuccess(ctx context.Context, contextMsg string) {
 
 	if !s.status.IsHealthy {
 		log.Info().Msg("Upstream has recovered")
-		s.incidentRepo.LogIncident(ctx, "up", "Upstream is back online context: "+contextMsg, "")
+		_ = s.incidentRepo.LogIncident(ctx, "up", "Upstream is back online context: "+contextMsg, "")
 	}
 
 	s.status.IsHealthy = true
@@ -120,7 +120,7 @@ func (s *Syncer) recordFailure(ctx context.Context, contextMsg string, err error
 
 	if wasHealthy {
 		log.Warn().Err(err).Msgf("Upstream has gone down %s", contextMsg)
-		s.incidentRepo.LogIncident(ctx, "down", "Upstream is unavailable during: "+contextMsg, err.Error())
+		_ = s.incidentRepo.LogIncident(ctx, "down", "Upstream is unavailable during: "+contextMsg, err.Error())
 	} else if s.status.ConsecutiveFailures%10 == 0 {
 		log.Info().Msgf("Upstream still down (%d consecutive failures) %s", s.status.ConsecutiveFailures, contextMsg)
 	}

@@ -119,7 +119,7 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time, todaySt
 			"kind": "digest",
 		})
 
-		s.subscriptionRepo.MarkDigestSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, todayStr)
+		_ = s.subscriptionRepo.MarkDigestSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, todayStr)
 	}
 
 	if count > 0 {
@@ -172,7 +172,7 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 					"kind": "reminder",
 				})
 
-				s.subscriptionRepo.MarkReminderSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, reminderDateTimeStr)
+				_ = s.subscriptionRepo.MarkReminderSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, reminderDateTimeStr)
 				break // Only one notification per minute/subscription
 			}
 		}

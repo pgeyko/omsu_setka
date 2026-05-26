@@ -39,7 +39,7 @@ func (s *Syncer) SyncDictionaries(ctx context.Context) error {
 		if err := s.dictRepo.UpsertGroups(ctx, groups); err != nil {
 			log.Error().Err(err).Msg("Failed to upsert groups")
 		}
-		s.cacheCollection("groups", groups)
+		_ = s.cacheCollection("groups", groups)
 		hasChanges = true
 	} else if errGroups != nil {
 		s.recordFailure(ctx, "sync_groups", errGroups)
@@ -50,7 +50,7 @@ func (s *Syncer) SyncDictionaries(ctx context.Context) error {
 		if err := s.dictRepo.UpsertAuditories(ctx, auds); err != nil {
 			log.Error().Err(err).Msg("Failed to upsert auditories")
 		}
-		s.cacheCollection("auditories", auds)
+		_ = s.cacheCollection("auditories", auds)
 		log.Info().Msgf("Successfully synced %d auditories", len(auds))
 		hasChanges = true
 	} else if errAuds != nil {
@@ -62,7 +62,7 @@ func (s *Syncer) SyncDictionaries(ctx context.Context) error {
 		if err := s.dictRepo.UpsertTutors(ctx, tutors); err != nil {
 			log.Error().Err(err).Msg("Failed to upsert tutors")
 		}
-		s.cacheCollection("tutors", tutors)
+		_ = s.cacheCollection("tutors", tutors)
 		hasChanges = true
 	} else if errTutors != nil {
 		s.recordFailure(ctx, "sync_tutors", errTutors)

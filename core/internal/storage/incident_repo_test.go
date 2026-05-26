@@ -28,7 +28,7 @@ func TestIncidentRepo_LogAndGet(t *testing.T) {
 	}
 
 	// Test CleanOld
-	repo.LogIncident(ctx, "up", "Upstream is up", "")
+	_ = repo.LogIncident(ctx, "up", "Upstream is up", "")
 	affected, err := repo.CleanOld(ctx, 1)
 	if err != nil {
 		t.Fatalf("CleanOld failed: %v", err)

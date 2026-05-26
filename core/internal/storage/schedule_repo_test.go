@@ -56,7 +56,7 @@ func TestScheduleRepo_PutAndGet(t *testing.T) {
 	}
 
 	// Test expired cleaning
-	repo.PutSchedule(ctx, "group:old", "group", 2, []byte("old"), "", -time.Minute)
+	_ = repo.PutSchedule(ctx, "group:old", "group", 2, []byte("old"), "", -time.Minute)
 	deleted, err := repo.CleanExpired(ctx)
 	if err != nil {
 		t.Fatalf("CleanExpired failed: %v", err)
