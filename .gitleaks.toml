@@ -3,14 +3,12 @@
 
 title = "omsu_setka gitleaks config"
 
-[[allowlist]]
+[allowlist]
 description = "Example curl commands in documentation - not real secrets"
 regexes = [
-    # Match X-Admin-Key in docs/ADMIN_GUIDE.md curl examples
-    "(?i)X-Admin-Key:.*your-admin-key-here",
-    # Match any example/template secrets in documentation
-    "(?i)X-Admin-Key:.*<your",
+	"(?i)X-Admin-Key:.*your-admin-key-here",
+	"(?i)X-Admin-Key:.*<your",
 ]
 paths = [
-    "docs/ADMIN_GUIDE.md",
+	"docs/ADMIN_GUIDE.md",
 ]
