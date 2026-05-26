@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"omsu_mirror/internal/config"
 	"omsu_mirror/internal/models"
@@ -27,7 +28,7 @@ func NewClient(cfg *config.Config) *Client {
 			ReadTimeout:     cfg.UpstreamTimeout,
 			WriteTimeout:    cfg.UpstreamTimeout,
 			MaxConnsPerHost: cfg.UpstreamMaxConns,
-			TLSConfig:       &tls.Config{},
+			TLSConfig:       &tls.Config{MinVersion: tls.VersionTLS12},
 		},
 		cfg:     cfg,
 		limiter: time.NewTicker(time.Second / time.Duration(cfg.UpstreamRateLimit)),
@@ -52,17 +53,22 @@ func (c *Client) doRequest(ctx context.Context, url string, result interface{}) 
 
 	var err error
 	maxRetries := 3
+	baseDelay := 500 * time.Millisecond
 	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			delay := baseDelay * (1 << i)
+			jitter := time.Duration(rand.Int63n(int64(delay / 2)))
+			time.Sleep(delay + jitter)
+		}
+
 		if err = c.client.DoTimeout(req, resp, c.cfg.UpstreamTimeout); err != nil {
 			log.Warn().Err(err).Msgf("Upstream request failed (try %d/%d): %s", i+1, maxRetries, url)
-			time.Sleep(time.Duration(i+1) * 500 * time.Millisecond) // Exponential backoff-ish
 			continue
 		}
 
 		if resp.StatusCode() != http.StatusOK {
 			err = fmt.Errorf("upstream returned status %d", resp.StatusCode())
 			log.Warn().Err(err).Msgf("Upstream error (try %d/%d): %s", i+1, maxRetries, url)
-			time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
 			continue
 		}
 

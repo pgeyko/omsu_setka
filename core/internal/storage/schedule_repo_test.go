@@ -9,7 +9,7 @@ import (
 func TestScheduleRepo_PutAndGet(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	repo := NewScheduleRepo(db)
+	repo := NewScheduleRepo(db, make(chan struct{}))
 	ctx := context.Background()
 
 	err := repo.PutSchedule(ctx, "group:1", "group", 1, []byte("schedule_data"), "etag1", 5*time.Minute)

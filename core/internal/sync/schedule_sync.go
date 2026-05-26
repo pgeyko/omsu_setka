@@ -8,10 +8,21 @@ import (
 	"omsu_mirror/internal/webhook"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
+
+// safeMarshalJSON marshals v to JSON string, logging and returning empty on error.
+func safeMarshalJSON(v interface{}) string {
+	data, err := json.Marshal(v)
+	if err != nil {
+		log.Error().Err(err).Msg("safeMarshalJSON: failed to marshal value")
+		return ""
+	}
+	return string(data)
+}
 
 func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
 	keys, err := s.scheduleRepo.GetActiveScheduleKeys(ctx, 24*time.Hour)
@@ -21,54 +32,80 @@ func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
 
 	log.Info().Msgf("Syncing %d active schedules...", len(keys))
 
+	const numWorkers = 5
+	sem := make(chan struct{}, numWorkers)
+	var mu sync.Mutex
 	var hasErrors bool
 	var lastErr error
+	var wg sync.WaitGroup
 
 	for _, key := range keys {
+		key := key
 		select {
 		case <-ctx.Done():
+			wg.Wait()
 			return ctx.Err()
 		default:
 		}
 
-		parts := strings.Split(key, ":")
-		if len(parts) != 2 {
-			continue
-		}
+		wg.Add(1)
+		sem <- struct{}{}
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
 
-		entityType := parts[0]
-		entityID, err := strconv.Atoi(parts[1])
-		if err != nil {
-			log.Warn().Err(err).Msgf("Invalid key format: %s", key)
-			continue
-		}
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 
-		var schedule []models.Day
-		switch entityType {
-		case "group":
-			schedule, err = s.client.FetchGroupSchedule(ctx, entityID)
-		case "tutor":
-			schedule, err = s.client.FetchTutorSchedule(ctx, entityID)
-		case "auditory":
-			schedule, err = s.client.FetchAuditorySchedule(ctx, entityID)
-		default:
-			log.Warn().Msgf("Unknown entity type in key: %s", key)
-			continue
-		}
+			parts := strings.Split(key, ":")
+			if len(parts) != 2 {
+				return
+			}
 
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to sync schedule for %s", key)
-			hasErrors = true
-			lastErr = err
-			continue
-		}
+			entityType := parts[0]
+			entityID, err := strconv.Atoi(parts[1])
+			if err != nil {
+				log.Warn().Err(err).Msgf("Invalid key format: %s", key)
+				return
+			}
 
-		if err := s.UpdateSchedule(ctx, key, entityType, entityID, schedule); err != nil {
-			log.Error().Err(err).Msgf("Failed to update cache for %s", key)
-			hasErrors = true
-			lastErr = err
-		}
+			var schedule []models.Day
+			switch entityType {
+			case "group":
+				schedule, err = s.client.FetchGroupSchedule(ctx, entityID)
+			case "tutor":
+				schedule, err = s.client.FetchTutorSchedule(ctx, entityID)
+			case "auditory":
+				schedule, err = s.client.FetchAuditorySchedule(ctx, entityID)
+			default:
+				log.Warn().Msgf("Unknown entity type in key: %s", key)
+				return
+			}
+
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to sync schedule for %s", key)
+				mu.Lock()
+				hasErrors = true
+				lastErr = err
+				mu.Unlock()
+				return
+			}
+
+			if err := s.UpdateSchedule(ctx, key, entityType, entityID, schedule); err != nil {
+				log.Error().Err(err).Msgf("Failed to update cache for %s", key)
+				mu.Lock()
+				hasErrors = true
+				lastErr = err
+				mu.Unlock()
+				return
+			}
+		}()
 	}
+
+	wg.Wait()
 
 	if hasErrors {
 		s.recordFailure(ctx, "sync_active_schedules", lastErr)
@@ -90,11 +127,10 @@ func (s *Syncer) UpdateSchedule(ctx context.Context, key string, entityType stri
 		var oldResp models.BFFResponse
 		if err := json.Unmarshal(oldData, &oldResp); err == nil {
 			var oldSchedule []models.Day
-			// Re-marshal and unmarshal to get proper models.Day slice if needed,
-			// or just use map[string]interface{} for generic diff.
-			// Let's try to convert back to []models.Day for typed diff.
-			dataBytes, _ := json.Marshal(oldResp.Data)
-			if err := json.Unmarshal(dataBytes, &oldSchedule); err == nil {
+			dataBytes, err := json.Marshal(oldResp.Data)
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed to re-marshal old schedule data for diff")
+			} else if err := json.Unmarshal(dataBytes, &oldSchedule); err == nil {
 				s.compareAndLogChanges(ctx, entityType, entityID, oldSchedule, schedule)
 			}
 		}
@@ -145,16 +181,16 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 	for id, oldL := range oldLessons {
 		newL, exists := newLessons[id]
 		if !exists {
-			oldJSON, _ := json.Marshal(oldL.Lesson)
+			oldJSON := safeMarshalJSON(oldL.Lesson)
 			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "removed",
 				LessonID:   id,
-				OldData:    string(oldJSON),
+				OldData:    oldJSON,
 			})
 			hasChanges = true
-			oldLessonJSON, _ := json.Marshal(oldL.Lesson)
+			oldLessonJSON := safeMarshalJSON(oldL.Lesson)
 			webhookChanges = append(webhookChanges, webhook.Change{
 				Date:    convertDate(oldL.Day),
 				Pair:    oldL.Time,
@@ -164,15 +200,15 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 				Subject: oldL.Lesson.Lesson,
 			})
 		} else if oldL.Day != newL.Day || !s.isLessonEqual(oldL.Lesson, newL.Lesson) {
-			oldJSON, _ := json.Marshal(oldL.Lesson)
-			newJSON, _ := json.Marshal(newL.Lesson)
+			oldJSON := safeMarshalJSON(oldL.Lesson)
+			newJSON := safeMarshalJSON(newL.Lesson)
 			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "modified",
 				LessonID:   id,
-				OldData:    string(oldJSON),
-				NewData:    string(newJSON),
+				OldData:    oldJSON,
+				NewData:    newJSON,
 			})
 			hasChanges = true
 			webhookChanges = append(webhookChanges, lessonDiffToChanges(oldL, newL)...)
@@ -182,22 +218,22 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 	// Check for added
 	for id, newL := range newLessons {
 		if _, exists := oldLessons[id]; !exists {
-			newJSON, _ := json.Marshal(newL.Lesson)
+			newJSON := safeMarshalJSON(newL.Lesson)
 			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "added",
 				LessonID:   id,
-				NewData:    string(newJSON),
+				NewData:    newJSON,
 			})
 			hasChanges = true
-			newLessonJSON, _ := json.Marshal(newL.Lesson)
+			newLessonJSON := safeMarshalJSON(newL.Lesson)
 			webhookChanges = append(webhookChanges, webhook.Change{
 				Date:    convertDate(newL.Day),
 				Pair:    newL.Time,
 				Field:   "full",
 				Old:     "",
-				New:     string(newLessonJSON),
+				New:     newLessonJSON,
 				Subject: newL.Lesson.Lesson,
 			})
 		}

@@ -25,27 +25,29 @@ type Server struct {
 	ScheduleRepo     *storage.ScheduleRepo
 	ChangeRepo       *storage.ChangeRepo
 	SubscriptionRepo *storage.SubscriptionRepo
-	WebhookRepo      *storage.WebhookRepo
-	FCM              *notifications.FCMClient
-	MemoryCache      *cache.MemoryCache
-	SearchIndex      *cache.SearchIndex
-	Syncer           *sync.Syncer
-	IncidentRepo     *storage.IncidentRepo
-	ScheduleService  *service.ScheduleService
+	WebhookRepo        *storage.WebhookRepo
+	FailedDeliveryRepo *storage.FailedDeliveryRepo
+	FCM                *notifications.FCMClient
+	MemoryCache        *cache.MemoryCache
+	SearchIndex        *cache.SearchIndex
+	Syncer             *sync.Syncer
+	IncidentRepo       *storage.IncidentRepo
+	ScheduleService    *service.ScheduleService
 }
 
 type ServerDeps struct {
-	Client           *upstream.Client
-	DictRepo         *storage.DictRepo
-	ScheduleRepo     *storage.ScheduleRepo
-	MemoryCache      *cache.MemoryCache
-	SearchIndex      *cache.SearchIndex
-	Syncer           *sync.Syncer
-	IncidentRepo     *storage.IncidentRepo
-	ChangeRepo       *storage.ChangeRepo
-	SubscriptionRepo *storage.SubscriptionRepo
-	WebhookRepo      *storage.WebhookRepo
-	FCM              *notifications.FCMClient
+	Client             *upstream.Client
+	DictRepo           *storage.DictRepo
+	ScheduleRepo       *storage.ScheduleRepo
+	MemoryCache        *cache.MemoryCache
+	SearchIndex        *cache.SearchIndex
+	Syncer             *sync.Syncer
+	IncidentRepo       *storage.IncidentRepo
+	ChangeRepo         *storage.ChangeRepo
+	SubscriptionRepo   *storage.SubscriptionRepo
+	WebhookRepo        *storage.WebhookRepo
+	FailedDeliveryRepo *storage.FailedDeliveryRepo
+	FCM                *notifications.FCMClient
 }
 
 func NewServer(cfg *config.Config, deps *ServerDeps) *Server {
@@ -82,8 +84,9 @@ func NewServer(cfg *config.Config, deps *ServerDeps) *Server {
 		ScheduleRepo:     deps.ScheduleRepo,
 		ChangeRepo:       deps.ChangeRepo,
 		SubscriptionRepo: deps.SubscriptionRepo,
-		WebhookRepo:      deps.WebhookRepo,
-		FCM:              deps.FCM,
+		WebhookRepo:        deps.WebhookRepo,
+		FailedDeliveryRepo: deps.FailedDeliveryRepo,
+		FCM:                deps.FCM,
 		MemoryCache:      deps.MemoryCache,
 		SearchIndex:      deps.SearchIndex,
 		Syncer:           deps.Syncer,
@@ -97,6 +100,10 @@ func NewServer(cfg *config.Config, deps *ServerDeps) *Server {
 }
 
 func (s *Server) setupRoutes() {
+	// Liveness and readiness probes — at app level, bypass all middleware
+	s.App.Get("/live", s.handleLive)
+	s.App.Get("/ready", s.handleReady)
+
 	// Swagger is disabled by default and only enabled explicitly in non-production environments.
 	if s.Cfg.SwaggerEnabled && s.Cfg.AppEnv != "production" {
 		s.App.Get("/swagger/*", AdminAuth(s.Cfg), swagger.HandlerDefault)
@@ -155,6 +162,7 @@ func (s *Server) setupRoutes() {
 	admin.Get("/webhooks", s.handleListWebhooks)
 	admin.Patch("/webhooks/:id", s.handleUpdateWebhook)
 	admin.Delete("/webhooks/:id", s.handleDeleteWebhook)
+	admin.Get("/webhooks/failed", s.handleListFailedDeliveries)
 }
 
 func (s *Server) Start() error {

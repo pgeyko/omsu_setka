@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Копируем конфиги npm из папки web
 COPY web/package.json web/package-lock.json* ./
-RUN npm install --legacy-peer-deps
+RUN npm install
 
 # Передаем переменные окружения через build-args вместо копирования .env
 # Это предотвращает попадание секретов в слои образа

@@ -12,6 +12,24 @@ import (
 
 var startTime = time.Now()
 
+func (s *Server) handleLive(c *fiber.Ctx) error {
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (s *Server) handleReady(c *fiber.Ctx) error {
+	db := s.ScheduleRepo.GetDB()
+	if db != nil {
+		if err := db.PingContext(c.Context()); err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "not ready", "error": "database ping failed"})
+		}
+	}
+	status := s.Syncer.GetUpstreamStatus()
+	if !status.IsHealthy && status.ConsecutiveFailures > 3 {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "degraded", "error": "upstream unavailable"})
+	}
+	return c.JSON(fiber.Map{"status": "ready"})
+}
+
 // @Summary Get health status
 // @Description Returns service uptime and cache statistics.
 // @Tags Meta

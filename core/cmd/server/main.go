@@ -51,18 +51,24 @@ func main() {
 	}
 	defer db.Close()
 
+	// Start periodic VACUUM (weekly)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go db.RunPeriodicVACUUM(ctx, 7*24*time.Hour)
+
 	dictRepo := storage.NewDictRepo(db)
-	scheduleRepo := storage.NewScheduleRepo(db)
+	scheduleRepo := storage.NewScheduleRepo(db, ctx.Done())
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
 	webhookRepo := storage.NewWebhookRepo(db)
+	failedDeliveryRepo := storage.NewFailedDeliveryRepo(db)
 
 	// 4. Initialize Upstream Client
 	client := upstream.NewClient(cfg)
 
 	// 5. Initialize Webhook Notifier
-	webhookNotifier := webhook.NewNotifier(webhookRepo, cfg.WebhookTimeout, cfg.WebhookRetryAttempts, cfg.WebhookRetryDelay)
+	webhookNotifier := webhook.NewNotifier(webhookRepo, failedDeliveryRepo, cfg.WebhookTimeout, cfg.WebhookRetryAttempts, cfg.WebhookRetryDelay)
 
 	// 6. Initialize FCM Client
 	fcm := notifications.NewFCMClient(cfg)
@@ -97,20 +103,13 @@ func main() {
 		IncidentRepo:     incidentRepo,
 		ChangeRepo:       changeRepo,
 		SubscriptionRepo: subscriptionRepo,
-		WebhookRepo:      webhookRepo,
-		FCM:              fcm,
+		WebhookRepo:        webhookRepo,
+		FailedDeliveryRepo: failedDeliveryRepo,
+		FCM:                fcm,
 	})
 
-	// Context for graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// 8. Start Background Sync
-	syncerDone := make(chan struct{})
-	go func() {
-		defer close(syncerDone)
-		syncer.Run(ctx)
-	}()
+	go syncer.Run(ctx)
 
 	// 9. Start API Server
 	go func() {
@@ -127,14 +126,8 @@ func main() {
 	log.Info().Msg("Shutting down gracefully...")
 
 	cancel() // Stop syncer
-
-	// Wait deterministically for syncer shutdown instead of sleeping blindly.
-	select {
-	case <-syncerDone:
-		log.Info().Msg("Syncer stopped")
-	case <-time.After(3 * time.Second):
-		log.Warn().Msg("Timed out waiting for syncer shutdown")
-	}
+	syncer.Wait()
+	log.Info().Msg("Syncer stopped")
 
 	if err := server.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Server forced to shutdown")

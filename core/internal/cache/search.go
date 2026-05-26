@@ -2,6 +2,7 @@ package cache
 
 import (
 	"omsu_mirror/internal/models"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -81,10 +82,7 @@ func (idx *SearchIndex) insert(root *node, key string, res SearchResult) {
 			curr.children[r] = &node{children: make(map[rune]*node)}
 		}
 		curr = curr.children[r]
-		// Limit results at each node to keep memory low and search fast
-		if len(curr.results) < 50 {
-			curr.results = append(curr.results, res)
-		}
+		curr.results = append(curr.results, res)
 	}
 }
 
@@ -121,10 +119,31 @@ func (idx *SearchIndex) Search(query string, filterType string, limit int) []Sea
 
 		results = append(results, res)
 		seen[key] = true
+	}
 
-		if len(results) >= limit {
-			break
+	sort.Slice(results, func(i, j int) bool {
+		ni := normalize(results[i].Name)
+		nj := normalize(results[j].Name)
+
+		// Exact normalized match first
+		if ni == query && nj != query {
+			return true
 		}
+		if nj == query && ni != query {
+			return false
+		}
+
+		// Shorter names first
+		if len(ni) != len(nj) {
+			return len(ni) < len(nj)
+		}
+
+		// Alphabetical tiebreaker
+		return results[i].Name < results[j].Name
+	})
+
+	if len(results) > limit {
+		results = results[:limit]
 	}
 
 	return results

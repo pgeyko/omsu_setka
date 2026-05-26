@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	_ "modernc.org/sqlite"
@@ -9,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type SQLite struct {
@@ -22,8 +25,17 @@ func NewSQLite(cfg *config.Config) (*SQLite, error) {
 		return nil, fmt.Errorf("failed to create storage dir: %w", err)
 	}
 
-	// Open database
-	db, err := sql.Open("sqlite", cfg.SQLitePath)
+	// Build DSN with PRAGMA parameters that apply to ALL connections from the pool.
+	// Using _pragma= in DSN is the only reliable way with database/sql connection pooling.
+	dsn := cfg.SQLitePath
+	if cfg.SQLiteWALMode {
+		dsn += "?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	} else {
+		dsn += "?_pragma=synchronous(FULL)"
+	}
+	dsn += fmt.Sprintf("&_pragma=busy_timeout(%d)&_pragma=foreign_keys(ON)", cfg.SQLiteBusyTimeout)
+
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -31,24 +43,8 @@ func NewSQLite(cfg *config.Config) (*SQLite, error) {
 	// SQLite with WAL mode can handle multiple readers and one writer.
 	// We increase the connection pool to prevent API hangs during background syncs.
 	db.SetMaxOpenConns(4)
-	db.SetMaxIdleConns(5)
+	db.SetMaxIdleConns(4)
 	db.SetConnMaxLifetime(30 * time.Minute)
-
-	// Configure WAL mode for concurrency
-	if cfg.SQLiteWALMode {
-		if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
-			return nil, fmt.Errorf("failed to enable WAL: %w", err)
-		}
-		// NORMAL is recommended for WAL mode to improve performance while being safe
-		if _, err := db.Exec("PRAGMA synchronous=NORMAL;"); err != nil {
-			return nil, fmt.Errorf("failed to set synchronous mode: %w", err)
-		}
-	}
-
-	// Set busy timeout
-	if _, err := db.Exec(fmt.Sprintf("PRAGMA busy_timeout=%d;", cfg.SQLiteBusyTimeout)); err != nil {
-		return nil, fmt.Errorf("failed to set busy timeout: %w", err)
-	}
 
 	s := &SQLite{DB: db}
 	if err := migrations.Migrate(db); err != nil {
@@ -56,6 +52,27 @@ func NewSQLite(cfg *config.Config) (*SQLite, error) {
 	}
 
 	return s, nil
+}
+
+func (s *SQLite) RunPeriodicVACUUM(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			log.Info().Msg("Running periodic VACUUM...")
+			if _, err := s.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE);"); err != nil {
+				log.Warn().Err(err).Msg("VACUUM: wal_checkpoint failed")
+			}
+			if _, err := s.DB.Exec("VACUUM;"); err != nil {
+				log.Warn().Err(err).Msg("VACUUM failed")
+			} else {
+				log.Info().Msg("VACUUM completed successfully")
+			}
+		}
+	}
 }
 
 func (s *SQLite) Close() error {

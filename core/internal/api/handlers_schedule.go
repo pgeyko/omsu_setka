@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"omsu_mirror/internal/apperrors"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
@@ -64,18 +65,41 @@ func (s *Server) handleGetSchedule(entityType string) fiber.Handler {
 		c.Set("X-Cache-Status", result.Source)
 
 		if weekStartStr != "" {
-			var cached struct {
-				Data     json.RawMessage `json:"data"`
-				CachedAt time.Time       `json:"cached_at"`
-			}
-			if err := json.Unmarshal(result.Data, &cached); err == nil {
-				var fullSchedule []models.Day
-				if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
-					filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
-					filteredResp.CachedAt = cached.CachedAt
-					filteredResp.Source = "cache"
-					return c.JSON(filteredResp)
+			key := fmt.Sprintf("%s:%d", entityType, id)
+			var fullSchedule []models.Day
+			var cachedAt time.Time
+			if typed, ok := s.MemoryCache.GetTyped(key); ok {
+				cacheEntry, ok := typed.(struct {
+					Days     []models.Day
+					CachedAt time.Time
+				})
+				if ok {
+					fullSchedule = cacheEntry.Days
+					cachedAt = cacheEntry.CachedAt
+				} else {
+					s.MemoryCache.Invalidate(key)
 				}
+			}
+			if fullSchedule == nil {
+				var cached struct {
+					Data     json.RawMessage `json:"data"`
+					CachedAt time.Time       `json:"cached_at"`
+				}
+				if err := json.Unmarshal(result.Data, &cached); err == nil {
+					cachedAt = cached.CachedAt
+					if err := json.Unmarshal(cached.Data, &fullSchedule); err == nil {
+						s.MemoryCache.SetTyped(key, struct {
+							Days     []models.Day
+							CachedAt time.Time
+						}{fullSchedule, cachedAt})
+					}
+				}
+			}
+			if fullSchedule != nil {
+				filteredResp := s.filterSchedule(fullSchedule, weekStartStr)
+				filteredResp.CachedAt = cachedAt
+				filteredResp.Source = "cache"
+				return c.JSON(filteredResp)
 			}
 		}
 
@@ -217,15 +241,26 @@ func (s *Server) handleGetScheduleDay(entityType string) fiber.Handler {
 
 		c.Set("X-Cache-Status", result.Source)
 
-		var wrapper struct {
-			Data json.RawMessage `json:"data"`
-		}
-		if err := json.Unmarshal(result.Data, &wrapper); err != nil {
-			return c.Send(result.Data)
-		}
+		key := fmt.Sprintf("%s:%d", entityType, id)
 		var fullSchedule []models.Day
-		if err := json.Unmarshal(wrapper.Data, &fullSchedule); err != nil {
-			return c.Send(result.Data)
+		if typed, ok := s.MemoryCache.GetTyped(key); ok {
+			if fs, ok := typed.([]models.Day); ok {
+				fullSchedule = fs
+			} else {
+				s.MemoryCache.Invalidate(key)
+			}
+		}
+		if fullSchedule == nil {
+			var wrapper struct {
+				Data json.RawMessage `json:"data"`
+			}
+			if err := json.Unmarshal(result.Data, &wrapper); err != nil {
+				return c.Send(result.Data)
+			}
+			if err := json.Unmarshal(wrapper.Data, &fullSchedule); err != nil {
+				return c.Send(result.Data)
+			}
+			s.MemoryCache.SetTyped(key, fullSchedule)
 		}
 
 		resp := s.filterScheduleDay(fullSchedule, weekStartStr, targetDate)

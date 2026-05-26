@@ -94,6 +94,19 @@ func Migrate(db *sql.DB) error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_webhook_subscribers_url ON webhook_subscribers(url);`,
+		`CREATE TABLE IF NOT EXISTS webhook_failed_deliveries (
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			subscriber_id  INTEGER NOT NULL,
+			url            TEXT NOT NULL,
+			payload        BLOB NOT NULL,
+			event_id       TEXT NOT NULL,
+			timestamp      TEXT NOT NULL,
+			error          TEXT NOT NULL,
+			attempt_count  INTEGER DEFAULT 3,
+			created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (subscriber_id) REFERENCES webhook_subscribers(id)
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_failed_deliveries_created ON webhook_failed_deliveries(created_at);`,
 		`CREATE TABLE IF NOT EXISTS schema_version (
 				id          INTEGER PRIMARY KEY CHECK (id = 1),
 				version     INTEGER NOT NULL,

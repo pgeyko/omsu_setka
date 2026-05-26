@@ -2,5 +2,13 @@ node_modules/
 .git/
 *.md
 .dockerignore
+.env
+.env.example
+*.db
+Dockerfile
+docker-compose*.yml
+dev/
+docs/
+.github/
+tools/
 web/node_modules/
-

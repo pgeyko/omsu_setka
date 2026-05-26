@@ -115,6 +115,18 @@ const prefixes: Record<string, string> = {
   auditory: 'Аудитория'
 };
 
+const BreakBanner = React.memo(({ info }: { info: BreakInfo }) => (
+  <div className={`${styles.breakBanner} ${info.variant === 'between' ? styles.breakBannerBetween : ''}`}>
+    <div className={styles.breakIcon}>
+      <Coffee size={18} />
+    </div>
+    <div className={styles.breakText}>
+      <div className={styles.breakTitle}>{info.title}</div>
+      <div className={styles.breakDetail}>{info.detail}</div>
+    </div>
+  </div>
+));
+
 const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
   entityType,
   entityID,
@@ -699,18 +711,6 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
           ))}
         </div>
       </main>
-    </div>
-  );
-
-  const BreakBanner = ({ info }: { info: BreakInfo }) => (
-    <div className={`${styles.breakBanner} ${info.variant === 'between' ? styles.breakBannerBetween : ''}`}>
-      <div className={styles.breakIcon}>
-        <Coffee size={18} />
-      </div>
-      <div className={styles.breakText}>
-        <div className={styles.breakTitle}>{info.title}</div>
-        <div className={styles.breakDetail}>{info.detail}</div>
-      </div>
     </div>
   );
 
