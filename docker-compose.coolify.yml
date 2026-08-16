@@ -1,0 +1,109 @@
+# Coolify deployment for omsu_setka.
+#
+# Usage:
+#   Build Pack:         Docker Compose
+#   Compose Location:   docker-compose.coolify.yml
+#   Base Directory:     /
+#   Ports Exposes:      80
+#   Domain:             assign to the "frontend" service (port 80).
+#                       Coolify generates SERVICE_FQDN_FRONTEND from it
+#                       and proxies HTTPS -> container port 80.
+#
+# Coolify magic variables used below (auto-generated/editable in the UI):
+#   SERVICE_FQDN_FRONTEND       FQDN of the frontend (no scheme)
+#   SERVICE_PASSWORD_64_BACKEND 64-char random ADMIN_KEY (no symbols)
+#
+# Required manual variables (set in Coolify UI):
+#   Build time:  VITE_FIREBASE_* (all), VITE_CF_ANALYTICS_TOKEN
+#   Runtime:     FIREBASE_SERVICE_ACCOUNT (JSON), optional ICAL_ACCESS_TOKEN
+#
+# NOTE: the backend service is intentionally NOT exposed to the internet.
+# All /api traffic (including admin endpoints and webhooks) goes through the
+# frontend nginx proxy, which forwards it to backend:8080 on the same network.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - backend_data:/app/data
+    expose:
+      - "8080"
+    environment:
+      - APP_ENV=production
+      - APP_BASE_URL=https://${SERVICE_FQDN_FRONTEND}
+      - CORS_ALLOWED_ORIGINS=https://${SERVICE_FQDN_FRONTEND}
+      - ADMIN_KEY=${SERVICE_PASSWORD_64_BACKEND}
+      - FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
+      - SERVER_PORT=8080
+      - SQLITE_PATH=/app/data/mirror.db
+      - GOMEMLIMIT=192MiB
+      - UPSTREAM_BASE_URL=${UPSTREAM_BASE_URL:-https://eservice.omsu.ru/schedule/backend}
+      - UPSTREAM_TIMEOUT=${UPSTREAM_TIMEOUT:-10s}
+      - UPSTREAM_RATE_LIMIT=${UPSTREAM_RATE_LIMIT:-2}
+      - SYNC_DICT_INTERVAL=${SYNC_DICT_INTERVAL:-12h}
+      - SYNC_SCHEDULE_INTERVAL=${SYNC_SCHEDULE_INTERVAL:-15m}
+      - SYNC_AUDIT_INTERVAL=${SYNC_AUDIT_INTERVAL:-24h}
+      - SYNC_ON_STARTUP=${SYNC_ON_STARTUP:-true}
+      - CACHE_SCHEDULE_TTL=${CACHE_SCHEDULE_TTL:-15m}
+      - CACHE_DICT_TTL=${CACHE_DICT_TTL:-12h}
+      - CACHE_ACTIVE_THRESHOLD=${CACHE_ACTIVE_THRESHOLD:-24h}
+      - RATE_LIMIT_GENERAL=${RATE_LIMIT_GENERAL:-120}
+      - RATE_LIMIT_SEARCH=${RATE_LIMIT_SEARCH:-30}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-1m}
+      - WEBHOOK_RETRY_ATTEMPTS=${WEBHOOK_RETRY_ATTEMPTS:-3}
+      - WEBHOOK_RETRY_DELAY=${WEBHOOK_RETRY_DELAY:-5s}
+      - WEBHOOK_TIMEOUT=${WEBHOOK_TIMEOUT:-10s}
+      - ICAL_ACCESS_TOKEN=${ICAL_ACCESS_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - SWAGGER_ENABLED=false
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/ready"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  frontend:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        - VITE_API_BASE=${VITE_API_BASE:-/api/v1}
+        - VITE_CF_ANALYTICS_TOKEN=${VITE_CF_ANALYTICS_TOKEN:-}
+        - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+        - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+        - VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+        - VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}
+        - VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
+        - VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
+        - VITE_FIREBASE_MEASUREMENT_ID=${VITE_FIREBASE_MEASUREMENT_ID}
+        - VITE_FIREBASE_VAPID_KEY=${VITE_FIREBASE_VAPID_KEY}
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+volumes:
+  backend_data:
