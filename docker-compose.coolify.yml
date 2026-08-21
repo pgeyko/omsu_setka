@@ -28,6 +28,8 @@ services:
     restart: unless-stopped
     volumes:
       - backend_data:/app/data
+    networks:
+      - coolify
     expose:
       - "8080"
     environment:
@@ -90,6 +92,8 @@ services:
     restart: unless-stopped
     expose:
       - "80"
+    networks:
+      - coolify
     depends_on:
       backend:
         condition: service_healthy
@@ -107,3 +111,7 @@ services:
 
 volumes:
   backend_data:
+
+networks:
+  coolify:
+    external: true
