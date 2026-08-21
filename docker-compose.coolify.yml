@@ -28,8 +28,6 @@ services:
     restart: unless-stopped
     volumes:
       - backend_data:/app/data
-    networks:
-      - coolify
     expose:
       - "8080"
     environment:
@@ -92,15 +90,11 @@ services:
     restart: unless-stopped
     expose:
       - "80"
-    networks:
-      - coolify
-    labels:
-      - traefik.docker.network=coolify
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -113,7 +107,3 @@ services:
 
 volumes:
   backend_data:
-
-networks:
-  coolify:
-    external: true
