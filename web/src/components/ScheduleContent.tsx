@@ -100,6 +100,26 @@ const formatWeekRange = (monday: Date) => {
   return `${monday.getDate()} ${monday.toLocaleDateString('ru-RU', { month: 'short' })} – ${sunday.getDate()} ${monday.toLocaleDateString('ru-RU', { month: 'short' })}`;
 };
 
+const getLocationParts = (location: string) => {
+  const value = location.trim();
+  const match = value.match(/^(\d+)\s*[-/]\s*(.+)$/);
+  if (!match) return { building: '', room: value };
+  return { building: match[1], room: match[2].trim() };
+};
+
+const getBuildingTone = (building: string) => {
+  if (!building) return '';
+  const tone = [...building].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6 + 1;
+  return `buildingTone${tone}`;
+};
+
+const formatCachedAt = (cachedAt?: string) => {
+  if (!cachedAt) return '';
+  const date = new Date(cachedAt);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+};
+
 interface ScheduleContentProps {
   entityType: string;
   entityID: number;
@@ -197,7 +217,7 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
   const { addFavorite, removeFavorite, isFavorite, subgroup, setSubgroup, pinnedEntity, pinEntity, unpinEntity } = useFavoritesStore();
 
   // Subscriptions Store
-  const { addSubscription, isSubscribed: checkSubscribed } = useSubscriptionsStore();
+  const { addSubscription, removeSubscription, isSubscribed: checkSubscribed } = useSubscriptionsStore();
 
   // Sidebar Store
   const { open: openSidebar } = useSidebarStore();
@@ -205,6 +225,9 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
   // Notifications state
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [hasNewChanges, setHasNewChanges] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [scheduleMeta, setScheduleMeta] = useState<{ cachedAt?: string; source?: string }>({});
 
   useEffect(() => {
     // Check zustand store first, fallback to localStorage for backwards compatibility
@@ -214,6 +237,17 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
       setIsSubscribed(true);
     }
   }, [entityType, entityID, checkSubscribed]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (entityID > 0) {
@@ -323,6 +357,7 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
       if (token) {
         await unsubscribeFromNotifications(token, entityType, entityID);
         localStorage.removeItem(storageKey);
+        removeSubscription(entityID, entityType);
       }
       setIsSubscribed(false);
       setIsSettingsModalOpen(false);
@@ -444,6 +479,8 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
 
       setSchedule(sortedData);
       setPaginationMeta({ hasPrev: resp.has_prev, hasNext: resp.has_next });
+      setScheduleMeta({ cachedAt: resp.cached_at, source: resp.source });
+      setLoadError('');
 
       if (!initialName && sortedData.length > 0) {
         // ... (preserving logic for entityName detection)
@@ -475,7 +512,8 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
       }
 
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load schedule:', err);
+      setLoadError(navigator.onLine ? 'Не удалось загрузить расписание' : 'Нет соединения с интернетом');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -550,6 +588,8 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
       setSchedule(sortedData);
       setPaginationMeta({ hasPrev: resp.has_prev, hasNext: resp.has_next });
       setActiveWeekStart(monday);
+      setScheduleMeta({ cachedAt: resp.cached_at, source: resp.source });
+      setLoadError('');
       setSearchParams({ week: monday.toISOString().split('T')[0], date: dateStr });
 
       // Select the day within the filled week
@@ -557,6 +597,7 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
       setActiveDayIdx(idx !== -1 ? idx : 0);
     } catch (err) {
       console.error('Failed to load day schedule:', err);
+      setLoadError(navigator.onLine ? 'Не удалось загрузить расписание' : 'Нет соединения с интернетом');
       setToastMessage('Ошибка при загрузке расписания');
       setShowToast(true);
     } finally {
@@ -644,13 +685,27 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
 
   const isCurrentLesson = (timeNum: number, isToday: boolean) => {
     if (!isToday || !TIME_SLOTS[timeNum]) return false;
-    const now = new Date();
     const { start, end } = TIME_SLOTS[timeNum];
     const [hStart, mStart] = start.replace('.', ':').split(':').map(Number);
     const [hEnd, mEnd] = end.replace('.', ':').split(':').map(Number);
-    const startDate = new Date(); startDate.setHours(hStart, mStart, 0);
-    const endDate = new Date(); endDate.setHours(hEnd, mEnd, 0);
+    const startDate = new Date(now); startDate.setHours(hStart, mStart, 0, 0);
+    const endDate = new Date(now); endDate.setHours(hEnd, mEnd, 0, 0);
     return now >= startDate && now <= endDate;
+  };
+
+  const getNextLessonTime = (lessons: Lesson[], isToday: boolean) => {
+    if (!isToday) return null;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    return lessons
+      .map(lesson => lesson.time)
+      .filter((time, index, values) => values.indexOf(time) === index)
+      .filter(time => {
+        const start = TIME_SLOTS[time]?.start;
+        if (!start) return false;
+        const [hours, minutes] = start.replace('.', ':').split(':').map(Number);
+        return hours * 60 + minutes > nowMinutes;
+      })
+      .sort((a, b) => a - b)[0] ?? null;
   };
 
   const currentDay = schedule[activeDayIdx];
@@ -672,6 +727,8 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
     }, {} as Record<number, Lesson[]>);
   }, [currentDay]);
   const weekRangeLabel = useMemo(() => formatWeekRange(activeWeekStart), [activeWeekStart]);
+  const nextLessonTime = getNextLessonTime(visibleCurrentLessons, isToday);
+  const cachedLabel = formatCachedAt(scheduleMeta.cachedAt);
 
   if (loading && !refreshing) return (
     <div className="app-container">
@@ -839,13 +896,24 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
         )}
 
         {viewMode === 'day' ? (
-          <main className={styles.content}>
-            {breakInfo && <BreakBanner info={breakInfo} />}
+         <main className={styles.content}>
+         {(!isOnline || loadError || cachedLabel) && (
+           <div className={`${styles.dataStatus} ${!isOnline ? styles.offlineStatus : ''} ${loadError ? styles.errorStatus : ''}`} role="status" aria-live="polite">
+             <div>
+               <strong>{!isOnline ? 'Офлайн-режим' : loadError ? 'Расписание недоступно' : scheduleMeta.source === 'stale' ? 'Показаны устаревшие данные' : 'Расписание загружено'}</strong>
+               <span>
+                 {!isOnline ? 'Проверьте соединение и повторите попытку.' : loadError ? loadError : cachedLabel ? `Обновлено ${cachedLabel}` : ''}
+               </span>
+             </div>
+             {(loadError || !isOnline) && <button type="button" className={styles.retryButton} onClick={() => loadData(true)}>Повторить</button>}
+           </div>
+         )}
+           {breakInfo && <BreakBanner info={breakInfo} />}
             <div className={styles.lessonList}>
-              {currentDay?.lessons.length === 0 ? (
+              {!currentDay || visibleCurrentLessons.length === 0 ? (
                 <GlassCard className={`${styles.lessonCard} ${styles.emptyDayCard}`}>
                   <div className={styles.lessonInfo} style={{ textAlign: 'center', width: '100%' }}>
-                    <h3 className={styles.discipline} style={{ margin: 0 }}>Пар нет, можно отдыхать!</h3>
+                    <h3 className={styles.discipline} style={{ margin: 0 }}>{currentDay && currentDay.lessons.length > 0 ? 'Для выбранной подгруппы занятий нет' : 'Пар нет, можно отдыхать!'}</h3>
                   </div>
                 </GlassCard>
               ) : (
@@ -858,12 +926,13 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                   for (let t = 1; t <= maxTime; t++) slotsToRender.push({ time: t, rawLessons: grouped?.[t] });
                   return slotsToRender.map(({ time, rawLessons }) => {
                     const active = isCurrentLesson(time, isToday);
+                    const isNext = nextLessonTime === time;
                     const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
                     if (!rawLessons || rawLessons.length === 0) {
                       return (
-                        <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${styles.emptySlotCard}`} glow={active}>
+                        <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${styles.emptySlotCard}`} glow={active}>
                           <div className={styles.lessonTime}><div className={styles.timeStart}>{times.start}</div><div className={styles.timeDivider}>–</div><div className={styles.timeEnd}>{times.end}</div></div>
-                          <div className={styles.lessonInfo}><h3 className={styles.discipline} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Нет пары</h3>{active && <div className={styles.status}><Clock size={12} /> Сейчас идет</div>}</div>
+                           <div className={styles.lessonInfo}><h3 className={styles.discipline} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Нет пары</h3>{active && <div className={styles.status}><Clock size={12} /> Сейчас идет</div>}{isNext && <div className={styles.nextStatus}><Clock size={12} /> Ближайшая пара</div>}</div>
                         </GlassCard>
                       );
                     }
@@ -881,7 +950,7 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                     if (lessons.length === 0) return null;
                     const isMultiple = lessons.length > 1;
                     return (
-                      <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} glow={active} onClick={() => isMultiple && setSelectedGroup(lessons)}>
+                      <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} glow={active} onClick={() => isMultiple && setSelectedGroup(lessons)}>
                         <div className={styles.lessonTime}><div className={styles.timeStart}>{times.start}</div><div className={styles.timeDivider}>–</div><div className={styles.timeEnd}>{times.end}</div></div>
                         <div className={styles.lessonInfo}>
                           {isMultiple ? (
@@ -899,12 +968,16 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                               <div className={styles.meta}>
                                 <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)} ${getTypeColorClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
                                 {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
-                                {lessons[0].auditCorps && <span><MapPin size={12} /> {lessons[0].auditCorps}</span>}
+                                 {lessons[0].auditCorps && (() => {
+                                   const location = getLocationParts(lessons[0].auditCorps);
+                                   return <span className={styles.location}><MapPin size={12} /><span className={`${styles.buildingBadge} ${styles[getBuildingTone(location.building) as keyof typeof styles] || ''}`}>{location.building ? `Корпус ${location.building}` : 'Аудитория'}</span><strong>{location.room}</strong></span>;
+                                 })()}
                                 {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
                               </div>
                             </>
                           )}
-                          {active && <div className={styles.status}><Clock size={12} /> Сейчас идет</div>}
+                           {active && <div className={styles.status}><Clock size={12} /> Сейчас идет</div>}
+                           {isNext && <div className={styles.nextStatus}><Clock size={12} /> Ближайшая пара</div>}
                         </div>
                         {isMultiple && <div className={styles.stacks}></div>}
                       </GlassCard>
@@ -936,7 +1009,10 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                       ) : slotLessons.map((l, i) => (
                         <div key={i} className={styles.gridLesson} onClick={() => setSelectedGroup([l])} style={getWeekLessonStyle(l.type_work)}>
                           <span className={`${styles.gridLessonType} ${getTypeColorClass(l.type_work)}`}>{l.type_work}</span>{l.lesson}
-                          <div style={{ opacity: 0.6, fontSize: '9px', marginTop: '2px' }}>{l.auditCorps}</div>
+                           {l.auditCorps && (() => {
+                             const location = getLocationParts(l.auditCorps);
+                             return <div className={styles.gridLocation}><span className={`${styles.buildingBadge} ${styles[getBuildingTone(location.building) as keyof typeof styles] || ''}`}>{location.building ? `К${location.building}` : 'Ауд.'}</span> {location.room}</div>;
+                           })()}
                         </div>
                       ))}
                     </div>

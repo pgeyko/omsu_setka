@@ -373,6 +373,34 @@
   box-shadow: 0 0 15px var(--accent-glow);
 }
 
+.nextLesson {
+  border-color: var(--info);
+  box-shadow: 0 0 0 1px var(--info-muted);
+}
+
+.location {
+  flex-wrap: wrap;
+}
+
+.buildingBadge {
+  display: inline-flex !important;
+  width: fit-content;
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  color: var(--bg-color) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.buildingTone1 { background: #d97706; }
+.buildingTone2 { background: #0891b2; }
+.buildingTone3 { background: #7c3aed; }
+.buildingTone4 { background: #059669; }
+.buildingTone5 { background: #db2777; }
+.buildingTone6 { background: #2563eb; }
+
 .examHighlight {
   border-left: 4px solid var(--text-primary);
 }
@@ -511,6 +539,79 @@
   font-size: 11px;
   font-weight: 700;
   animation: pulse 2s infinite;
+}
+
+.nextStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--info) !important;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dataStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding: 10px 14px;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-md);
+}
+
+.dataStatus > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dataStatus strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.dataStatus span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.offlineStatus {
+  border-left-color: var(--warning);
+}
+
+.errorStatus {
+  border-left-color: var(--danger);
+}
+
+.retryButton {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.retryButton:hover {
+  border-color: var(--accent-color);
+}
+
+.gridLocation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 9px;
 }
 
 @media (min-width: 768px) {
