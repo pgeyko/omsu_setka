@@ -107,12 +107,6 @@ const getLocationParts = (location: string) => {
   return { building: match[1], room: match[2].trim() };
 };
 
-const getBuildingTone = (building: string) => {
-  if (!building) return '';
-  const tone = [...building].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6 + 1;
-  return `buildingTone${tone}`;
-};
-
 const formatCachedAt = (cachedAt?: string) => {
   if (!cachedAt) return '';
   const date = new Date(cachedAt);
@@ -929,7 +923,7 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                     const times = TIME_SLOTS[time] || { start: '??:??', end: '??:??' };
                     if (!rawLessons || rawLessons.length === 0) {
                       return (
-                        <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${styles.emptySlotCard}`} glow={active}>
+                        <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${styles.emptySlotCard}`}>
                           <div className={styles.lessonTime}><div className={styles.timeStart}>{times.start}</div><div className={styles.timeDivider}>–</div><div className={styles.timeEnd}>{times.end}</div></div>
                            <div className={styles.lessonInfo}><h3 className={styles.discipline} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Нет пары</h3>{active && <div className={styles.status}><Clock size={12} /> Сейчас идет</div>}{isNext && <div className={styles.nextStatus}><Clock size={12} /> Ближайшая пара</div>}</div>
                         </GlassCard>
@@ -949,7 +943,7 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                     if (lessons.length === 0) return null;
                     const isMultiple = lessons.length > 1;
                     return (
-                      <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} glow={active} onClick={() => isMultiple && setSelectedGroup(lessons)}>
+                      <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} onClick={() => isMultiple && setSelectedGroup(lessons)}>
                         <div className={styles.lessonTime}><div className={styles.timeStart}>{times.start}</div><div className={styles.timeDivider}>–</div><div className={styles.timeEnd}>{times.end}</div></div>
                         <div className={styles.lessonInfo}>
                           {isMultiple ? (
@@ -967,10 +961,10 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                               <div className={styles.meta}>
                                 <span className={`${styles.type} ${getHighlightClass(lessons[0].type_work)} ${getTypeColorClass(lessons[0].type_work)}`}>{lessons[0].type_work}</span>
                                 {lessons[0].teacher && <span><User size={12} /> {lessons[0].teacher}</span>}
-                                 {lessons[0].auditCorps && (() => {
-                                   const location = getLocationParts(lessons[0].auditCorps);
-                                   return <span className={styles.location}><MapPin size={12} /><span className={`${styles.buildingBadge} ${styles[getBuildingTone(location.building) as keyof typeof styles] || ''}`}>{location.building ? `Корпус ${location.building}` : 'Аудитория'}</span><strong>{location.room}</strong></span>;
-                                 })()}
+                                  {lessons[0].auditCorps && (() => {
+                                    const location = getLocationParts(lessons[0].auditCorps);
+                                    return <span className={styles.location}><MapPin size={12} />{location.building && <span className={styles.locationBuilding}>{location.building}</span>}{location.building && <span className={styles.locationDivider}>·</span>}<strong className={styles.locationRoom}>{location.room}</strong></span>;
+                                  })()}
                                 {lessons[0].subgroupName && <span className={styles.subgroup}>{lessons[0].subgroupName}</span>}
                               </div>
                             </>
@@ -1008,10 +1002,10 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                       ) : slotLessons.map((l, i) => (
                         <div key={i} className={styles.gridLesson} onClick={() => setSelectedGroup([l])} style={getWeekLessonStyle(l.type_work)}>
                           <span className={`${styles.gridLessonType} ${getTypeColorClass(l.type_work)}`}>{l.type_work}</span>{l.lesson}
-                           {l.auditCorps && (() => {
-                             const location = getLocationParts(l.auditCorps);
-                             return <div className={styles.gridLocation}><span className={`${styles.buildingBadge} ${styles[getBuildingTone(location.building) as keyof typeof styles] || ''}`}>{location.building ? `К${location.building}` : 'Ауд.'}</span> {location.room}</div>;
-                           })()}
+                            {l.auditCorps && (() => {
+                              const location = getLocationParts(l.auditCorps);
+                              return <div className={styles.gridLocation}><span className={styles.locationMarker}>⌖</span>{location.building && <strong>{location.building}</strong>}{location.building && <span className={styles.locationDivider}>·</span>}<span>{location.room}</span></div>;
+                            })()}
                         </div>
                       ))}
                     </div>
