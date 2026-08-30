@@ -63,7 +63,7 @@ git push -u origin main
 
 Эти же значения подставятся в `APP_BASE_URL` и `CORS_ALLOWED_ORIGINS` бэкенда
 из compose-файла. `CORS_ALLOWED_ORIGINS` должен содержать CDN-домен, с которого
-загружается frontend, а не origin API.
+загружается frontend (например, `https://s.pgeyko.ru`), а не origin API.
 
 Для схемы с CDN дополнительно создайте origin-домен без CDN-проксирования
 (например, `api-origin.example.com`) и направьте его на origin-сервер. Этот
