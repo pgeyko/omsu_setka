@@ -897,17 +897,16 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
 
         {viewMode === 'day' ? (
          <main className={styles.content}>
-         {(!isOnline || loadError || cachedLabel) && (
+         {(loadError || !isOnline) && (
            <div className={`${styles.dataStatus} ${!isOnline ? styles.offlineStatus : ''} ${loadError ? styles.errorStatus : ''}`} role="status" aria-live="polite">
              <div>
-               <strong>{!isOnline ? 'Офлайн-режим' : loadError ? 'Расписание недоступно' : scheduleMeta.source === 'stale' ? 'Показаны устаревшие данные' : 'Расписание загружено'}</strong>
-               <span>
-                 {!isOnline ? 'Проверьте соединение и повторите попытку.' : loadError ? loadError : cachedLabel ? `Обновлено ${cachedLabel}` : ''}
-               </span>
+               <strong>{!isOnline ? 'Офлайн-режим' : 'Расписание недоступно'}</strong>
+               <span>{!isOnline ? 'Проверьте соединение и повторите попытку.' : loadError}</span>
              </div>
-             {(loadError || !isOnline) && <button type="button" className={styles.retryButton} onClick={() => loadData(true)}>Повторить</button>}
+             <button type="button" className={styles.retryButton} onClick={() => loadData(true)}>Повторить</button>
            </div>
          )}
+         {cachedLabel && !loadError && <div className={styles.dataMeta}>{scheduleMeta.source === 'stale' ? 'Устаревшие данные · обновлено' : 'Обновлено'} {cachedLabel}</div>}
            {breakInfo && <BreakBanner info={breakInfo} />}
             <div className={styles.lessonList}>
               {!currentDay || visibleCurrentLessons.length === 0 ? (

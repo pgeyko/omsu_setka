@@ -564,6 +564,13 @@
   border-radius: var(--radius-md);
 }
 
+.dataMeta {
+  margin: -4px 0 var(--spacing-md);
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-align: right;
+}
+
 .dataStatus > div {
   display: flex;
   flex-direction: column;
