@@ -1,9 +1,16 @@
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
+const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || API_BASE;
 
 export const apiClient = axios.create({
   baseURL: API_BASE,
+  timeout: 10000,
+});
+
+// Read requests stay on the CDN; state-changing requests use the direct origin.
+export const originApiClient = axios.create({
+  baseURL: API_ORIGIN,
   timeout: 10000,
 });
 
@@ -106,16 +113,16 @@ export const fetchHealth = async (): Promise<HealthData> => {
 };
 
 export const onRateLimit = (callback: (retryAfter: string) => void) => {
-  apiClient.interceptors.response.use(
-    response => response,
-    error => {
-      if (error.response?.status === 429) {
-        const retryAfter = error.response.data?.retry_after || '1m';
-        callback(retryAfter);
-      }
-      return Promise.reject(error);
+  const handleError = (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      const retryAfter = error.response.data?.retry_after || '1m';
+      callback(retryAfter);
     }
-  );
+    return Promise.reject(error);
+  };
+
+  apiClient.interceptors.response.use(response => response, handleError);
+  originApiClient.interceptors.response.use(response => response, handleError);
 };
 
 export interface UpstreamStatus {
@@ -174,7 +181,7 @@ export const fetchChanges = async (type: string, id: number): Promise<unknown[]>
 };
 
 export const subscribeToNotifications = async (token: string, type: string, id: number, subgroup?: string) => {
-  const { data } = await apiClient.post('/subscribe', {
+  const { data } = await originApiClient.post('/subscribe', {
     fcm_token: token,
     entity_type: type,
     entity_id: id,
@@ -185,7 +192,7 @@ export const subscribeToNotifications = async (token: string, type: string, id: 
 };
 
 export const unsubscribeFromNotifications = async (token: string, type: string, id: number) => {
-  const { data } = await apiClient.post('/unsubscribe', {
+  const { data } = await originApiClient.post('/unsubscribe', {
     fcm_token: token,
     entity_type: type,
     entity_id: id,
@@ -202,6 +209,6 @@ export const getNotificationSettings = async (token: string, type: string, id: n
 };
 
 export const updateNotificationSettings = async (settings: NotificationSettings) => {
-  const { data } = await apiClient.patch('/notifications/settings', settings);
+  const { data } = await originApiClient.patch('/notifications/settings', settings);
   return data;
 };

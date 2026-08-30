@@ -16,8 +16,10 @@
 frontend (nginx, порт 80)  ── /api ──▶  backend (порт 8080, внутренний)
 ```
 
-- Публичен только `frontend`. Все `/api`-запросы (включая админ-эндпоинты
-  `/api/v1/admin/webhooks` и приём вебхуков от omsu_bot) идут через nginx.
+- Публичен только `frontend`. GET/HEAD-запросы идут на CDN-домен и через
+  frontend nginx попадают в backend.
+- Для изменяющих запросов и CORS preflight используется отдельный origin-домен
+  без CDN. Он также проксируется в frontend nginx, но не кэшируется.
 - `backend` наружу не выставляется вовсе.
 - SQLite хранится в volume `backend_data` (`/app/data/mirror.db`).
 
@@ -60,7 +62,20 @@ git push -u origin main
 - создаст HTTPS-прокси домен → контейнер `frontend:80`.
 
 Эти же значения подставятся в `APP_BASE_URL` и `CORS_ALLOWED_ORIGINS` бэкенда
-из compose-файла.
+из compose-файла. `CORS_ALLOWED_ORIGINS` должен содержать CDN-домен, с которого
+загружается frontend, а не origin API.
+
+Для схемы с CDN дополнительно создайте origin-домен без CDN-проксирования
+(например, `api-origin.example.com`) и направьте его на origin-сервер. Этот
+домен должен проксировать запросы в тот же frontend-контейнер. В frontend build
+переменной `VITE_API_ORIGIN` укажите полный URL origin API.
+
+В CSP, который отдается CDN или внешним nginx для HTML frontend, добавьте
+origin API в `connect-src`, например:
+
+```text
+connect-src 'self' https://api-origin.example.com
+```
 
 ### 5. Переменные окружения
 
@@ -71,6 +86,7 @@ Service Worker):
 
 ```
 VITE_API_BASE=/api/v1
+VITE_API_ORIGIN=https://api-origin.example.com/api/v1
 VITE_CF_ANALYTICS_TOKEN=        # опционально
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
@@ -102,15 +118,21 @@ webhook) и тоже редактируются в UI.
 ## Проверка после деплоя
 
 ```bash
-# Health-эндпоинт через nginx
+# Health-эндпоинт через CDN
 curl -s https://<domain>/api/v1/health
+
+# Проверка CORS preflight через origin
+curl -i -X OPTIONS https://api-origin.example.com/api/v1/subscribe \
+  -H 'Origin: https://<domain>' \
+  -H 'Access-Control-Request-Method: POST' \
+  -H 'Access-Control-Request-Headers: content-type'
 
 # Live/ready пробы
 curl -s https://<domain>/live
 curl -s https://<domain>/ready
 
 # Принудительная синхронизация (вручную, опционально)
-curl -X POST https://<domain>/api/v1/sync/trigger -H "X-Admin-Key: <ADMIN_KEY>"
+curl -X POST https://api-origin.example.com/api/v1/sync/trigger -H "X-Admin-Key: <ADMIN_KEY>"
 ```
 
 `ADMIN_KEY` смотрите в **Environment → Runtime Variables** приложения.
@@ -133,7 +155,7 @@ curl -X POST https://<domain>/api/v1/sync/trigger -H "X-Admin-Key: <ADMIN_KEY>"
 После деплоя зарегистрируйте бота как подписчика вебхуков через Admin API:
 
 ```bash
-curl -X POST https://<domain>/api/v1/admin/webhooks \
+curl -X POST https://api-origin.example.com/api/v1/admin/webhooks \
   -H "X-Admin-Key: <ADMIN_KEY>" \
   -H "Content-Type: application/json" \
   -d '{

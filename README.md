@@ -33,6 +33,10 @@
 - `omsu_setka` → `omsu_bot`: уведомления об изменениях расписания (POST).
 - `omsu_bot` → `omsu_setka`: регистрация вебхука при старте (POST/PUT через Admin API).
 
+Для CDN-размещения GET/HEAD-запросы frontend направляет на CDN-домен, а
+OPTIONS и изменяющие запросы (POST/PUT/PATCH/DELETE) — на отдельный origin-домен
+без CDN.
+
 Управление вебхуками — через Admin API (`/api/v1/admin/webhooks`). Подробнее в [docs/ADMIN_GUIDE.md](./docs/ADMIN_GUIDE.md).
 
 ## Быстрый запуск
