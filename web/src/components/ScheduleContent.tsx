@@ -713,13 +713,13 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
     [visibleCurrentLessons, now, isToday]
   );
   const groupedByTime = useMemo(() => {
-    if (!currentDay?.lessons) return undefined;
-    return currentDay.lessons.reduce<Record<number, Lesson[]>>((acc, lesson) => {
+    if (visibleCurrentLessons.length === 0) return undefined;
+    return visibleCurrentLessons.reduce<Record<number, Lesson[]>>((acc, lesson) => {
       if (!acc[lesson.time]) acc[lesson.time] = [];
       acc[lesson.time].push(lesson);
       return acc;
     }, {} as Record<number, Lesson[]>);
-  }, [currentDay]);
+  }, [visibleCurrentLessons]);
   const weekRangeLabel = useMemo(() => formatWeekRange(activeWeekStart), [activeWeekStart]);
   const nextLessonTime = getNextLessonTime(visibleCurrentLessons, isToday);
   const cachedLabel = formatCachedAt(scheduleMeta.cachedAt);
@@ -940,7 +940,14 @@ const ScheduleContentImpl: React.FC<ScheduleContentProps> = ({
                       } else mergedMap.set(key, { ...l, groups: l.group ? [l.group] : [] });
                     });
                     const lessons = Array.from(mergedMap.values());
-                    if (lessons.length === 0) return null;
+                    if (lessons.length === 0) {
+                      return (
+                        <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${styles.emptySlotCard}`}>
+                          <div className={styles.lessonTime}><div className={styles.timeStart}>{times.start}</div><div className={styles.timeDivider}>–</div><div className={styles.timeEnd}>{times.end}</div></div>
+                           <div className={styles.lessonInfo}><h3 className={styles.discipline} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Нет пары</h3>{active && <div className={styles.status}><Clock size={12} /> Сейчас идет</div>}{isNext && <div className={styles.nextStatus}><Clock size={12} /> Ближайшая пара</div>}</div>
+                        </GlassCard>
+                      );
+                    }
                     const isMultiple = lessons.length > 1;
                     return (
                       <GlassCard key={time} className={`${styles.lessonCard} ${active ? styles.activeLesson : ''} ${isNext ? styles.nextLesson : ''} ${isMultiple ? styles.multiCard : ''} ${!isMultiple ? getHighlightClass(lessons[0].type_work) : ''}`} onClick={() => isMultiple && setSelectedGroup(lessons)}>
