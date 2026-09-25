@@ -13,7 +13,7 @@
 #   docker compose -f docker-compose.vds.yml up -d
 services:
   backend:
-    image: ghcr.io/pgeyko/omsu_setka/backend:latest
+    image: ghcr.io/pgeyko/omsu_setka/backend:${BACKEND_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -43,7 +43,7 @@ services:
       retries: 3
 
   frontend:
-    image: ghcr.io/pgeyko/omsu_setka/frontend:latest
+    image: ghcr.io/pgeyko/omsu_setka/frontend:${FRONTEND_TAG:-latest}
     build:
       context: .
       dockerfile: web/Dockerfile
