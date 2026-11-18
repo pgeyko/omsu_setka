@@ -17,7 +17,7 @@ const ICONS = {
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="var(--surface)"/><circle cx="15" cy="12" r="2" fill="var(--surface)"/><circle cx="8" cy="17" r="2" fill="var(--surface)"/></svg>',
 };
 
-const GROUP = { name: 'ЮСС-003-О-02', realId: 12246 };
+const TODAY_ISO = '2026-11-18';
 const TEACHER_FULL = {
   'Иванов И. И.': 'Иванов Иван Иванович',
   'Смирнова А. П.': 'Смирнова Анна Петровна',
@@ -25,6 +25,9 @@ const TEACHER_FULL = {
   'Петрова Е. В.': 'Петрова Елена Викторовна',
   'Орлова Н. С.': 'Орлова Наталья Сергеевна',
   'Белов С. Н.': 'Белов Сергей Николаевич',
+  'Сидоров А. В.': 'Сидоров Алексей Викторович',
+  'Волкова М. А.': 'Волкова Марина Анатольевна',
+  'Иванова М. С.': 'Иванова Мария Сергеевна',
 };
 const NOW = { dayIndex: 2, pair: 2, time: '11:20', left: '35 мин', progress: 53 };
 
@@ -101,6 +104,70 @@ const NEXT_WEEK = [
   { iso: '2026-11-28', wd: 'суббота', short: 'сб', num: '28', month: 'ноября', lessons: [] },
 ];
 
+function cloneWeek(week) {
+  return week.map((day) => ({
+    ...day,
+    lessons: day.lessons.map((lesson) => ({
+      ...lesson,
+      change: lesson.change ? { ...lesson.change } : undefined,
+    })),
+  }));
+}
+
+function patchWeek(week, apply) {
+  const copy = cloneWeek(week);
+  apply(copy);
+  return copy;
+}
+
+const GROUPS = [
+  {
+    id: 12246,
+    name: 'ЮСС-003-О-02',
+    current: WEEK,
+    next: NEXT_WEEK,
+  },
+  {
+    id: 12190,
+    name: 'ЮСС-002-О-01',
+    current: patchWeek(WEEK, (week) => {
+      week[0].lessons[0] = { ...week[0].lessons[0], subject: 'Информатика', teacher: 'Сидоров А. В.', room: '4-308' };
+      week[2].lessons[1] = { ...week[2].lessons[1], subject: 'Дискретная математика', teacher: 'Сидоров А. В.' };
+      week[2].lessons.forEach((lesson) => { if (lesson.pair === 4) delete lesson.change; });
+    }),
+    next: cloneWeek(NEXT_WEEK),
+  },
+  {
+    id: 12087,
+    name: 'ЮСС-001-О-03',
+    current: patchWeek(WEEK, (week) => {
+      week[0].lessons[1] = { ...week[0].lessons[1], subject: 'Дискретная математика', teacher: 'Иванова М. С.' };
+      week[2].lessons[1] = { ...week[2].lessons[1], subject: 'Теория чисел', teacher: 'Иванова М. С.' };
+      week[2].lessons.forEach((lesson) => { if (lesson.pair === 4) delete lesson.change; });
+    }),
+    next: cloneWeek(NEXT_WEEK),
+  },
+  {
+    id: 12804,
+    name: 'МЕН-004-О-02',
+    current: patchWeek(WEEK, (week) => {
+      week[0].lessons[0] = { ...week[0].lessons[0], subject: 'Экономика', teacher: 'Волкова М. А.', room: '11-204' };
+      week[1].lessons[2] = { ...week[1].lessons[2], subject: 'Бухгалтерский учёт', teacher: 'Волкова М. А.' };
+      week[2].lessons[1] = { ...week[2].lessons[1], subject: 'Статистика', teacher: 'Волкова М. А.' };
+      week[2].lessons.forEach((lesson) => { if (lesson.pair === 4) delete lesson.change; });
+    }),
+    next: cloneWeek(NEXT_WEEK),
+  },
+];
+
+function currentGroup() {
+  return GROUPS.find((group) => group.id === state.groupId) || GROUPS[0];
+}
+
+function baseWeek() {
+  return currentGroup().current;
+}
+
 const SEARCH_DATA = {
   groups: [
     { id: 472, name: 'ЮСС-003-О-02', realId: 12246 },
@@ -124,10 +191,10 @@ const SEARCH_DATA = {
 };
 
 const CHANGES = [
-  { day: 'Сегодня, 18 ноября', pair: 4, subject: 'Базы данных', kind: 'изменено', field: 'аудитория', from: '4-312', to: '4-308' },
-  { day: 'Сегодня, 18 ноября', pair: 2, subject: 'Математический анализ', kind: 'изменено', field: 'преподаватель', from: 'Сидоров А. В.', to: 'Иванов И. И.' },
-  { day: 'Вчера, 17 ноября', pair: 3, subject: 'Иностранный язык', kind: 'добавлено', text: 'пара появилась в расписании' },
-  { day: '16 ноября', pair: 6, subject: 'История России', kind: 'удалено', text: 'пара отменена' },
+  { day: 'Сегодня, 18 ноября', iso: '2026-11-18', pair: 4, subject: 'Базы данных', kind: 'изменено', field: 'аудитория', from: '4-312', to: '4-308', subgroup: '1' },
+  { day: 'Сегодня, 18 ноября', iso: '2026-11-18', pair: 2, subject: 'Математический анализ', kind: 'изменено', field: 'преподаватель', from: 'Сидоров А. В.', to: 'Иванов И. И.' },
+  { day: 'Вчера, 17 ноября', iso: '2026-11-17', pair: 3, subject: 'Иностранный язык', kind: 'добавлено', text: 'пара появилась в расписании' },
+  { day: '16 ноября', iso: '2026-11-16', pair: 6, subject: 'История России', kind: 'удалено', text: 'пара отменена' },
 ];
 
 const TUTOR = {
@@ -159,18 +226,35 @@ const state = {
   query: '',
   changeFilter: 'group',
   weekOffset: 0,
+  groupId: (() => {
+    try {
+      const saved = Number(localStorage.getItem('setka-group'));
+      return GROUPS.some((group) => group.id === saved) ? saved : GROUPS[0].id;
+    } catch (e) { return GROUPS[0].id; }
+  })(),
+  online: typeof navigator === 'undefined' ? true : navigator.onLine,
+  subgroup: (() => {
+    try {
+      const saved = localStorage.getItem('setka-subgroup') || '';
+      return ['1', '2'].includes(saved) ? saved : '';
+    } catch (e) { return ''; }
+  })(),
   theme: (() => {
     try { return localStorage.getItem('setka-theme') || 'system'; } catch (e) { return 'system'; }
   })(),
-  notify: {
-    changes: true,
-    digest: true,
-    digestTime: '19:00',
-    reminder: false,
-    minutes: '30',
-    subgroup: '1',
-    timezone: 'Asia/Omsk',
-  },
+  notify: (() => {
+    const defaults = {
+      changes: true,
+      digest: true,
+      digestTime: '19:00',
+      reminder: false,
+      minutes: '30',
+      timezone: 'Asia/Omsk',
+    };
+    try {
+      return { ...defaults, ...JSON.parse(localStorage.getItem('setka-notify') || '{}') };
+    } catch (e) { return defaults; }
+  })(),
 };
 
 /* ------------------------------- helpers ------------------------------- */
@@ -215,6 +299,10 @@ function markSaved(root) {
   const status = root.querySelector('[data-save-status]');
   if (!status) return;
   status.textContent = 'Сохранено';
+  try {
+    localStorage.setItem('setka-notify', JSON.stringify(state.notify));
+    localStorage.setItem('setka-subgroup', state.subgroup);
+  } catch (e) { /* приватный режим */ }
   clearTimeout(markSaved.timer);
   markSaved.timer = setTimeout(() => {
     status.textContent = 'Изменения сохраняются автоматически';
@@ -254,7 +342,7 @@ function mergeEntries(rawLessons) {
 }
 
 function slotOf(day, pair) {
-  const raw = day.lessons.filter((l) => l.pair === pair);
+  const raw = day.lessons.filter((l) => l.pair === pair && (l.window || matchesSubgroup(l)));
   const entries = mergeEntries(raw);
   const gap = raw.find((l) => l.window) || null;
   const sample = entries[0] || gap;
@@ -294,14 +382,45 @@ function slotHasChange(slot) {
 }
 
 function allDays() {
-  return WEEK.concat(NEXT_WEEK);
+  const group = currentGroup();
+  return group.current.concat(group.next);
+}
+
+function setGroup(id) {
+  const group = GROUPS.find((g) => g.id === Number(id));
+  if (!group) return;
+  state.groupId = group.id;
+  state.weekOffset = 0;
+  state.selectedDay = NOW.dayIndex;
+  try { localStorage.setItem('setka-group', String(group.id)); } catch (e) { /* приватный режим */ }
+  render();
+}
+
+function applySubgroup(value) {
+  state.subgroup = value;
+  try { localStorage.setItem('setka-subgroup', value); } catch (e) { /* приватный режим */ }
+  document.querySelectorAll('[data-subgroup-text]').forEach((el) => {
+    if (!value) { el.textContent = ''; return; }
+    el.textContent = el.dataset.subgroupText === 'prefix' ? `подгруппа ${value} · ` : ` · подгруппа ${value}`;
+  });
+  document.querySelectorAll('[data-subgroup-link]').forEach((el) => {
+    el.textContent = value ? `· подгруппа ${value}` : '';
+  });
+  document.querySelectorAll('select[name="subgroup"]').forEach((select) => {
+    select.value = value;
+  });
+}
+
+function setSubgroup(value) {
+  applySubgroup(value);
+  render();
 }
 
 function sheetEntry(entry, slot, day) {
   const sub = subgroupLabel(entry);
   const building = buildingOf(entry.room);
   const change = entry.change || null;
-  const isNow = day.iso === WEEK[NOW.dayIndex].iso && slot.pair === NOW.pair;
+  const isNow = day.iso === TODAY_ISO && slot.pair === NOW.pair;
   const changedTo = change
     ? (change.field === 'преподаватель' ? teacherFull(entry.teacher) : entry.room)
     : '';
@@ -320,7 +439,7 @@ function sheetEntry(entry, slot, day) {
       <dl class="sheet-facts">
         <div><dt>Преподаватель</dt><dd>${esc(teacherFull(entry.teacher))}</dd></div>
         <div><dt>Аудитория</dt><dd>${esc(entry.room)}${building ? ` · корпус ${esc(building)}` : ''}</dd></div>
-        <div><dt>Группа</dt><dd>${esc(GROUP.name)}</dd></div>
+        <div><dt>Группа</dt><dd>${esc(currentGroup().name)}</dd></div>
         ${sub ? `<div><dt>Подгруппа</dt><dd>${esc(sub)}</dd></div>` : ''}
       </dl>
       ${change ? `<p class="sheet-change">${changeLabel}: <del>${esc(change.from)}</del> <span aria-hidden="true">→</span> <ins>${esc(changedTo)}</ins></p>` : ''}
@@ -378,11 +497,37 @@ function closeSheet() {
 }
 
 function weekData() {
-  return state.weekOffset === 1 ? NEXT_WEEK : WEEK;
+  const group = currentGroup();
+  return state.weekOffset === 1 ? group.next : group.current;
+}
+
+function subgroupNumbers() {
+  const numbers = new Set();
+  currentGroup().current.forEach((day) => {
+    day.lessons.forEach((lesson) => {
+      const match = String(lesson.subgroup || '').match(/^(\d+)/);
+      if (match) numbers.add(match[1]);
+    });
+  });
+  return Array.from(numbers).sort((a, b) => Number(a) - Number(b));
+}
+
+function matchesSubgroup(lesson) {
+  if (!state.subgroup) return true;
+  if (!lesson.subgroup) return true;
+  const match = String(lesson.subgroup).match(/^(\d+)/);
+  return Boolean(match) && match[1] === state.subgroup;
 }
 
 function routeOf() {
   return (location.hash || '').replace(/^#\/?/, '') || '';
+}
+
+function offlineBar() {
+  return `
+    <div class="offline-bar" role="status">
+      <i class="dot is-stale"></i>Нет сети · данные от 2 минут назад
+    </div>`;
 }
 
 /* ------------------------------- mobile ------------------------------- */
@@ -396,8 +541,8 @@ function mTop(showGroup = true) {
       </div>
       ${showGroup ? `<div class="m-group-row">
         <div>
-          <span class="m-group-label">группа</span>
-          <a class="m-group-name" href="#/search">${esc(GROUP.name)}${ICONS.chevronDown}</a>
+          <span class="m-group-label">группа <a class="subgroup-link" href="#/settings" data-subgroup-link>${state.subgroup ? `· подгруппа ${state.subgroup}` : ''}</a></span>
+          <a class="m-group-name" href="#/search">${esc(currentGroup().name)}${ICONS.chevronDown}</a>
         </div>
         <span class="freshness"><i class="dot"></i>2 мин назад</span>
       </div>` : ''}
@@ -407,11 +552,11 @@ function mTop(showGroup = true) {
 function dayStrip() {
   return `
     <div class="daystrip" role="group" aria-label="День недели">
-      ${WEEK.map((d, i) => `
+      ${baseWeek().map((d, i) => `
         <button class="day-cell" type="button" aria-pressed="${i === state.selectedDay}" data-day="${i}">
           <span class="day-name">${d.short}</span>
           <span class="day-num">${d.num}</span>
-          ${i === NOW.dayIndex ? '<span class="today-mark" aria-hidden="true"></span>' : ''}
+          ${d.iso === TODAY_ISO ? '<span class="today-mark" aria-hidden="true"></span>' : ''}
         </button>`).join('')}
     </div>`;
 }
@@ -443,7 +588,7 @@ function dayBand(day) {
         <span class="now-slot">${Number(day.num)} ${day.month}</span>
       </div>
       <h1 class="now-subject">${day.wd[0].toUpperCase()}${day.wd.slice(1)}</h1>
-      <p class="now-meta">${slots.length} ${plural(slots.length, 'пара', 'пары', 'пар')}${first ? ` · ${first.start}–${last.end}` : ''} · <b>${esc(GROUP.name)}</b></p>
+      <p class="now-meta">${slots.length} ${plural(slots.length, 'пара', 'пары', 'пар')}${first ? ` · ${first.start}–${last.end}` : ''} · <b>${esc(currentGroup().name)}</b></p>
       <p class="now-left">${first ? `первая пара в ${first.start}` : 'выходной'}</p>
     </section>`;
 }
@@ -469,12 +614,12 @@ function slotRow(slot) {
     const rooms = Array.from(new Set(slot.entries.map((e) => e.room)));
     const teachers = Array.from(new Set(slot.entries.map((e) => e.teacher))).filter(Boolean);
     body = `
-      <div class="lesson-top">
+      <span class="lesson-top">
         <span class="subject">${slot.entries.length} ${plural(slot.entries.length, 'занятие', 'занятия', 'занятий')}</span>
         <span class="lesson-right">${change ? '<span class="change-flag">замена</span>' : ''}<span class="lesson-chevron">${ICONS.chevronRight}</span></span>
-      </div>
-      <p class="slot-line">${names.map(esc).join(' · ')}</p>
-      <p class="meta">${rooms.map(esc).join(', ')}${teachers.length > 1 ? ` · ${teachers.length} преподавателя` : ''}</p>`;
+      </span>
+      <span class="slot-line">${names.map(esc).join(' · ')}</span>
+      <span class="meta">${rooms.map(esc).join(', ')}${teachers.length > 1 ? ` · ${teachers.length} преподавателя` : ''}</span>`;
   } else {
     const l = slot.entries[0];
     const meta = [`<span class="kind">${esc(l.kind)}</span>`];
@@ -483,11 +628,11 @@ function slotRow(slot) {
     if (l.teacher) meta.push(esc(l.teacher));
     const sub = subgroupLabel(l);
     body = `
-      <div class="lesson-top">
+      <span class="lesson-top">
         <span class="subject">${esc(l.subject)}</span>
         <span class="lesson-right">${l.change ? '<span class="change-flag">замена</span>' : ''}<span class="lesson-chevron">${ICONS.chevronRight}</span></span>
-      </div>
-      <p class="meta">${meta.join(' · ')}</p>
+      </span>
+      <span class="meta">${meta.join(' · ')}</span>
       ${sub ? `<span class="chip">${esc(sub)}</span>` : ''}`;
   }
 
@@ -495,16 +640,16 @@ function slotRow(slot) {
     <li>
       <button class="lesson lesson-btn" type="button" data-day-iso="${slot.date}" data-slot="${slot.pair}"
               aria-haspopup="dialog" aria-label="${esc(aria)}">
-        <div class="time-col"><span class="pair-no">${slot.pair}</span><span class="t">${slot.start}</span><span class="t">${slot.end}</span></div>
-        <div class="lesson-body">${body}</div>
+        <span class="time-col"><span class="pair-no">${slot.pair}</span><span class="t">${slot.start}</span><span class="t">${slot.end}</span></span>
+        <span class="lesson-body">${body}</span>
       </button>
     </li>`;
 }
 
 function renderToday() {
-  const day = WEEK[state.selectedDay];
-  const isToday = state.selectedDay === NOW.dayIndex;
-  const allSlots = slotsOf(day);
+  const day = baseWeek()[state.selectedDay];
+  const isToday = day.iso === TODAY_ISO;
+  const allSlots = slotsOf(day).filter((s) => s.entries.length || s.window);
   const list = isToday ? allSlots.filter((s) => s.pair > NOW.pair) : allSlots;
   const realCount = list.filter((s) => s.entries.length > 0).length;
   const windowCount = list.filter((s) => s.window).length;
@@ -522,7 +667,7 @@ function renderToday() {
         <span class="section-note">${isToday ? countText : (last ? `до ${last.end}` : 'свободно')}</span>
       </div>
       <ul class="lesson-list">
-        ${list.length ? list.map(slotRow).join('') : '<li class="lesson"><div></div><p class="window-text">На этот день занятий нет.</p></li>'}
+        ${list.length ? list.map(slotRow).join('') : `<li class="lesson"><div></div><p class="window-text">${state.subgroup ? `Для подгруппы ${state.subgroup} занятий нет. <button class="link-btn" type="button" data-subgroup-all>Показать все</button>` : 'На этот день занятий нет.'}</p></li>`}
       </ul>
       <p class="footnote">${isToday ? '1 и 2 пара уже прошли. ' : ''}Источник — eservice.omsu.ru. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <a href="#/changes">Что изменилось на этой неделе</a></p>
     </main>`;
@@ -531,13 +676,13 @@ function renderToday() {
 function weekDayBlock(d, i) {
   const slots = slotsOf(d);
   return `
-    <section class="wday ${i === NOW.dayIndex ? 'is-today' : ''}" aria-label="${esc(dayLabel(d))}">
+    <section class="wday ${d.iso === TODAY_ISO ? 'is-today' : ''}" aria-label="${esc(dayLabel(d))}">
       <div class="wday-head">
         <span class="wday-num">${d.num}</span>
         <span class="wday-name">${d.wd}</span>
-        <span class="wday-date">${d.lessons.some((l) => l.change) ? '<span class="change-flag">замена</span>' : ''}</span>
+        <span class="wday-date">${d.lessons.some((l) => l.change && (l.window || matchesSubgroup(l))) ? '<span class="change-flag">замена</span>' : ''}</span>
       </div>
-      ${slots.length ? slots.map((slot) => {
+      ${slots.filter((slot) => slot.entries.length || slot.window).length ? slots.filter((slot) => slot.entries.length || slot.window).map((slot) => {
         if (slot.window) {
           return `
             <div class="wrow">
@@ -571,7 +716,7 @@ function weekDayBlock(d, i) {
             <span class="wrow-sub">${esc(l.kind)}${subgroupLabel(l) ? ` · ${esc(subgroupLabel(l))}` : ''}</span>
             <span class="wrow-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
           </button>`;
-      }).join('') : '<div class="wrow"><span class="wrow-time">—</span><span class="wrow-subject" style="color:var(--muted)">занятий нет</span><span class="wrow-room"></span></div>'}
+      }).join('') : `<div class="wrow"><span class="wrow-time">—</span><span class="wrow-subject" style="color:var(--muted)">${state.subgroup ? `нет занятий для подгруппы ${state.subgroup}. <button class="link-btn" type="button" data-subgroup-all>Показать все</button>` : 'занятий нет'}</span><span class="wrow-room"></span></div>`}
     </section>`;
 }
 
@@ -619,7 +764,7 @@ function renderResults() {
       <div class="group-head"><h2 class="group-name">${title}</h2><span class="group-count">${items.length}</span></div>
       <ul class="result-list">
         ${items.map((it) => `
-          <li><a class="result-row" href="${type === 'group' ? '#/today' : type === 'tutor' ? '#/tutor' : '#/auditory'}">
+          <li><a class="result-row" href="${type === 'group' ? '#/today' : type === 'tutor' ? '#/tutor' : '#/auditory'}"${type === 'group' ? ` data-group="${it.realId}" data-group-target="#/today"` : ''}>
             <span class="result-name">${esc(it.name)}</span>
             <span class="result-type">${TYPE_LABEL[type]}</span>
           </a></li>`).join('')}
@@ -637,8 +782,8 @@ function renderSearchPage() {
         <a class="search-back" href="#/today" aria-label="Назад">${ICONS.arrowLeft}</a>
         <div class="search-field">
           ${ICONS.search}
-          <label class="sr-only" for="q">Поиск по группам, преподавателям и аудиториям</label>
-          <input id="q" name="q" type="search" inputmode="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
+          <label class="sr-only" for="m-q">Поиск по группам, преподавателям и аудиториям</label>
+          <input id="m-q" name="q" type="search" inputmode="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
                  placeholder="Группа, преподаватель, аудитория" value="${esc(state.query)}">
           <button class="search-clear" type="button" data-clear ${state.query ? '' : 'hidden'}>Очистить</button>
         </div>
@@ -647,12 +792,12 @@ function renderSearchPage() {
     </div>
     <main id="content">
       <h1 class="sr-only">Поиск</h1>
-      <div id="search-results">${renderResults()}</div>
+      <div id="m-search-results">${renderResults()}</div>
       <div id="search-recent" ${state.query.trim().length >= 2 ? 'hidden' : ''}>
         <div class="recent">
           <h2 class="recent-title">Недавние запросы</h2>
           <ul class="recent-list">
-            <li><a class="recent-row" href="#/today"><span>ЮСС-003-О-02</span><span>группа</span></a></li>
+            <li><a class="recent-row" href="#/today" data-group="12246" data-group-target="#/today"><span>ЮСС-003-О-02</span><span>группа</span></a></li>
             <li><a class="recent-row" href="#/tutor"><span>Иванов</span><span>преподаватель</span></a></li>
             <li><a class="recent-row" href="#/auditory"><span>4-308</span><span>аудитория</span></a></li>
           </ul>
@@ -663,7 +808,8 @@ function renderSearchPage() {
 }
 
 function changesBody() {
-  const items = state.changeFilter === 'group' ? CHANGES : CHANGES.concat([
+  const own = state.groupId === 12246 ? CHANGES : [];
+  const items = state.changeFilter === 'group' ? own : own.concat([
     { day: 'Вчера, 17 ноября', pair: 2, subject: 'Философия', kind: 'изменено', field: 'аудитория', from: '11-201', to: '11-204', other: 'МЕН-004-О-02' },
   ]);
   const byDay = items.reduce((acc, c) => {
@@ -675,7 +821,7 @@ function changesBody() {
         <button class="filter" type="button" data-filter="group" aria-pressed="${state.changeFilter === 'group'}">Моя группа</button>
         <button class="filter" type="button" data-filter="all" aria-pressed="${state.changeFilter === 'all'}">Все группы</button>
       </div>
-      ${Object.entries(byDay).map(([day, list]) => `
+      ${items.length ? Object.entries(byDay).map(([day, list]) => `
         <section class="change-day" aria-label="${esc(day)}">
           <div class="change-day-head">${esc(day)}</div>
           ${list.map((c) => `
@@ -683,11 +829,12 @@ function changesBody() {
               <div class="change-pair">${c.pair}</div>
               <div>
                 <h2 class="change-subject">${esc(c.subject)}</h2>
-                <span class="change-kind">${esc(c.kind)}${c.field ? ` · ${esc(c.field)}` : ''}${c.other ? ` · ${esc(c.other)}` : ''}</span>
+                <span class="change-kind">${esc(c.kind)}${c.field ? ` · ${esc(c.field)}` : ''}${c.subgroup ? ` · ${esc(c.subgroup)} подгруппа` : ''}${c.other ? ` · ${esc(c.other)}` : ''}</span>
                 ${c.from ? `<p class="diff" aria-label="Было ${esc(c.from)}, стало ${esc(c.to)}"><del>${esc(c.from)}</del><span class="diff-arrow">→</span><ins>${esc(c.to)}</ins></p>` : `<p class="diff">${esc(c.text)}</p>`}
+                ${c.iso && c.kind !== 'удалено' && (!state.subgroup || !c.subgroup || c.subgroup === state.subgroup) ? `<button class="link-btn change-open" type="button" data-day-iso="${c.iso}" data-slot="${c.pair}">Открыть пару</button>` : ''}
               </div>
             </article>`).join('')}
-        </section>`).join('')}`;
+        </section>`).join('') : '<p class="empty-search" role="status">Изменений нет. Когда расписание поменяется, здесь появится запись.</p>'}`;
 }
 
 function renderChanges() {
@@ -695,7 +842,7 @@ function renderChanges() {
     <main id="content">
       <div class="page-head">
         <h1 class="page-title">Изменения</h1>
-        <p class="page-sub">${esc(GROUP.name)} · последние 7 дней</p>
+        <p class="page-sub">${esc(currentGroup().name)} · последние 7 дней</p>
       </div>
       ${changesBody()}
       <p class="footnote">Изменения копятся с момента последней синхронизации. <a href="#/settings">Подписаться на уведомления</a></p>
@@ -708,10 +855,21 @@ function renderSettings() {
     <main id="content">
       <div class="page-head">
         <h1 class="page-title">Настройки</h1>
-        <p class="page-sub">Тема и уведомления для этой группы</p>
+        <p class="page-sub">Тема, подгруппа и уведомления для ${esc(currentGroup().name)}</p>
       </div>
       <section class="settings-group" aria-label="Настройки">
         ${themeBlock()}
+        <h2 class="settings-heading">Расписание</h2>
+        <div class="setting-row">
+          <div><span class="setting-label">Моя подгруппа</span><p class="setting-desc">Влияет на расписание и уведомления. Если не знаете — оставьте «Все».</p></div>
+          <div class="inline-field">
+            <label class="sr-only" for="m-subgroup">Моя подгруппа</label>
+            <select id="m-subgroup" name="subgroup">
+              <option value="" ${!state.subgroup ? 'selected' : ''}>Все</option>
+              ${subgroupNumbers().map((num) => `<option value="${num}" ${state.subgroup === num ? 'selected' : ''}>${num}</option>`).join('')}
+            </select>
+          </div>
+        </div>
         <h2 class="settings-heading">Уведомления</h2>
         <div class="setting-row">
           <div><span class="setting-label">Изменения в расписании</span><p class="setting-desc">Пришлём, когда пара появится, переедет или отменится.</p></div>
@@ -732,8 +890,8 @@ function renderSettings() {
         <div class="setting-row">
           <div><span class="setting-label">Время дайджеста</span></div>
           <div class="inline-field">
-            <label class="sr-only" for="digest-time">Время дайджеста</label>
-            <input id="digest-time" name="digest-time" type="text" inputmode="numeric" autocomplete="off" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" value="${n.digestTime}" ${n.digest ? '' : 'disabled'}>
+            <label class="sr-only" for="m-digest-time">Время дайджеста</label>
+            <input id="m-digest-time" name="digest-time" type="text" inputmode="numeric" autocomplete="off" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" value="${n.digestTime}" ${n.digest ? '' : 'disabled'}>
           </div>
         </div>
         <div class="setting-row">
@@ -747,8 +905,8 @@ function renderSettings() {
         <div class="setting-row">
           <div><span class="setting-label">За сколько минут</span></div>
           <div class="inline-field">
-            <label class="sr-only" for="minutes">За сколько минут до пары</label>
-            <select id="minutes" name="minutes" ${n.reminder ? '' : 'disabled'}>
+            <label class="sr-only" for="m-minutes">За сколько минут до пары</label>
+            <select id="m-minutes" name="minutes" ${n.reminder ? '' : 'disabled'}>
               <option value="15" ${n.minutes === '15' ? 'selected' : ''}>15</option>
               <option value="30" ${n.minutes === '30' ? 'selected' : ''}>30</option>
               <option value="60" ${n.minutes === '60' ? 'selected' : ''}>60</option>
@@ -757,17 +915,10 @@ function renderSettings() {
           </div>
         </div>
         <div class="setting-row">
-          <div><span class="setting-label">Подгруппа</span><p class="setting-desc">Если у группы есть деления на подгруппы.</p></div>
-          <div class="inline-field">
-            <label class="sr-only" for="subgroup">Подгруппа</label>
-            <input id="subgroup" name="subgroup" type="text" inputmode="numeric" autocomplete="off" maxlength="2" value="${esc(n.subgroup)}">
-          </div>
-        </div>
-        <div class="setting-row">
           <div><span class="setting-label">Часовой пояс</span></div>
           <div class="inline-field">
-            <label class="sr-only" for="timezone">Часовой пояс</label>
-            <select id="timezone" name="timezone">
+            <label class="sr-only" for="m-timezone">Часовой пояс</label>
+            <select id="m-timezone" name="timezone">
               <option value="Asia/Omsk" selected>Омск, UTC+6</option>
               <option value="Asia/Novosibirsk">Новосибирск, UTC+7</option>
               <option value="Europe/Moscow">Москва, UTC+3</option>
@@ -833,7 +984,7 @@ function bottomNav(route) {
 function renderMobile() {
   const route = routeOf();
   if (route === 'search') {
-    document.getElementById('mobile-app').innerHTML = renderSearchPage();
+    document.getElementById('mobile-app').innerHTML = `${state.online ? '' : offlineBar()}${renderSearchPage()}`;
     bindMobile();
     return;
   }
@@ -847,7 +998,7 @@ function renderMobile() {
   else content = renderToday();
 
   const showGroup = route !== 'tutor' && route !== 'auditory';
-  document.getElementById('mobile-app').innerHTML = `${mTop(showGroup)}${content}${bottomNav(route)}`;
+  document.getElementById('mobile-app').innerHTML = `${mTop(showGroup)}${state.online ? '' : offlineBar()}${content}${bottomNav(route)}`;
   bindMobile();
 }
 
@@ -869,11 +1020,11 @@ function bindMobile() {
     });
   });
 
-  const q = app.querySelector('#q');
+  const q = app.querySelector('#m-q');
   if (q) {
     q.addEventListener('input', () => {
       state.query = q.value;
-      const results = app.querySelector('#search-results');
+      const results = app.querySelector('#m-search-results');
       if (results) results.innerHTML = renderResults();
       const recent = app.querySelector('#search-recent');
       if (recent) recent.hidden = state.query.trim().length >= 2;
@@ -884,9 +1035,9 @@ function bindMobile() {
   const clear = app.querySelector('[data-clear]');
   if (clear) clear.addEventListener('click', () => {
     state.query = '';
-    const input = app.querySelector('#q');
+    const input = app.querySelector('#m-q');
     if (input) { input.value = ''; input.focus(); }
-    const results = app.querySelector('#search-results');
+    const results = app.querySelector('#m-search-results');
     if (results) results.innerHTML = '';
     const recent = app.querySelector('#search-recent');
     if (recent) recent.hidden = false;
@@ -907,22 +1058,25 @@ function bindMobile() {
   if (digestToggle) digestToggle.addEventListener('change', () => {
     state.notify.digest = digestToggle.checked;
     markSaved(app);
-    const t = app.querySelector('#digest-time');
+    const t = app.querySelector('#m-digest-time');
     if (t) t.disabled = !digestToggle.checked;
   });
   if (reminderToggle) reminderToggle.addEventListener('change', () => {
     state.notify.reminder = reminderToggle.checked;
     markSaved(app);
-    const m = app.querySelector('#minutes');
+    const m = app.querySelector('#m-minutes');
     if (m) m.disabled = !reminderToggle.checked;
   });
-  const digestTime = app.querySelector('#digest-time');
+  const digestTime = app.querySelector('#m-digest-time');
   if (digestTime) digestTime.addEventListener('change', () => { state.notify.digestTime = digestTime.value; markSaved(app); });
-  const minutes = app.querySelector('#minutes');
+  const minutes = app.querySelector('#m-minutes');
   if (minutes) minutes.addEventListener('change', () => { state.notify.minutes = minutes.value; markSaved(app); });
-  const subgroup = app.querySelector('#subgroup');
-  if (subgroup) subgroup.addEventListener('input', () => { state.notify.subgroup = subgroup.value; markSaved(app); });
-  const timezone = app.querySelector('#timezone');
+  const subgroup = app.querySelector('#m-subgroup');
+  if (subgroup) subgroup.addEventListener('change', () => {
+    applySubgroup(subgroup.value);
+    markSaved(app);
+  });
+  const timezone = app.querySelector('#m-timezone');
   if (timezone) timezone.addEventListener('change', () => { state.notify.timezone = timezone.value; markSaved(app); });
 
   const unsub = app.querySelector('[data-unsub]');
@@ -955,9 +1109,10 @@ function deskSide(route) {
       <div>
         <p class="side-label">Мои группы</p>
         <div class="side-groups">
-          <a class="side-group" href="#/week" aria-current="true"><span>${esc(GROUP.name)}</span><i class="pin"></i></a>
-          <a class="side-group" href="#/week"><span>ЮСС-002-О-01</span><i class="pin"></i></a>
-          <a class="side-group" href="#/week"><span>МЕН-004-О-02</span><i class="pin"></i></a>
+          ${GROUPS.map((group) => `
+            <a class="side-group" href="#/week" data-group="${group.id}" data-group-target="#/week" ${group.id === state.groupId ? 'aria-current="true"' : ''}>
+              <span>${esc(group.name)}</span><i class="pin"></i>
+            </a>`).join('')}
         </div>
       </div>
       <div class="side-foot">
@@ -969,14 +1124,15 @@ function deskSide(route) {
 
 function deskTop(route) {
   const week = weekData();
+  const weekCount = week.reduce((n, d) => n + slotsOf(d).filter((slot) => slot.entries.length).length, 0);
   if (route === 'search') {
     return `<header class="desk-top"><div class="desk-title"><h1 class="desk-group">Поиск</h1><div class="desk-sub">группы, преподаватели, аудитории</div></div></header>`;
   }
   if (route === 'changes') {
-    return `<header class="desk-top"><div class="desk-title"><h1 class="desk-group">Изменения</h1><div class="desk-sub">${esc(GROUP.name)} · последние 7 дней</div></div></header>`;
+    return `<header class="desk-top"><div class="desk-title"><h1 class="desk-group">Изменения</h1><div class="desk-sub">${esc(currentGroup().name)} · последние 7 дней</div></div></header>`;
   }
   if (route === 'settings') {
-    return `<header class="desk-top"><div class="desk-title"><h1 class="desk-group">Настройки</h1><div class="desk-sub">${esc(GROUP.name)}</div></div></header>`;
+    return `<header class="desk-top"><div class="desk-title"><h1 class="desk-group">Настройки</h1><div class="desk-sub">${esc(currentGroup().name)}</div></div></header>`;
   }
   if (route === 'tutor' || route === 'auditory') {
     const data = route === 'tutor' ? TUTOR : AUDITORY;
@@ -985,8 +1141,8 @@ function deskTop(route) {
   return `
     <header class="desk-top">
       <div class="desk-title">
-        <h1 class="desk-group">${esc(GROUP.name)}</h1>
-        <div class="desk-sub">${week.reduce((n, d) => n + slotsOf(d).filter((s) => s.entries.length).length, 0)} пар на неделе · группа</div>
+        <h1 class="desk-group">${esc(currentGroup().name)}</h1>
+        <div class="desk-sub"><span data-subgroup-text="prefix">${state.subgroup ? `подгруппа ${state.subgroup} · ` : ''}</span>${weekCount} ${plural(weekCount, 'пара', 'пары', 'пар')} на неделе</div>
       </div>
       <div class="desk-tools">
         <div class="week-switch">
@@ -1001,7 +1157,7 @@ function deskTop(route) {
 
 function wkCell(day, pair) {
   const slot = slotOf(day, pair);
-  const cellClass = Number(day.num) === Number(WEEK[NOW.dayIndex].num) ? 'is-today' : '';
+  const cellClass = day.iso === TODAY_ISO ? 'is-today' : '';
   if (!slot.entries.length && !slot.window) return `<div class="wk-cell ${cellClass}"></div>`;
   if (slot.window) return `<div class="wk-cell ${cellClass}"><span class="wk-window">окно</span></div>`;
 
@@ -1037,7 +1193,7 @@ function renderWeekGrid() {
   const cells = [];
   cells.push('<div class="wk-corner" aria-hidden="true"></div>');
   week.forEach((d) => {
-    cells.push(`<div class="wk-head ${Number(d.num) === Number(WEEK[NOW.dayIndex].num) ? 'is-today' : ''}"><span class="dn">${d.short}</span><span class="dd">${d.num}</span></div>`);
+    cells.push(`<div class="wk-head ${d.iso === TODAY_ISO ? 'is-today' : ''}"><span class="dn">${d.short}</span><span class="dd">${d.num}</span></div>`);
   });
   for (let pair = 1; pair <= 8; pair += 1) {
     const sample = week.flatMap((d) => d.lessons).find((l) => l.pair === pair);
@@ -1074,10 +1230,10 @@ function renderAside() {
                   <button class="aside-item ${isNow ? 'is-now' : ''}" type="button" data-day-iso="${day.iso}" data-slot="${slot.pair}" aria-haspopup="dialog"
                           aria-label="${slot.pair} пара, открыть детали">
                     <span class="p">${slot.pair}</span>
-                    <div>
-                      <div class="s">${esc(title)}</div>
-                      <div class="m">${slot.start}–${slot.end} · ${esc(rooms)}${slotHasChange(slot) ? ' · замена' : ''}</div>
-                    </div>
+                    <span class="aside-body">
+                      <span class="s">${esc(title)}</span>
+                      <span class="m">${slot.start}–${slot.end} · ${esc(rooms)}${slotHasChange(slot) ? ' · замена' : ''}</span>
+                    </span>
                   </button>
                 </li>`;
             }).join('') || '<li class="aside-item"><div></div><div class="m">Занятий нет</div></li>'}
@@ -1087,15 +1243,16 @@ function renderAside() {
       <div>
         <h2 class="aside-title" style="font-size:14px">Изменения</h2>
         <div class="aside-block">
-          <a class="aside-change" href="#/changes">
-            <div class="ac-subject">Базы данных · 4 пара</div>
-            <div class="ac-text">аудитория <del>4-312</del> → <ins>4-308</ins></div>
-          </a>
-          <a class="aside-change" href="#/changes">
-            <div class="ac-subject">Математический анализ · 2 пара</div>
-            <div class="ac-text">преподаватель <del>Сидоров А. В.</del> → <ins>Иванов И. И.</ins></div>
-          </a>
-          <a class="aside-link" href="#/changes">Все изменения ${ICONS.chevronRight}</a>
+          ${state.groupId === 12246 && state.weekOffset === 0 ? `
+            ${!state.subgroup || state.subgroup === '1' ? `<a class="aside-change" href="#/changes">
+              <div class="ac-subject">Базы данных · 4 пара · 1 подгруппа</div>
+              <div class="ac-text">аудитория <del>4-312</del> → <ins>4-308</ins></div>
+            </a>` : ''}
+            <a class="aside-change" href="#/changes">
+              <div class="ac-subject">Математический анализ · 2 пара</div>
+              <div class="ac-text">преподаватель <del>Сидоров А. В.</del> → <ins>Иванов И. И.</ins></div>
+            </a>
+            <a class="aside-link" href="#/changes">Все изменения ${ICONS.chevronRight}</a>` : '<p class="aside-sub">Изменений нет.</p>'}
         </div>
       </div>
       <div>
@@ -1119,21 +1276,30 @@ function renderSettingsPage() {
     <div class="desk-page">
       <section class="settings-group">
         ${themeBlock()}
+        <h2 class="settings-heading">Расписание</h2>
+        <div class="setting-row">
+          <div><span class="setting-label">Моя подгруппа</span><p class="setting-desc">Влияет на расписание и уведомления. Если не знаете — оставьте «Все».</p></div>
+          <div class="inline-field">
+            <label class="sr-only" for="d-subgroup">Моя подгруппа</label>
+            <select id="d-subgroup" name="subgroup">
+              <option value="" ${!state.subgroup ? 'selected' : ''}>Все</option>
+              ${subgroupNumbers().map((num) => `<option value="${num}" ${state.subgroup === num ? 'selected' : ''}>${num}</option>`).join('')}
+            </select>
+          </div>
+        </div>
         <h2 class="settings-heading">Уведомления</h2>
         <div class="setting-row"><div><span class="setting-label">Изменения в расписании</span><p class="setting-desc">Пришлём, когда пара появится, переедет или отменится.</p></div>
           <label class="switch"><input type="checkbox" name="changes" aria-label="Изменения в расписании" ${n.changes ? 'checked' : ''}><span class="track"></span><span class="thumb"></span><span class="sr-only">Изменения в расписании</span></label></div>
         <div class="setting-row"><div><span class="setting-label">Дайджест на следующий день</span><p class="setting-desc">Одно сообщение вечером со всеми парами на завтра.</p></div>
           <label class="switch"><input type="checkbox" name="digest" aria-label="Дайджест на следующий день" ${n.digest ? 'checked' : ''}><span class="track"></span><span class="thumb"></span><span class="sr-only">Дайджест на следующий день</span></label></div>
         <div class="setting-row"><div><span class="setting-label">Время дайджеста</span></div>
-          <div class="inline-field"><label class="sr-only" for="digest-time">Время дайджеста</label><input id="digest-time" name="digest-time" type="text" inputmode="numeric" autocomplete="off" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" value="${n.digestTime}" ${n.digest ? '' : 'disabled'}></div></div>
+          <div class="inline-field"><label class="sr-only" for="d-digest-time">Время дайджеста</label><input id="d-digest-time" name="digest-time" type="text" inputmode="numeric" autocomplete="off" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" value="${n.digestTime}" ${n.digest ? '' : 'disabled'}></div></div>
         <div class="setting-row"><div><span class="setting-label">Напоминание перед парой</span><p class="setting-desc">За сколько минут до начала прислать напоминание.</p></div>
           <label class="switch"><input type="checkbox" name="reminder" aria-label="Напоминание перед парой" ${n.reminder ? 'checked' : ''}><span class="track"></span><span class="thumb"></span><span class="sr-only">Напоминание перед парой</span></label></div>
         <div class="setting-row"><div><span class="setting-label">За сколько минут</span></div>
-          <div class="inline-field"><label class="sr-only" for="minutes">За сколько минут до пары</label><select id="minutes" name="minutes" ${n.reminder ? '' : 'disabled'}><option value="15" ${n.minutes === '15' ? 'selected' : ''}>15</option><option value="30" ${n.minutes === '30' ? 'selected' : ''}>30</option><option value="60" ${n.minutes === '60' ? 'selected' : ''}>60</option></select><span class="unit">минут</span></div></div>
-        <div class="setting-row"><div><span class="setting-label">Подгруппа</span></div>
-          <div class="inline-field"><label class="sr-only" for="subgroup">Подгруппа</label><input id="subgroup" name="subgroup" type="text" inputmode="numeric" autocomplete="off" maxlength="2" value="${esc(n.subgroup)}"></div></div>
+          <div class="inline-field"><label class="sr-only" for="d-minutes">За сколько минут до пары</label><select id="d-minutes" name="minutes" ${n.reminder ? '' : 'disabled'}><option value="15" ${n.minutes === '15' ? 'selected' : ''}>15</option><option value="30" ${n.minutes === '30' ? 'selected' : ''}>30</option><option value="60" ${n.minutes === '60' ? 'selected' : ''}>60</option></select><span class="unit">минут</span></div></div>
         <div class="setting-row"><div><span class="setting-label">Часовой пояс</span></div>
-          <div class="inline-field"><label class="sr-only" for="timezone">Часовой пояс</label><select id="timezone" name="timezone"><option selected>Омск, UTC+6</option><option>Новосибирск, UTC+7</option><option>Москва, UTC+3</option></select></div></div>
+          <div class="inline-field"><label class="sr-only" for="d-timezone">Часовой пояс</label><select id="d-timezone" name="timezone"><option value="Asia/Omsk" selected>Омск, UTC+6</option><option value="Asia/Novosibirsk">Новосибирск, UTC+7</option><option value="Europe/Moscow">Москва, UTC+3</option></select></div></div>
       </section>
       <div class="save-row"><p class="autosave" role="status" data-save-status>Изменения сохраняются автоматически</p><button class="btn-quiet" type="button" data-unsub>Отписаться от группы</button></div>
       <div class="status-line"><i class="dot"></i>Сервер отвечает, кэш обновлён 2 минуты назад</div>
@@ -1145,11 +1311,11 @@ function renderSearchDesk() {
     <div class="desk-page">
       <div class="search-field" style="border-bottom:2px solid var(--ink)">
         ${ICONS.search}
-        <label class="sr-only" for="q">Поиск по группам, преподавателям и аудиториям</label>
-        <input id="q" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Группа, преподаватель, аудитория" value="${esc(state.query)}">
+        <label class="sr-only" for="d-q">Поиск по группам, преподавателям и аудиториям</label>
+        <input id="d-q" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Группа, преподаватель, аудитория" value="${esc(state.query)}">
       </div>
       <p class="search-hint">Начните вводить название: например, «ЮСС» или «Иван».</p>
-      <div id="search-results">${state.query.trim().length >= 2 ? renderResults() : ''}</div>
+      <div id="d-search-results">${state.query.trim().length >= 2 ? renderResults() : ''}</div>
     </div>`;
 }
 
@@ -1171,7 +1337,7 @@ function renderDesktop() {
     body = `<div class="desk-body">${renderWeekGrid()}${renderAside()}</div>`;
   }
   const root = document.getElementById('desktop-app');
-  root.innerHTML = `${deskSide(route)}<div class="desk-main">${deskTop(route)}${body}</div>`;
+  root.innerHTML = `${deskSide(route)}<div class="desk-main" id="d-content">${deskTop(route)}${state.online ? '' : offlineBar()}${body}</div>`;
   bindDesktop();
   return { route, aside };
 }
@@ -1191,11 +1357,11 @@ function bindDesktop() {
       render();
     });
   });
-  const q = app.querySelector('#q');
+  const q = app.querySelector('#d-q');
   if (q) {
     q.addEventListener('input', () => {
       state.query = q.value;
-      const results = app.querySelector('#search-results');
+      const results = app.querySelector('#d-search-results');
       if (results) results.innerHTML = renderResults();
       const clear = app.querySelector('[data-clear]');
       if (clear) clear.hidden = q.value.length === 0;
@@ -1204,9 +1370,9 @@ function bindDesktop() {
   const clear = app.querySelector('[data-clear]');
   if (clear) clear.addEventListener('click', () => {
     state.query = '';
-    const input = app.querySelector('#q');
+    const input = app.querySelector('#d-q');
     if (input) { input.value = ''; input.focus(); }
-    const results = app.querySelector('#search-results');
+    const results = app.querySelector('#d-search-results');
     if (results) results.innerHTML = '';
     clear.hidden = true;
   });
@@ -1217,15 +1383,38 @@ function bindDesktop() {
   if (digest) digest.addEventListener('change', () => {
     state.notify.digest = digest.checked;
     markSaved(app);
-    const t = app.querySelector('#digest-time');
+    const t = app.querySelector('#d-digest-time');
     if (t) t.disabled = !digest.checked;
   });
   const reminder = app.querySelector('input[name="reminder"]');
   if (reminder) reminder.addEventListener('change', () => {
     state.notify.reminder = reminder.checked;
     markSaved(app);
-    const m = app.querySelector('#minutes');
+    const m = app.querySelector('#d-minutes');
     if (m) m.disabled = !reminder.checked;
+  });
+
+  const digestTime = app.querySelector('#d-digest-time');
+  if (digestTime) digestTime.addEventListener('change', () => { state.notify.digestTime = digestTime.value; markSaved(app); });
+  const minutes = app.querySelector('#d-minutes');
+  if (minutes) minutes.addEventListener('change', () => { state.notify.minutes = minutes.value; markSaved(app); });
+  const subgroup = app.querySelector('#d-subgroup');
+  if (subgroup) subgroup.addEventListener('change', () => {
+    applySubgroup(subgroup.value);
+    markSaved(app);
+  });
+  const timezone = app.querySelector('#d-timezone');
+  if (timezone) timezone.addEventListener('change', () => { state.notify.timezone = timezone.value; markSaved(app); });
+
+  const unsub = app.querySelector('[data-unsub]');
+  if (unsub) unsub.addEventListener('click', () => {
+    if (unsub.dataset.confirm !== '1') {
+      unsub.dataset.confirm = '1';
+      unsub.textContent = 'Нажмите ещё раз, чтобы отписаться';
+      return;
+    }
+    unsub.textContent = 'Вы отписаны от группы';
+    unsub.disabled = true;
   });
 }
 
@@ -1257,6 +1446,9 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   if (state.theme === 'system') applyTheme();
 });
 
+window.addEventListener('online', () => { state.online = true; render(); });
+window.addEventListener('offline', () => { state.online = false; render(); });
+
 const sheet = document.getElementById('slot-sheet');
 if (sheet) {
   sheet.addEventListener('close', () => document.body.classList.remove('sheet-open'));
@@ -1266,6 +1458,20 @@ if (sheet) {
 }
 
 document.addEventListener('click', (e) => {
+  const all = e.target.closest('[data-subgroup-all]');
+  if (all) {
+    e.preventDefault();
+    setSubgroup('');
+    return;
+  }
+  const groupTrigger = e.target.closest('[data-group]');
+  if (groupTrigger) {
+    e.preventDefault();
+    setGroup(groupTrigger.dataset.group);
+    const target = groupTrigger.dataset.groupTarget;
+    if (target && location.hash !== target) location.hash = target;
+    return;
+  }
   const trigger = e.target.closest('[data-slot]');
   if (!trigger || !trigger.dataset.dayIso) return;
   e.preventDefault();
