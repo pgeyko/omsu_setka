@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>сетка — og image</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1200px; height: 630px; }
+    body {
+      background: #151A14;
+      color: #EEF0E7;
+      font-family: "Golos Text", sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+    .brand {
+      position: absolute;
+      left: 64px;
+      top: 190px;
+      font-family: "Oswald", sans-serif;
+      font-weight: 600;
+      font-size: 158px;
+      line-height: 0.9;
+      letter-spacing: -0.025em;
+      white-space: nowrap;
+    }
+    .brand i {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background: #C22C12;
+      margin-left: 12px;
+      transform: translateY(-4px);
+    }
+    .tag {
+      position: absolute;
+      left: 70px;
+      top: 372px;
+      font-size: 34px;
+      font-weight: 500;
+      color: #AEB5A5;
+      letter-spacing: -0.01em;
+    }
+    .foot {
+      position: absolute;
+      left: 70px;
+      bottom: 58px;
+      font-size: 18px;
+      color: #8B9384;
+      letter-spacing: 0.01em;
+    }
+    .foot b { color: #C22C12; font-weight: 600; }
+    .board {
+      position: absolute;
+      right: 64px;
+      top: 56px;
+      width: 378px;
+      height: 518px;
+      border-left: 1px solid #2C3329;
+      padding-left: 28px;
+      display: flex;
+      flex-direction: column;
+    }
+    .board-head {
+      font-size: 13px;
+      color: #8B9384;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #2C3329;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 16px;
+      align-items: center;
+      min-height: 92px;
+      border-bottom: 1px solid #2C3329;
+    }
+    .row .n {
+      font-family: "Oswald", sans-serif;
+      font-size: 38px;
+      font-weight: 500;
+      color: #8B9384;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .row .s { font-size: 18px; font-weight: 500; line-height: 1.25; }
+    .row .m { font-size: 12px; color: #8B9384; margin-top: 3px; }
+    .row.now .n { color: #F2664A; }
+    .row.now .s { color: #EEF0E7; }
+    .row.change .s::after {
+      content: "замена";
+      margin-left: 8px;
+      font-size: 11px;
+      color: #F2664A;
+      border: 1px solid #C22C12;
+      padding: 1px 4px;
+      vertical-align: 2px;
+    }
+    .gridline {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(to right, rgba(247,248,243,0.035) 1px, transparent 1px);
+      background-size: 96px 100%;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="gridline"></div>
+  <div class="brand">сетка<i></i></div>
+  <p class="tag">расписание ОмГУ</p>
+  <p class="foot">сегодня · неделя · замены · уведомления</p>
+
+  <div class="board">
+    <div class="board-head">ЮСС-003-О-02 · среда, 18 ноября</div>
+    <div class="row"><span class="n">1</span><div><div class="s">Физика</div><div class="m">08:45–10:20 · 1-102 · лекция</div></div></div>
+    <div class="row now"><span class="n">2</span><div><div class="s">Математический анализ</div><div class="m">10:30–12:05 · 1-102 · сейчас</div></div></div>
+    <div class="row"><span class="n">3</span><div><div class="s">окно</div><div class="m">12:45–14:20</div></div></div>
+    <div class="row change"><span class="n">4</span><div><div class="s">Базы данных</div><div class="m">14:30–16:05 · 4-308 · лабораторная</div></div></div>
+    <div class="row"><span class="n">5</span><div><div class="s">История России</div><div class="m">16:15–17:50 · 11-204 · семинар</div></div></div>
+  </div>
+</body>
+</html>
