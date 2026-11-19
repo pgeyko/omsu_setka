@@ -2,16 +2,26 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import type { MessagePayload } from 'firebase/messaging';
 
+// The deploy pipeline may inject placeholder values ("-") when the Firebase
+// config is missing. Treat them as "not configured" instead of trying to
+// initialize an app that can never obtain a token.
+const configValue = (value?: string) => (value && value !== '-' ? value : undefined);
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: configValue(import.meta.env.VITE_FIREBASE_API_KEY),
+  authDomain: configValue(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+  projectId: configValue(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+  storageBucket: configValue(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: configValue(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  appId: configValue(import.meta.env.VITE_FIREBASE_APP_ID),
 };
 
-const isFirebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId &&
+    firebaseConfig.messagingSenderId,
+);
 
 if (!isFirebaseConfigured) {
   console.warn('Firebase not configured — push notifications disabled.');

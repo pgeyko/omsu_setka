@@ -53,6 +53,12 @@ RUN sed -i "s/VITE_FIREBASE_API_KEY/$VITE_FIREBASE_API_KEY/g" dist/firebase-mess
     sed -i "s/VITE_FIREBASE_APP_ID/$VITE_FIREBASE_APP_ID/g" dist/firebase-messaging-sw.js && \
     sed -i "s/VITE_FIREBASE_MEASUREMENT_ID/$VITE_FIREBASE_MEASUREMENT_ID/g" dist/firebase-messaging-sw.js
 
+# Do not fail the image: the app works without push, but make the placeholder
+# state visible in the build log.
+RUN if grep -q 'apiKey: "-"' dist/firebase-messaging-sw.js; then \
+      echo "WARNING: VITE_FIREBASE_* are placeholders — push notifications are disabled."; \
+    fi
+
 # Stage 2: Serve
 FROM nginx:stable-alpine
 

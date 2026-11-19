@@ -104,6 +104,14 @@ jobs:
         target: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
+      - name: Check Firebase web config
+        if: matrix.target == 'frontend'
+        env:
+          FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        run: |
+          if [ -z "$FIREBASE_API_KEY" ] || [ "$FIREBASE_API_KEY" = "-" ]; then
+            echo "::warning title=Firebase::VITE_FIREBASE_* are placeholders; push notifications will be disabled."
+          fi
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
