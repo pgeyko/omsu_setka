@@ -141,7 +141,7 @@ jobs:
             VITE_FIREBASE_VAPID_KEY=${{ secrets.VITE_FIREBASE_VAPID_KEY || '' }}
 
   deploy:
-    name: Deploy to server
+    name: Deploy
     runs-on: ubuntu-latest
     needs: [build-and-push]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -172,7 +172,10 @@ jobs:
             "BACKEND_TAG='$BACKEND_TAG' FRONTEND_TAG='$FRONTEND_TAG' DEPLOY_PATH='${{ secrets.DEPLOY_PATH }}' bash -s" <<'REMOTE'
           set -euo pipefail
           cd "$DEPLOY_PATH"
-          git pull --ff-only
+          # History may be rewritten on the public mirror, so sync the deploy
+          # checkout with the remote instead of insisting on a fast-forward.
+          git fetch origin
+          git reset --hard origin/main
           COMPOSE="docker compose -f docker-compose.deploy.yml -p setka"
           BACKEND_CONTAINER=omsu_setka_backend
           FRONTEND_CONTAINER=omsu_setka_frontend

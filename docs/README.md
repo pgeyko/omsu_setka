@@ -12,7 +12,6 @@
 - [Backend](./core/DEVELOPMENT.md) — Go-сервис, конфигурация, тесты, Swagger.
 - [Web](./web/DEVELOPMENT.md) — React-PWA, маршруты, стили, PWA, тесты.
 - [Администрирование](./ADMIN_GUIDE.md) — Admin CLI, health/incidents, вебхуки.
-- [Деплой в Coolify](./COOLIFY.md) — альтернативный способ развёртывания.
 - [Upstream API](./UPSTREAM_API.md) — контракт `eservice.omsu.ru`, который
   парсит backend.
 - [Дизайн](./DESIGN.md) — визуальная система и токены.
@@ -26,14 +25,13 @@
 | Frontend | React 19, TypeScript, Vite 8, React Router 7, TanStack Query 5, Zustand 5, vanilla CSS |
 | PWA | Workbox precache + офлайн-расписание, Firebase Messaging |
 | База | `data/mirror.db` (по умолчанию), том `backend_data` в Docker |
-| Деплой | GitHub Actions → GHCR → server (`docker-compose.deploy.yml`), health gate + rollback |
 | Тесты | Go `go test ./...`; web 147 unit/component, 19 E2E, build-check |
 
 ## Требования
 
 - Go 1.23+.
 - Node.js 20+ и npm (CI использует Node 20).
-- Docker и Docker Compose — для контейнерного запуска и деплоя.
+- Docker и Docker Compose — для контейнерного запуска.
 
 ## Три способа запуска
 
@@ -43,8 +41,7 @@
    frontend `cd web && npm run dev`.
 3. **Docker**:
    - `docker compose up --build` — только backend (ручная проверка);
-   - `docker compose -f docker-compose.local.yml up` — backend + frontend;
-   - `docker compose -f docker-compose.deploy.yml up -d` — production-стек server.
+   - `docker compose -f docker-compose.local.yml up` — backend + frontend.
 
 ## Конфигурация и секреты
 
@@ -53,17 +50,14 @@
 `VITE_FIREBASE_*` на сборке фронтенда и `FIREBASE_SERVICE_ACCOUNT` на backend;
 без них приложение работает, но FCM-токен не выдаётся.
 
-## CI/CD
+## CI
 
 `.github/workflows/ci.yml` на каждый push в `main` и PR:
 
 1. gitleaks + `go vet` + `go test -race`;
 2. `npm run build`, `npm test`, `npm run test:build`;
 3. `npm run test:e2e` (19 сценариев, артефакты при падении);
-4. сборка и пуш образов в GHCR;
-5. деплой по SSH: `git pull`, `docker compose -f docker-compose.deploy.yml`,
-   ожидание healthy backend, очистка старых контейнеров, rollback на `:prev`
-   при неудаче.
+4. сборка Docker-образов.
 
 ## Мониторинг
 

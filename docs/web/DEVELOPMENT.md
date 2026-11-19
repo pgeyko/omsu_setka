@@ -66,9 +66,8 @@ Dev-параметры:
 | Переменная | Назначение |
 |---|---|
 | `VITE_API_BASE` | база API, по умолчанию `/api/v1` |
-| `VITE_API_ORIGIN` | origin для изменяющих запросов и CORS (без reverse proxy) |
+| `VITE_API_ORIGIN` | origin для изменяющих запросов и CORS |
 | `VITE_FIREBASE_*` | web-конфиг Firebase (8 значений + VAPID) |
-| `VITE_CF_ANALYTICS_TOKEN` | Cloudflare Web Analytics, опционально |
 
 Секреты передаются в `web/Dockerfile` через build-args и подставляются в
 `firebase-messaging-sw.js` на этапе сборки. Без реального Firebase push не
@@ -121,9 +120,9 @@ E2E сами поднимают мок и Vite, фиксируют время и
 - Манифест: тёмный splash, maskable-иконка, `display: standalone`.
 - При отсутствии сети показывается офлайн-бар с временем последних данных.
 
-## Деплой
+## Сборка
 
-CI собирает `web/Dockerfile` (Node 20 → nginx), прогоняет `npm run build` и
-`test:build`. nginx проксирует `/api`, обслуживает `/g/:id` через backend и
-кэширует хэшированные ассеты на год. Подробности — в
-[`docs/COOLIFY.md`](../COOLIFY.md) и `.github/workflows/ci.yml`.
+`npm run build` собирает статику в `dist/`; `npm run test:build` проверяет
+манифест, precache, service worker, `og.png` и `share-redirect.js`. nginx
+раздаёт `dist/`, проксирует `/api` и `/g/:id`, а хэшированные ассеты кэширует
+надолго.

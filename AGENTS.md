@@ -18,7 +18,7 @@ Public instance: <https://s.pgeyko.ru>.
   upstream,notifications,webhook,diff,models,config}`.
 - `web/` — React 19 + TypeScript + Vite 8 PWA; vanilla CSS, no Tailwind.
 - `docs/` — architecture, component guides, admin/deploy docs, screenshots.
-- `.github/workflows/ci.yml` — tests, image build, deploy to server.
+- `.github/workflows/ci.yml` — tests and image build.
 - `admin.sh`, `run.sh`, `tools/` — operations and local helpers.
 
 Read `docs/ARCHITECTURE.md` before changing caching, sync, diff or webhooks.

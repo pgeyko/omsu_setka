@@ -16,14 +16,10 @@ frontend (nginx)  ── /api ──▶  backend (Go, Fiber)
    │                              ├─ L1: sync.Map + готовый JSON
    │                              ├─ L2: SQLite (WAL)
    │                              └─ фоновый sync ──▶ eservice.omsu.ru
-   ▲
-   └─ reverse proxy (s.pgeyko.ru); изменяющие запросы — на origin s.pgeyko.ru
 ```
 
-- Публичный вход — reverse proxy-домен. GET/HEAD кэшируются reverse proxy, POST/PUT/PATCH/DELETE
-  и CORS preflight идут на origin без reverse proxy.
 - `frontend` — nginx со статикой (`web/dist`) и проксированием `/api` в
-  `backend` по внутренней docker-сети. Backend наружу не публикуется.
+  `backend`.
 - Короткие ссылки `/g/<id>` обслуживает nginx: он проксирует их в backend,
   который отдаёт HTML с Open Graph-метаданными для Telegram и скриптом
   редиректа на `/today` (мобильные) или `/week` (десктоп).
@@ -155,9 +151,3 @@ upstream; для групп upstream-ID хранится в `real_group_id`.
 - iCal можно закрыть общим токеном `ICAL_ACCESS_TOKEN` (`?token=…`).
 - В CI работает gitleaks; секреты не коммитятся, Firebase-конфиг передаётся
   build-args.
-
-## Ресурсы
-
-Backend ограничен `GOMEMLIMIT=192MiB` и `mem_limit: 256m` в compose. Реальный
-расход зависит от числа «горячих» расписаний; кэш и БД рассчитаны на
-несколько мегабайт данных.

@@ -3,17 +3,13 @@
 Зеркало расписания ОмГУ им. Ф. М. Достоевского с мгновенной отдачей из кэша,
 историей замен, push-уведомлениями и устанавливаемым PWA-интерфейсом.
 
-**Публичный инстанс:** <https://s.pgeyko.ru> · **Короткая ссылка:**
-`https://s.pgeyko.ru/g/15103`
+**Публичный инстанс:** <https://s.pgeyko.ru>
 
 [![Расписание на неделю, десктоп](docs/screenshots/week-desktop.png)](docs/screenshots/week-desktop.png)
 
 | Сегодня | Неделя | Тёмная тема |
 |---|---|---|
 | <img src="docs/screenshots/today-mobile.png" width="260" alt="Экран «Сегодня»"> | <img src="docs/screenshots/week-mobile.png" width="260" alt="Экран «Неделя»"> | <img src="docs/screenshots/today-mobile-dark.png" width="260" alt="Тёмная тема"> |
-
-_Скриншоты сняты с production-инстанса; данные — реальное расписание группы
-МБС-501-О-01._
 
 ## Зачем это нужно
 
@@ -47,7 +43,7 @@ SQLite и отдаёт из памяти за доли миллисекунды 
 ## Как это устроено
 
 ```text
-PWA (React) ──HTTPS──▶ reverse proxy ──▶ frontend (nginx) ──/api──▶ backend (Go)
+PWA (React) ──HTTPS──▶ nginx ──/api──▶ backend (Go)
                                                              │
                                          L1 sync.Map + JSON  │
                                          L2 SQLite (WAL)     │
@@ -58,7 +54,6 @@ PWA (React) ──HTTPS──▶ reverse proxy ──▶ frontend (nginx) ──
   24 часа); остальные подгружаются лениво.
 - Ответы кэшируются на трёх уровнях: память → SQLite → upstream.
 - Справочники индексируются в памяти (trie), поиск не ходит в БД.
-- Деплой — два контейнера: nginx со статикой и Go-сервис во внутренней сети.
 
 Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -70,7 +65,7 @@ PWA (React) ──HTTPS──▶ reverse proxy ──▶ frontend (nginx) ──
 | Frontend | React 19, TypeScript, Vite 8, React Router 7, TanStack Query 5, Zustand 5, vanilla CSS, lucide-react |
 | PWA | vite-plugin-pwa / Workbox, Firebase Messaging |
 | Анимации | нативные View Transitions API + CSS (без animation-библиотек) |
-| Инфраструктура | Docker, GitHub Actions, GHCR, nginx, Cloudflare reverse proxy |
+| Инфраструктура | Docker, nginx, GitHub Actions |
 
 ## Быстрый старт
 
@@ -78,7 +73,7 @@ PWA (React) ──HTTPS──▶ reverse proxy ──▶ frontend (nginx) ──
 
 ```bash
 git clone https://github.com/pgeyko/omsu_setka.git
-cd setka
+cd omsu_setka
 ./run.sh          # тесты → сборка web → сборка backend → запуск на :8080
 ```
 
@@ -103,9 +98,6 @@ cp .env.example .env    # заполните ADMIN_KEY и CORS_ALLOWED_ORIGINS
 docker compose up --build                                # только backend
 docker compose -f docker-compose.local.yml up --build    # backend + frontend
 ```
-
-Production на server: `docker compose -f docker-compose.deploy.yml up -d`
-(используется CI, наружу смотрит только frontend).
 
 ## Тесты
 
@@ -136,7 +128,6 @@ FCM-токен не выдаётся.
 - [docs/core/DEVELOPMENT.md](docs/core/DEVELOPMENT.md) — backend.
 - [docs/web/DEVELOPMENT.md](docs/web/DEVELOPMENT.md) — frontend.
 - [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) — Admin CLI и мониторинг.
-- [docs/COOLIFY.md](docs/COOLIFY.md) — деплой в Coolify.
 - [docs/UPSTREAM_API.md](docs/UPSTREAM_API.md) — API ОмГУ, который парсит backend.
 - [docs/DESIGN.md](docs/DESIGN.md) — визуальная система.
 
@@ -146,7 +137,7 @@ FCM-токен не выдаётся.
 core/          Go-сервис: API, кэш, SQLite, sync, уведомления, вебхуки
 web/           React-PWA: экраны, стили, service worker, E2E
 docs/          документация и скриншоты
-.github/       CI/CD (тесты, сборка, деплой)
+.github/       CI (тесты и сборка)
 admin.sh       Admin CLI (health, sync, incidents, logs, restart)
 run.sh         локальные тесты и сборка
 tools/         нагрузочный тест API
