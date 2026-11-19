@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useChangesInfinite, useGroupName } from '../api/queries';
+import { usePageMeta } from '../lib/usePageMeta';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
 import type { FieldChange, Lesson, ScheduleChange } from '../api/types';
@@ -201,6 +202,7 @@ export function ChangesPage({ groupId }: { groupId: number }) {
   const isDesktop = useIsDesktop();
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
+  usePageMeta(`Изменения — ${groupName} — сетка`, `Последние изменения расписания группы ${groupName}.`);
 
   if (isDesktop) {
     return (

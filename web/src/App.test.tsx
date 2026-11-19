@@ -62,6 +62,16 @@ describe('App routing', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/472/today'));
   });
 
+  it('redirects a short group link to today on mobile', async () => {
+    renderRoute(<App />, { route: '/g/472', width: 390 });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/472/today'));
+  });
+
+  it('redirects a short group link to the week on desktop', async () => {
+    renderRoute(<App />, { route: '/g/472', width: 1440 });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/472/week'));
+  });
+
   it('redirects today to the week on desktop', async () => {
     usePreferences.setState({ group: { id: 472, name: 'ЮСС-003-О-02' } });
     renderRoute(<App />, { route: '/g/472/today', width: 1440 });

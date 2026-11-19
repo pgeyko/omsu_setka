@@ -72,6 +72,13 @@ function GroupShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function GroupLandingRoute() {
+  const groupId = useGroupId();
+  const isDesktop = useIsDesktop();
+  if (!groupId) return <Navigate to="/search" replace />;
+  return <Navigate to={`/g/${groupId}/${isDesktop ? 'week' : 'today'}`} replace />;
+}
+
 function TodayRoute() {
   const groupId = useGroupId();
   const isDesktop = useIsDesktop();
@@ -146,6 +153,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/g/:groupId" element={<GroupLandingRoute />} />
         <Route path="/g/:groupId/today" element={<TodayRoute />} />
         <Route path="/g/:groupId/week" element={<WeekRoute />} />
         <Route path="/g/:groupId/changes" element={<ChangesRoute />} />

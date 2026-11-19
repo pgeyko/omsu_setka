@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DetailSheet } from '../components/DetailSheet';
 import { WeekGrid, WeekList } from '../components/Schedule';
 import { useGroupName, useRecentChanges, useWeekSchedule } from '../api/queries';
+import { usePageMeta } from '../lib/usePageMeta';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
 import type { Day } from '../api/types';
@@ -26,6 +27,7 @@ export function WeekPage({ groupId }: { groupId: number }) {
   const setSubgroup = usePreferences((state) => state.setSubgroup);
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
+  usePageMeta(`${groupName} — неделя — сетка`, `Расписание ${groupName} на неделю: пары, аудитории и замены.`);
   const rawWeekStart = params.get('week_start');
   const weekStart = rawWeekStart && /^\d{4}-\d{2}-\d{2}$/.test(rawWeekStart) ? rawWeekStart : currentWeekStart();
   const week = useWeekSchedule('group', groupId, weekStart);

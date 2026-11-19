@@ -18,6 +18,7 @@ function nonEmpty(path) {
 check(nonEmpty(join(DIST, 'index.html')), 'dist/index.html is missing or empty');
 check(nonEmpty(join(DIST, 'sw.js')), 'dist/sw.js is missing — run npm run build');
 check(nonEmpty(join(DIST, 'manifest.webmanifest')), 'dist/manifest.webmanifest is missing');
+check(nonEmpty(join(DIST, 'og.png')), 'dist/og.png is missing — link previews will be blank');
 check(
   nonEmpty(join(DIST, 'firebase-messaging-sw.js')),
   'dist/firebase-messaging-sw.js is missing (Docker injects Firebase secrets into it)',

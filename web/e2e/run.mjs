@@ -198,6 +198,17 @@ async function main() {
       await screenshot('01-today');
     });
 
+    await scenario('short group link redirects by viewport', async () => {
+      await goto('/g/472');
+      await page.waitForURL('**/g/472/today');
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await goto('/g/472');
+      await page.waitForURL('**/g/472/week');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await goto('/g/472/today');
+      await page.waitForSelector('.now-detail');
+    });
+
     await scenario('today: detail sheet and day switching', async () => {
       await page.locator('.now-detail').click();
       await page.waitForSelector('dialog.sheet[open]');

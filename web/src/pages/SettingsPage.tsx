@@ -6,6 +6,7 @@ import { patchNotificationSettings, subscribe, unsubscribe } from '../api/client
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
 import { requestForToken } from '../lib/firebase';
+import { usePageMeta } from '../lib/usePageMeta';
 import { currentWeekStart } from '../lib/date';
 import { normalizeSubgroup } from '../lib/schedule';
 
@@ -573,6 +574,8 @@ export function SettingsPage({ groupId }: { groupId: number }) {
   const isDesktop = useIsDesktop();
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
+
+  usePageMeta(`Настройки — ${groupName} — сетка`, `Тема, подгруппа и уведомления для группы ${groupName}.`);
 
   if (isDesktop) {
     return (

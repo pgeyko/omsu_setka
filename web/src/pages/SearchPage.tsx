@@ -5,6 +5,7 @@ import { useSearch } from '../api/queries';
 import { usePreferences } from '../store/preferences';
 import { useDebounced } from '../lib/useDebounced';
 import { useIsDesktop } from '../lib/useMediaQuery';
+import { usePageMeta } from '../lib/usePageMeta';
 import { DesktopShell } from '../components/AppShell';
 import type { GroupedSearchResult, SearchResult } from '../api/types';
 
@@ -220,6 +221,7 @@ export function SearchPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const [query, setQuery] = useState(params.get('q') || '');
+  usePageMeta('Поиск — сетка', 'Поиск групп, преподавателей и аудиторий ОмГУ.');
   const group = usePreferences((state) => state.group);
   const subgroup = usePreferences((state) => state.subgroup);
 

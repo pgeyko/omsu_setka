@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DayStrip, NowBand, SlotRow } from '../components/Schedule';
 import { DetailSheet } from '../components/DetailSheet';
 import { useGroupName, useRecentChanges, useWeekSchedule } from '../api/queries';
+import { usePageMeta } from '../lib/usePageMeta';
 import { usePreferences } from '../store/preferences';
 import type { Day } from '../api/types';
 import {
@@ -50,6 +51,7 @@ export function TodayPage({ groupId }: { groupId: number }) {
   const setSubgroup = usePreferences((state) => state.setSubgroup);
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
+  usePageMeta(`${groupName} — сегодня — сетка`, `Расписание ${groupName} на сегодня: пары, аудитории и замены.`);
   const now = useClock(params.get('now'));
   const rawDay = params.get('day');
   const selectedParam = rawDay && /^\d{4}-\d{2}-\d{2}$/.test(rawDay) ? rawDay : null;

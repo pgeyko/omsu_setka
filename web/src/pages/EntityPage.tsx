@@ -16,6 +16,7 @@ import {
   type Slot,
 } from '../lib/schedule';
 import { currentWeekStart, weekRangeLabel } from '../lib/date';
+import { usePageMeta } from '../lib/usePageMeta';
 import type { Day } from '../api/types';
 
 export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: number }) {
@@ -39,6 +40,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
     [recent.data],
   );
   const title = info.data?.name || (type === 'tutor' ? `Преподаватель ${id}` : `Аудитория ${id}`);
+  usePageMeta(`${title} — сетка`, type === 'tutor' ? `Расписание преподавателя ${title}.` : `Расписание аудитории ${title}.`);
   const pairCount = days.reduce((count, iso) => {
     const day = schedule.get(iso);
     return count + (day ? slotsOf(day, '', changedIds).filter((slot) => !slot.window).length : 0);
