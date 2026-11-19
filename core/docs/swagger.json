@@ -67,7 +67,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                            "$ref": "#/definitions/api.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -134,7 +134,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                            "$ref": "#/definitions/api.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -302,7 +302,7 @@
                         "name": "body",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                            "$ref": "#/definitions/api.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -360,7 +360,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -368,7 +368,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Auditory"
+                                                "$ref": "#/definitions/models.Auditory"
                                             }
                                         }
                                     }
@@ -404,13 +404,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/omsu_mirror_internal_models.Auditory"
+                                            "$ref": "#/definitions/models.Auditory"
                                         }
                                     }
                                 }
@@ -487,7 +487,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -525,7 +525,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -533,7 +533,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_storage.ScheduleChange"
+                                                "$ref": "#/definitions/storage.ScheduleChange"
                                             }
                                         }
                                     }
@@ -578,7 +578,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -586,7 +586,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Group"
+                                                "$ref": "#/definitions/models.Group"
                                             }
                                         }
                                     }
@@ -622,13 +622,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/omsu_mirror_internal_models.Group"
+                                            "$ref": "#/definitions/models.Group"
                                         }
                                     }
                                 }
@@ -661,7 +661,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -681,7 +681,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -707,7 +707,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.notificationSettingsPatch"
+                            "$ref": "#/definitions/api.notificationSettingsPatch"
                         }
                     }
                 ],
@@ -770,7 +770,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
+                            "$ref": "#/definitions/storage.Subscription"
                         }
                     },
                     "400": {
@@ -825,7 +825,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -833,7 +833,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -964,7 +964,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -972,7 +972,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -1072,6 +1072,68 @@
                 }
             }
         },
+        "/schedule/group/{id}/subgroups": {
+            "get": {
+                "description": "Returns all subgroup numbers used in the cached group schedule (all weeks).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Get group subgroups",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group dictionary ID (dict_groups.id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.BFFResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/schedule/tutor/{id}": {
             "get": {
                 "description": "Returns the schedule for a specific tutor. Lazy-fetches if not in cache.",
@@ -1103,7 +1165,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1111,7 +1173,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -1250,7 +1312,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1258,7 +1320,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -1324,7 +1386,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -1339,7 +1401,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.subscribeRequest"
+                            "$ref": "#/definitions/api.subscribeRequest"
                         }
                     }
                 ],
@@ -1424,7 +1486,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     },
                     "400": {
@@ -1453,7 +1515,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -1484,7 +1546,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     },
                     "401": {
@@ -1515,7 +1577,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1523,7 +1585,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Tutor"
+                                                "$ref": "#/definitions/models.Tutor"
                                             }
                                         }
                                     }
@@ -1559,13 +1621,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/omsu_mirror_internal_models.Tutor"
+                                            "$ref": "#/definitions/models.Tutor"
                                         }
                                     }
                                 }
@@ -1604,7 +1666,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.UnsubscribeRequest"
+                            "$ref": "#/definitions/api.UnsubscribeRequest"
                         }
                     }
                 ],
@@ -1650,7 +1712,7 @@
         }
     },
     "definitions": {
-        "internal_api.CreateWebhookRequest": {
+        "api.CreateWebhookRequest": {
             "type": "object",
             "properties": {
                 "enabled": {
@@ -1670,7 +1732,7 @@
                 }
             }
         },
-        "internal_api.UnsubscribeRequest": {
+        "api.UnsubscribeRequest": {
             "type": "object",
             "properties": {
                 "entity_id": {
@@ -1684,7 +1746,7 @@
                 }
             }
         },
-        "internal_api.notificationSettingsPatch": {
+        "api.notificationSettingsPatch": {
             "type": "object",
             "properties": {
                 "before_minutes": {
@@ -1719,7 +1781,7 @@
                 }
             }
         },
-        "internal_api.subscribeRequest": {
+        "api.subscribeRequest": {
             "description": "Creates or updates a notification subscription for a group, tutor, or auditory.",
             "type": "object",
             "properties": {
@@ -1755,7 +1817,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_diff.Change": {
+        "diff.Change": {
             "type": "object",
             "properties": {
                 "field": {
@@ -1772,7 +1834,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_models.Auditory": {
+        "models.Auditory": {
             "type": "object",
             "properties": {
                 "building": {
@@ -1786,7 +1848,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_models.BFFResponse": {
+        "models.BFFResponse": {
             "type": "object",
             "properties": {
                 "cached_at": {
@@ -1814,7 +1876,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_models.Day": {
+        "models.Day": {
             "type": "object",
             "properties": {
                 "date": {
@@ -1826,12 +1888,12 @@
                 "lessons": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/omsu_mirror_internal_models.Lesson"
+                        "$ref": "#/definitions/models.Lesson"
                     }
                 }
             }
         },
-        "omsu_mirror_internal_models.Group": {
+        "models.Group": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1845,7 +1907,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_models.Lesson": {
+        "models.Lesson": {
             "type": "object",
             "properties": {
                 "auditCorps": {
@@ -1889,7 +1951,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_models.Tutor": {
+        "models.Tutor": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1900,7 +1962,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_storage.ScheduleChange": {
+        "storage.ScheduleChange": {
             "type": "object",
             "properties": {
                 "change_type": {
@@ -1911,7 +1973,7 @@
                     "description": "normalized field changes",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/omsu_mirror_internal_diff.Change"
+                        "$ref": "#/definitions/diff.Change"
                     }
                 },
                 "created_at": {
@@ -1955,7 +2017,7 @@
                 }
             }
         },
-        "omsu_mirror_internal_storage.Subscription": {
+        "storage.Subscription": {
             "type": "object",
             "properties": {
                 "before_minutes": {

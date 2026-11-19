@@ -133,6 +133,7 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/auditory/:id/day", s.handleGetScheduleDay("auditory"))
 
 	// iCal Export
+	v1.Get("/schedule/group/:id/subgroups", s.handleGroupSubgroups)
 	v1.Get("/schedule/group/:id/ical", s.handleGetICal("group"))
 	v1.Get("/schedule/tutor/:id/ical", s.handleGetICal("tutor"))
 	v1.Get("/schedule/auditory/:id/ical", s.handleGetICal("auditory"))

@@ -8,6 +8,7 @@ import (
 	"omsu_mirror/internal/diff"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
+	"sort"
 	"strconv"
 	"time"
 
@@ -350,6 +351,9 @@ func (s *Server) handleGetChangesFeed(c *fiber.Ctx) error {
 	if len(items) == limit && len(items) > 0 {
 		nextBeforeID = items[len(items)-1].ID
 	}
+	for i := range items {
+		enrichScheduleChange(&items[i])
+	}
 
 	return c.JSON(models.BFFResponse{
 		Success: true,
@@ -372,6 +376,99 @@ func (s *Server) handleGetChangesFeed(c *fiber.Ctx) error {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /changes/{type}/{id} [get]
+func enrichScheduleChange(item *storage.ScheduleChange) {
+	raw := item.NewData
+	if raw == "" {
+		raw = item.OldData
+	}
+	if raw == "" {
+		return
+	}
+	var lesson models.Lesson
+	if err := json.Unmarshal([]byte(raw), &lesson); err != nil {
+		return
+	}
+	if item.Pair == 0 {
+		item.Pair = lesson.Time
+	}
+	if item.Subject == "" {
+		item.Subject = lesson.Lesson
+	}
+	if item.Subgroup == "" {
+		item.Subgroup = lesson.SubgroupNumber
+		if item.Subgroup == "" {
+			item.Subgroup = diff.NormalizeSubgroup(lesson.SubgroupName)
+		}
+	}
+}
+
+func collectSubgroups(days []models.Day) []string {
+	seen := make(map[string]struct{})
+	for _, day := range days {
+		for _, lesson := range day.Lessons {
+			value := lesson.SubgroupNumber
+			if value == "" {
+				value = diff.NormalizeSubgroup(lesson.SubgroupName)
+			}
+			if value != "" {
+				seen[value] = struct{}{}
+			}
+		}
+	}
+	result := make([]string, 0, len(seen))
+	for value := range seen {
+		result = append(result, value)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		left, leftErr := strconv.Atoi(result[i])
+		right, rightErr := strconv.Atoi(result[j])
+		if leftErr == nil && rightErr == nil {
+			return left < right
+		}
+		return result[i] < result[j]
+	})
+	return result
+}
+
+// @Summary Get group subgroups
+// @Description Returns all subgroup numbers used in the cached group schedule (all weeks).
+// @Tags Schedules
+// @Produce json
+// @Param id path int true "Group dictionary ID (dict_groups.id)"
+// @Success 200 {object} models.BFFResponse{data=[]string}
+// @Failure 400 {object} map[string]string
+// @Failure 503 {object} map[string]string
+// @Router /schedule/group/{id}/subgroups [get]
+func (s *Server) handleGroupSubgroups(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil || id < 1 || id > 999999 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": apperrors.ErrInvalidID.Error()})
+	}
+
+	result, err := s.ScheduleService.GetSchedule(c.Context(), "group", id)
+	if err != nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": apperrors.ErrUpstreamUnavailable.Error()})
+	}
+
+	var wrapper struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(result.Data, &wrapper); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to read schedule"})
+	}
+	var days []models.Day
+	if err := json.Unmarshal(wrapper.Data, &days); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to read schedule"})
+	}
+
+	return c.JSON(models.BFFResponse{
+		Success:  true,
+		Data:     collectSubgroups(days),
+		CachedAt: result.CachedAt,
+		Source:   result.Source,
+	})
+}
+
 func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	entityType := c.Params("type")
 	if !isValidEntityType(entityType) {
@@ -387,6 +484,9 @@ func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	changes, err := s.ChangeRepo.GetChanges(c.Context(), entityType, id, 20)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch changes"})
+	}
+	for i := range changes {
+		enrichScheduleChange(&changes[i])
 	}
 
 	return c.JSON(models.BFFResponse{

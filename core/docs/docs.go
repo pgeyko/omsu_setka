@@ -73,7 +73,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                            "$ref": "#/definitions/api.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -140,7 +140,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                            "$ref": "#/definitions/api.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -308,7 +308,7 @@ const docTemplate = `{
                         "name": "body",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/internal_api.CreateWebhookRequest"
+                            "$ref": "#/definitions/api.CreateWebhookRequest"
                         }
                     }
                 ],
@@ -366,7 +366,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -374,7 +374,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Auditory"
+                                                "$ref": "#/definitions/models.Auditory"
                                             }
                                         }
                                     }
@@ -410,13 +410,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/omsu_mirror_internal_models.Auditory"
+                                            "$ref": "#/definitions/models.Auditory"
                                         }
                                     }
                                 }
@@ -493,7 +493,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -531,7 +531,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -539,7 +539,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_storage.ScheduleChange"
+                                                "$ref": "#/definitions/storage.ScheduleChange"
                                             }
                                         }
                                     }
@@ -584,7 +584,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -592,7 +592,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Group"
+                                                "$ref": "#/definitions/models.Group"
                                             }
                                         }
                                     }
@@ -628,13 +628,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/omsu_mirror_internal_models.Group"
+                                            "$ref": "#/definitions/models.Group"
                                         }
                                     }
                                 }
@@ -667,7 +667,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -687,7 +687,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -713,7 +713,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.notificationSettingsPatch"
+                            "$ref": "#/definitions/api.notificationSettingsPatch"
                         }
                     }
                 ],
@@ -776,7 +776,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
+                            "$ref": "#/definitions/storage.Subscription"
                         }
                     },
                     "400": {
@@ -831,7 +831,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -839,7 +839,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -970,7 +970,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -978,7 +978,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -1078,6 +1078,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/schedule/group/{id}/subgroups": {
+            "get": {
+                "description": "Returns all subgroup numbers used in the cached group schedule (all weeks).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Get group subgroups",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group dictionary ID (dict_groups.id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.BFFResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/schedule/tutor/{id}": {
             "get": {
                 "description": "Returns the schedule for a specific tutor. Lazy-fetches if not in cache.",
@@ -1109,7 +1171,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1117,7 +1179,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -1256,7 +1318,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1264,7 +1326,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Day"
+                                                "$ref": "#/definitions/models.Day"
                                             }
                                         }
                                     }
@@ -1330,7 +1392,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -1345,7 +1407,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.subscribeRequest"
+                            "$ref": "#/definitions/api.subscribeRequest"
                         }
                     }
                 ],
@@ -1430,7 +1492,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     },
                     "400": {
@@ -1459,7 +1521,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     }
                 }
@@ -1490,7 +1552,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                            "$ref": "#/definitions/models.BFFResponse"
                         }
                     },
                     "401": {
@@ -1521,7 +1583,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1529,7 +1591,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/omsu_mirror_internal_models.Tutor"
+                                                "$ref": "#/definitions/models.Tutor"
                                             }
                                         }
                                     }
@@ -1565,13 +1627,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                                    "$ref": "#/definitions/models.BFFResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/omsu_mirror_internal_models.Tutor"
+                                            "$ref": "#/definitions/models.Tutor"
                                         }
                                     }
                                 }
@@ -1610,7 +1672,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api.UnsubscribeRequest"
+                            "$ref": "#/definitions/api.UnsubscribeRequest"
                         }
                     }
                 ],
@@ -1656,7 +1718,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_api.CreateWebhookRequest": {
+        "api.CreateWebhookRequest": {
             "type": "object",
             "properties": {
                 "enabled": {
@@ -1676,7 +1738,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_api.UnsubscribeRequest": {
+        "api.UnsubscribeRequest": {
             "type": "object",
             "properties": {
                 "entity_id": {
@@ -1690,7 +1752,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_api.notificationSettingsPatch": {
+        "api.notificationSettingsPatch": {
             "type": "object",
             "properties": {
                 "before_minutes": {
@@ -1725,7 +1787,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_api.subscribeRequest": {
+        "api.subscribeRequest": {
             "description": "Creates or updates a notification subscription for a group, tutor, or auditory.",
             "type": "object",
             "properties": {
@@ -1761,7 +1823,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_diff.Change": {
+        "diff.Change": {
             "type": "object",
             "properties": {
                 "field": {
@@ -1778,7 +1840,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_models.Auditory": {
+        "models.Auditory": {
             "type": "object",
             "properties": {
                 "building": {
@@ -1792,7 +1854,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_models.BFFResponse": {
+        "models.BFFResponse": {
             "type": "object",
             "properties": {
                 "cached_at": {
@@ -1820,7 +1882,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_models.Day": {
+        "models.Day": {
             "type": "object",
             "properties": {
                 "date": {
@@ -1832,12 +1894,12 @@ const docTemplate = `{
                 "lessons": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/omsu_mirror_internal_models.Lesson"
+                        "$ref": "#/definitions/models.Lesson"
                     }
                 }
             }
         },
-        "omsu_mirror_internal_models.Group": {
+        "models.Group": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1851,7 +1913,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_models.Lesson": {
+        "models.Lesson": {
             "type": "object",
             "properties": {
                 "auditCorps": {
@@ -1895,7 +1957,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_models.Tutor": {
+        "models.Tutor": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1906,7 +1968,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_storage.ScheduleChange": {
+        "storage.ScheduleChange": {
             "type": "object",
             "properties": {
                 "change_type": {
@@ -1917,7 +1979,7 @@ const docTemplate = `{
                     "description": "normalized field changes",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/omsu_mirror_internal_diff.Change"
+                        "$ref": "#/definitions/diff.Change"
                     }
                 },
                 "created_at": {
@@ -1961,7 +2023,7 @@ const docTemplate = `{
                 }
             }
         },
-        "omsu_mirror_internal_storage.Subscription": {
+        "storage.Subscription": {
             "type": "object",
             "properties": {
                 "before_minutes": {

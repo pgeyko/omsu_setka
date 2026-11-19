@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  internal_api.CreateWebhookRequest:
+  api.CreateWebhookRequest:
     properties:
       enabled:
         type: boolean
@@ -13,7 +13,7 @@ definitions:
       url:
         type: string
     type: object
-  internal_api.UnsubscribeRequest:
+  api.UnsubscribeRequest:
     properties:
       entity_id:
         type: integer
@@ -22,7 +22,7 @@ definitions:
       fcm_token:
         type: string
     type: object
-  internal_api.notificationSettingsPatch:
+  api.notificationSettingsPatch:
     properties:
       before_minutes:
         type: integer
@@ -45,7 +45,7 @@ definitions:
       timezone:
         type: string
     type: object
-  internal_api.subscribeRequest:
+  api.subscribeRequest:
     description: Creates or updates a notification subscription for a group, tutor,
       or auditory.
     properties:
@@ -70,7 +70,7 @@ definitions:
       timezone:
         type: string
     type: object
-  omsu_mirror_internal_diff.Change:
+  diff.Change:
     properties:
       field:
         type: string
@@ -81,7 +81,7 @@ definitions:
       old:
         type: string
     type: object
-  omsu_mirror_internal_models.Auditory:
+  models.Auditory:
     properties:
       building:
         type: string
@@ -90,7 +90,7 @@ definitions:
       name:
         type: string
     type: object
-  omsu_mirror_internal_models.BFFResponse:
+  models.BFFResponse:
     properties:
       cached_at:
         type: string
@@ -109,7 +109,7 @@ definitions:
       week_start:
         type: string
     type: object
-  omsu_mirror_internal_models.Day:
+  models.Day:
     properties:
       date:
         type: string
@@ -117,10 +117,10 @@ definitions:
         type: string
       lessons:
         items:
-          $ref: '#/definitions/omsu_mirror_internal_models.Lesson'
+          $ref: '#/definitions/models.Lesson'
         type: array
     type: object
-  omsu_mirror_internal_models.Group:
+  models.Group:
     properties:
       id:
         type: integer
@@ -129,7 +129,7 @@ definitions:
       real_group_id:
         type: integer
     type: object
-  omsu_mirror_internal_models.Lesson:
+  models.Lesson:
     properties:
       auditCorps:
         type: string
@@ -158,14 +158,14 @@ definitions:
       type_work:
         type: string
     type: object
-  omsu_mirror_internal_models.Tutor:
+  models.Tutor:
     properties:
       id:
         type: integer
       name:
         type: string
     type: object
-  omsu_mirror_internal_storage.ScheduleChange:
+  storage.ScheduleChange:
     properties:
       change_type:
         description: '"added", "removed", "modified"'
@@ -173,7 +173,7 @@ definitions:
       changes:
         description: normalized field changes
         items:
-          $ref: '#/definitions/omsu_mirror_internal_diff.Change'
+          $ref: '#/definitions/diff.Change'
         type: array
       created_at:
         type: string
@@ -204,7 +204,7 @@ definitions:
         description: readable lesson name
         type: string
     type: object
-  omsu_mirror_internal_storage.Subscription:
+  storage.Subscription:
     properties:
       before_minutes:
         type: integer
@@ -270,7 +270,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_api.CreateWebhookRequest'
+          $ref: '#/definitions/api.CreateWebhookRequest'
       produces:
       - application/json
       responses:
@@ -356,7 +356,7 @@ paths:
         in: body
         name: body
         schema:
-          $ref: '#/definitions/internal_api.CreateWebhookRequest'
+          $ref: '#/definitions/api.CreateWebhookRequest'
       produces:
       - application/json
       responses:
@@ -399,7 +399,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/internal_api.CreateWebhookRequest'
+          $ref: '#/definitions/api.CreateWebhookRequest'
       produces:
       - application/json
       responses:
@@ -463,11 +463,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Auditory'
+                    $ref: '#/definitions/models.Auditory'
                   type: array
               type: object
       summary: Get all auditories
@@ -489,10 +489,10 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/omsu_mirror_internal_models.Auditory'
+                  $ref: '#/definitions/models.Auditory'
               type: object
         "404":
           description: Not Found
@@ -542,7 +542,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
       summary: Get schedule changes feed
       tags:
       - Changes
@@ -567,11 +567,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_storage.ScheduleChange'
+                    $ref: '#/definitions/storage.ScheduleChange'
                   type: array
               type: object
         "400":
@@ -599,11 +599,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Group'
+                    $ref: '#/definitions/models.Group'
                   type: array
               type: object
       summary: Get all groups
@@ -625,10 +625,10 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/omsu_mirror_internal_models.Group'
+                  $ref: '#/definitions/models.Group'
               type: object
         "404":
           description: Not Found
@@ -648,7 +648,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
       summary: Get health status
       tags:
       - Meta
@@ -661,7 +661,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
       summary: Get recent incidents
       tags:
       - Meta
@@ -677,7 +677,7 @@ paths:
         name: settings
         required: true
         schema:
-          $ref: '#/definitions/internal_api.notificationSettingsPatch'
+          $ref: '#/definitions/api.notificationSettingsPatch'
       produces:
       - application/json
       responses:
@@ -721,7 +721,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_storage.Subscription'
+            $ref: '#/definitions/storage.Subscription'
         "400":
           description: Bad Request
           schema:
@@ -764,11 +764,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Day'
+                    $ref: '#/definitions/models.Day'
                   type: array
               type: object
         "400":
@@ -807,11 +807,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Day'
+                    $ref: '#/definitions/models.Day'
                   type: array
               type: object
         "400":
@@ -898,11 +898,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Day'
+                    $ref: '#/definitions/models.Day'
                   type: array
               type: object
         "400":
@@ -968,6 +968,45 @@ paths:
       summary: Export group schedule as iCalendar
       tags:
       - Schedules
+  /schedule/group/{id}/subgroups:
+    get:
+      description: Returns all subgroup numbers used in the cached group schedule
+        (all weeks).
+      parameters:
+      - description: Group dictionary ID (dict_groups.id)
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.BFFResponse'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get group subgroups
+      tags:
+      - Schedules
   /schedule/tutor/{id}:
     get:
       description: Returns the schedule for a specific tutor. Lazy-fetches if not
@@ -989,11 +1028,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Day'
+                    $ref: '#/definitions/models.Day'
                   type: array
               type: object
         "400":
@@ -1084,7 +1123,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
       summary: Search groups, tutors, or auditories
       tags:
       - Search
@@ -1096,7 +1135,7 @@ paths:
         name: subscription
         required: true
         schema:
-          $ref: '#/definitions/internal_api.subscribeRequest'
+          $ref: '#/definitions/api.subscribeRequest'
       responses:
         "200":
           description: OK
@@ -1149,7 +1188,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
         "400":
           description: Bad Request
           schema:
@@ -1169,7 +1208,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
       summary: Get sync status
       tags:
       - Meta
@@ -1187,7 +1226,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            $ref: '#/definitions/models.BFFResponse'
         "401":
           description: Unauthorized
           schema:
@@ -1209,11 +1248,11 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/omsu_mirror_internal_models.Tutor'
+                    $ref: '#/definitions/models.Tutor'
                   type: array
               type: object
       summary: Get all tutors
@@ -1235,10 +1274,10 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+            - $ref: '#/definitions/models.BFFResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/omsu_mirror_internal_models.Tutor'
+                  $ref: '#/definitions/models.Tutor'
               type: object
         "404":
           description: Not Found
@@ -1260,7 +1299,7 @@ paths:
         name: subscription
         required: true
         schema:
-          $ref: '#/definitions/internal_api.UnsubscribeRequest'
+          $ref: '#/definitions/api.UnsubscribeRequest'
       produces:
       - application/json
       responses:
