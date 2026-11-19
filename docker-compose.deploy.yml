@@ -11,6 +11,11 @@
 #   docker compose -f docker-compose.deploy.yml build
 # Then on the server:
 #   docker compose -f docker-compose.deploy.yml up -d
+#
+# Fixed names (omsu_setka_backend / omsu_setka_frontend) are required by the
+# CI health gate. The deploy job removes containers that hold these names from
+# older compose projects before starting the new stack.
+name: setka
 services:
   backend:
     image: ghcr.io/pgeyko/omsu_setka/backend:${BACKEND_TAG:-latest}

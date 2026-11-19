@@ -188,27 +188,84 @@ jobs:
           cd "$DEPLOY_PATH"
           git pull --ff-only
           COMPOSE="docker compose -f docker-compose.deploy.yml -p setka"
+          BACKEND_CONTAINER=omsu_setka_backend
+          FRONTEND_CONTAINER=omsu_setka_frontend
+
+          # Fixed container names must not be occupied by an older compose
+          # project (core, prod, etc.). Compose would refuse to start and the
+          # old containers would keep running, so clear only those conflicts.
+          remove_stale_container() {
+            name="$1"
+            if docker container inspect "$name" >/dev/null 2>&1; then
+              project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$name" 2>/dev/null || true)
+              if [ "$project" != "setka" ]; then
+                echo "Removing stale container $name (compose project: ${project:-none})"
+                docker rm -f "$name"
+              fi
+            fi
+          }
+          remove_stale_container "$BACKEND_CONTAINER"
+          remove_stale_container "$FRONTEND_CONTAINER"
+          # The frontend publishes 127.0.0.1:8081. If a container from an old
+          # project still owns the port, compose cannot recreate the frontend.
+          port_owner=$(docker ps --filter "publish=8081" --format '{{.Names}}' | head -n1 || true)
+          if [ -n "$port_owner" ] && [ "$port_owner" != "$FRONTEND_CONTAINER" ]; then
+            echo "Removing container $port_owner that occupies port 8081"
+            docker rm -f "$port_owner"
+          fi
+          for legacy in omsu_mirror_backend omsu_mirror_frontend omsu_mirror_backend_dev omsu_mirror_frontend_dev; do
+            if docker container inspect "$legacy" >/dev/null 2>&1; then
+              echo "Removing legacy container $legacy"
+              docker rm -f "$legacy"
+            fi
+          done
+
           # Backup currently running images for rollback (local tags only, never pushed).
-          docker tag ghcr.io/pgeyko/omsu_setka/backend:latest ghcr.io/pgeyko/omsu_setka/backend:prev
-          docker tag ghcr.io/pgeyko/omsu_setka/frontend:latest ghcr.io/pgeyko/omsu_setka/frontend:prev
+          for target in backend frontend; do
+            image="ghcr.io/pgeyko/omsu_setka/$target:latest"
+            if docker image inspect "$image" >/dev/null 2>&1; then
+              docker tag "$image" "ghcr.io/pgeyko/omsu_setka/$target:prev" || true
+            fi
+          done
           export BACKEND_TAG FRONTEND_TAG
           $COMPOSE pull
-          $COMPOSE up -d
+          $COMPOSE up -d --remove-orphans
           wait_backend() { # $1 = attempts
             for _ in $(seq 1 "$1"); do
-              st=$(docker inspect --format '{{.State.Health.Status}}' omsu_setka_backend 2>/dev/null || echo missing)
+              st=$(docker inspect --format '{{.State.Health.Status}}' "$BACKEND_CONTAINER" 2>/dev/null || echo missing)
               [ "$st" = "healthy" ] && return 0
               sleep 5
             done
             return 1
           }
-          if wait_backend 36 && [ "$(docker inspect --format '{{.State.Running}}' omsu_setka_frontend 2>/dev/null)" = "true" ]; then
+          if wait_backend 36 && [ "$(docker inspect --format '{{.State.Running}}' "$FRONTEND_CONTAINER" 2>/dev/null)" = "true" ]; then
+            # Drop containers left from manual runs or renamed services that
+            # still use the project images. Only the two fixed names remain.
+            for cid in $(docker ps -aq); do
+              name=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | sed 's#^/##')
+              [ "$name" = "$BACKEND_CONTAINER" ] && continue
+              [ "$name" = "$FRONTEND_CONTAINER" ] && continue
+              image=$(docker inspect -f '{{.Config.Image}}' "$cid" 2>/dev/null || true)
+              case "$image" in
+                ghcr.io/pgeyko/omsu_setka/*)
+                  echo "Removing stale container $name ($image)"
+                  docker rm -f "$cid"
+                  ;;
+              esac
+            done
             echo "Deploy healthy: backend=$BACKEND_TAG frontend=$FRONTEND_TAG"
+            echo "Running containers:"
+            docker ps --filter "name=omsu_setka_" --format '  {{.Names}}  {{.Status}}'
             exit 0
           fi
           echo "::error::Health gate failed, rolling back to previous images"
+          if ! docker image inspect ghcr.io/pgeyko/omsu_setka/backend:prev >/dev/null 2>&1 || \
+             ! docker image inspect ghcr.io/pgeyko/omsu_setka/frontend:prev >/dev/null 2>&1; then
+            echo "::error::No previous images for rollback, manual intervention required"
+            exit 1
+          fi
           export BACKEND_TAG=prev FRONTEND_TAG=prev
-          $COMPOSE up -d
+          $COMPOSE up -d --remove-orphans
           wait_backend 24 && echo "Rollback healthy (previous images running)" || echo "::error::Rollback did not recover, manual intervention required"
           exit 1
           REMOTE

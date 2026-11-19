@@ -1,3 +1,4 @@
+name: setka
 services:
   backend:
     image: ghcr.io/pgeyko/omsu_setka/backend:latest
