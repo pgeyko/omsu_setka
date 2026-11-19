@@ -102,10 +102,10 @@ Dev-параметры:
 ## Тесты и проверки
 
 ```bash
-npm test           # Vitest + Testing Library, 146 тестов
+npm test           # Vitest + Testing Library, 147 тестов
 npm run build      # tsc -b && vite build
 npm run test:build # проверка dist: manifest, precache, sw, og.png, share-redirect
-npm run test:e2e   # 18 браузерных сценариев (Playwright + мок API)
+npm run test:e2e   # 19 браузерных сценариев (Playwright + мок API)
 ```
 
 E2E сами поднимают мок и Vite, фиксируют время и проходят онбординг, короткую

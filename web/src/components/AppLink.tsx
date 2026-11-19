@@ -14,7 +14,16 @@ import { canAnimateNavigation, runViewTransition } from '../lib/viewTransition';
  * Modifier clicks, new tabs and browsers without the API keep the plain
  * router behavior.
  */
-export function AppLink({ to, onClick, replace, state, preventScrollReset, relative, ...rest }: LinkProps) {
+export function AppLink({
+  to,
+  onClick,
+  replace,
+  state,
+  preventScrollReset,
+  relative,
+  animate = true,
+  ...rest
+}: LinkProps & { animate?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const resolved = useResolvedPath(to);
@@ -26,7 +35,7 @@ export function AppLink({ to, onClick, replace, state, preventScrollReset, relat
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (rest.target && rest.target !== '_self') return;
     if (rest.download !== undefined) return;
-    if (!canAnimateNavigation()) return;
+    if (!animate || !canAnimateNavigation()) return;
     event.preventDefault();
     const nextReplace = replace ?? createPath(location) === createPath(resolved);
     runViewTransition(() =>

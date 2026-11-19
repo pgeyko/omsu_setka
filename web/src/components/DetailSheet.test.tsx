@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DetailSheet } from './DetailSheet';
 import { slotsOf, type Slot } from '../lib/schedule';
@@ -17,7 +17,6 @@ function renderSheet(props: Partial<React.ComponentProps<typeof DetailSheet>> = 
   return render(
     <MemoryRouter>
       <DetailSheet
-        open
         dayISO="2026-11-18"
         slot={slot('2026-11-18', 4)}
         groupName="ЮСС-003-О-02"
@@ -48,6 +47,35 @@ describe('DetailSheet', () => {
       'href',
       '/search?q=4-308',
     );
+  });
+
+  it('plays a closing frame before unmounting', () => {
+    vi.useFakeTimers();
+    try {
+      const props = {
+        dayISO: '2026-11-18',
+        groupName: 'ЮСС-003-О-02',
+        changesByLesson: new Map(),
+        onClose: () => {},
+      };
+      const { rerender } = render(
+        <MemoryRouter>
+          <DetailSheet {...props} slot={slot('2026-11-18', 4)} />
+        </MemoryRouter>,
+      );
+      rerender(
+        <MemoryRouter>
+          <DetailSheet {...props} slot={null} />
+        </MemoryRouter>,
+      );
+      expect(document.querySelector('dialog.sheet.is-closing')).not.toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(220);
+      });
+      expect(document.querySelector('dialog.sheet')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('marks a lesson as changed and shows the diff', () => {

@@ -7,7 +7,7 @@ export function NotFoundPage() {
     <div className="fatal">
       <h1>Страница не найдена</h1>
       <p>Возможно, ссылка устарела. Вернитесь к расписанию.</p>
-      <AppLink className="retry-btn" to="/">На главную</AppLink>
+      <AppLink className="retry-btn" to="/" animate={false}>На главную</AppLink>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLink } from '../components/AppLink';
-import { runViewTransition } from '../lib/viewTransition';
 import { ArrowLeft, Search } from 'lucide-react';
 import { useSearch } from '../api/queries';
 import { usePreferences } from '../store/preferences';
@@ -63,12 +62,12 @@ function SearchBody({
       addRecent(saved);
       addFavorite(saved);
       addRecentEntity({ type: 'group', id: saved.id, name: saved.name });
-      runViewTransition(() => navigate(`/g/${saved.id}/today`));
+      navigate(`/g/${saved.id}/today`);
       return;
     }
     addRecentEntity({ type: kind, id: item.id, name: item.name });
-    if (kind === 'tutor') runViewTransition(() => navigate(`/tutor/${item.id}`));
-    if (kind === 'auditory') runViewTransition(() => navigate(`/auditory/${item.id}`));
+    if (kind === 'tutor') navigate(`/tutor/${item.id}`);
+    if (kind === 'auditory') navigate(`/auditory/${item.id}`);
   };
 
   const recentHref = (entity: { type: 'group' | 'tutor' | 'auditory'; id: number }) =>

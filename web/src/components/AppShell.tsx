@@ -76,7 +76,12 @@ export function MobileShell({
           <AppLink className="brand" to={`/g/${groupId}/today`} aria-label="сетка — на главную">
             <Brand />
           </AppLink>
-          <AppLink className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
+          <AppLink
+            className="icon-btn"
+            to="/search"
+            aria-label="Найти группу, преподавателя или аудиторию"
+            animate={false}
+          >
             <Search size={22} strokeWidth={1.6} />
           </AppLink>
         </div>
@@ -88,7 +93,7 @@ export function MobileShell({
                 {subgroup ? `· подгруппа ${subgroup}` : ''}
               </AppLink>
             </span>
-            <AppLink className="m-group-name" to="/search">
+            <AppLink className="m-group-name" to="/search" animate={false}>
               {groupName}
               <ChevronDown size={16} strokeWidth={1.6} />
             </AppLink>
@@ -117,7 +122,12 @@ export function PlainMobileShell({ children }: { children: ReactNode }) {
           <AppLink className="brand" to="/search" aria-label="сетка — поиск">
             <Brand />
           </AppLink>
-          <AppLink className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
+          <AppLink
+            className="icon-btn"
+            to="/search"
+            aria-label="Найти группу, преподавателя или аудиторию"
+            animate={false}
+          >
             <Search size={22} strokeWidth={1.6} />
           </AppLink>
         </div>
@@ -137,7 +147,7 @@ export function PlainDesktopShell({ children }: { children: ReactNode }) {
         <AppLink className="brand" to="/search" aria-label="сетка — поиск">
           <Brand />
         </AppLink>
-        <AppLink className="side-search" to="/search" aria-label="Открыть поиск">
+        <AppLink className="side-search" to="/search" aria-label="Открыть поиск" animate={false}>
           <Search size={16} strokeWidth={1.6} />
           <span>Найти группу или преподавателя</span>
         </AppLink>
@@ -179,7 +189,7 @@ export function DesktopShell({
         <AppLink className="brand" to={`/g/${groupId}/week`} aria-label="сетка — на главную">
           <Brand />
         </AppLink>
-        <AppLink className="side-search" to="/search" aria-label="Открыть поиск">
+        <AppLink className="side-search" to="/search" aria-label="Открыть поиск" animate={false}>
           <Search size={16} strokeWidth={1.6} />
           <span>Найти группу или преподавателя</span>
         </AppLink>

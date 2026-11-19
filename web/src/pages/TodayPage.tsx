@@ -294,7 +294,6 @@ export function TodayPage({ groupId }: { groupId: number }) {
       </div>
 
       <DetailSheet
-        open={Boolean(detail)}
         dayISO={detail?.iso || selected}
         slot={detail?.slot || null}
         groupName={groupName}

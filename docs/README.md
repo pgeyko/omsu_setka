@@ -27,7 +27,7 @@
 | PWA | Workbox precache + офлайн-расписание, Firebase Messaging |
 | База | `data/mirror.db` (по умолчанию), том `backend_data` в Docker |
 | Деплой | GitHub Actions → GHCR → server (`docker-compose.deploy.yml`), health gate + rollback |
-| Тесты | Go `go test ./...`; web 146 unit/component, 18 E2E, build-check |
+| Тесты | Go `go test ./...`; web 147 unit/component, 19 E2E, build-check |
 
 ## Требования
 
@@ -59,7 +59,7 @@
 
 1. gitleaks + `go vet` + `go test -race`;
 2. `npm run build`, `npm test`, `npm run test:build`;
-3. `npm run test:e2e` (18 сценариев, артефакты при падении);
+3. `npm run test:e2e` (19 сценариев, артефакты при падении);
 4. сборка и пуш образов в GHCR;
 5. деплой по SSH: `git pull`, `docker compose -f docker-compose.deploy.yml`,
    ожидание healthy backend, очистка старых контейнеров, rollback на `:prev`

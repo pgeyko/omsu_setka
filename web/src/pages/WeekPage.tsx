@@ -136,8 +136,7 @@ export function WeekPage({ groupId }: { groupId: number }) {
           Неделя начинается с понедельника. <AppLink to={`/g/${groupId}/settings`}>Настроить уведомления</AppLink>
         </p>
         <DetailSheet
-          open={Boolean(detail)}
-          dayISO={detail?.iso || selectedDay}
+            dayISO={detail?.iso || selectedDay}
           slot={detail?.slot || null}
           groupName={groupName}
           changesByLesson={changedByLesson}
@@ -248,7 +247,6 @@ export function WeekPage({ groupId }: { groupId: number }) {
         </aside>
       </div>
       <DetailSheet
-        open={Boolean(detail)}
         dayISO={detail?.iso || selectedDay}
         slot={detail?.slot || null}
         groupName={groupName}

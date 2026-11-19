@@ -59,7 +59,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
   const content = (
     <>
       <div className="entity-head">
-        <AppLink className="back-link" to={savedGroup ? `/g/${savedGroup.id}/today` : '/search'}>
+        <AppLink className="back-link" to={savedGroup ? `/g/${savedGroup.id}/today` : '/search'} animate={false}>
           <ArrowLeft size={15} strokeWidth={1.6} /> К расписанию группы
         </AppLink>
         <h1 className="entity-title">{title}</h1>
@@ -108,7 +108,6 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
         Расписание может меняться. <AppLink to={savedGroup ? `/g/${savedGroup.id}/changes` : '/search'}>Смотреть изменения</AppLink>
       </p>
       <DetailSheet
-        open={Boolean(detail)}
         dayISO={detail?.iso || todayISO()}
         slot={detail?.slot || null}
         groupName={groupName || title}

@@ -111,9 +111,9 @@ Production на server: `docker compose -f docker-compose.deploy.yml up -d`
 
 ```bash
 cd core && go vet ./... && go test ./...   # backend
-cd web  && npm test                        # 146 unit/component
+cd web  && npm test                        # 147 unit/component
 cd web  && npm run build && npm run test:build
-cd web  && npm run test:e2e                # 18 браузерных сценариев
+cd web  && npm run test:e2e                # 19 браузерных сценариев
 ```
 
 CI дополнительно запускает `go test -race`, gitleaks и E2E с мок-API.

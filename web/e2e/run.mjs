@@ -222,6 +222,14 @@ async function main() {
           };
         }
       });
+      assert.equal(
+        await page.evaluate(() => getComputedStyle(document.querySelector('#content')).viewTransitionName),
+        'page',
+      );
+      assert.equal(
+        await page.evaluate(() => getComputedStyle(document.querySelector('.bottom-nav')).viewTransitionName),
+        'app-nav',
+      );
       await page.locator('.bn-item', { hasText: 'Неделя' }).click();
       await page.waitForURL('**/g/472/week');
       assert.equal(await page.evaluate(() => window.__vtCount), 1);
@@ -229,6 +237,17 @@ async function main() {
       await page.waitForURL('**/g/472/changes');
       assert.equal(await page.evaluate(() => window.__vtCount), 2);
       await goto('/g/472/today');
+    });
+
+    await scenario('sheet closes smoothly before its links navigate', async () => {
+      await goto('/g/472/week');
+      await page.locator('.wrow').first().click();
+      await page.waitForSelector('dialog.sheet[open]');
+      await page.locator('dialog.sheet a').first().click();
+      await page.waitForSelector('dialog.sheet.is-closing');
+      await page.waitForURL('**/search?q=*');
+      await goto('/g/472/today');
+      await page.waitForSelector('.now-detail');
     });
 
     await scenario('today: detail sheet and day switching', async () => {
