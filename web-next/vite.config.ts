@@ -24,6 +24,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        globIgnores: ['firebase-messaging-sw.js'],
         runtimeCaching: [
           {
             urlPattern: /\/api\/v1\/schedule\/.*/i,
