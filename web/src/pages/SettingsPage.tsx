@@ -70,15 +70,32 @@ function writeCachedSettings(groupId: number, value: SettingsState) {
 const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
 const PERMISSION_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
+const FCM_PROJECT_KEY = 'setka-fcm-project';
+const FCM_PROJECT = import.meta.env.VITE_FIREBASE_PROJECT_ID || '';
+
+function tokenMatchesProject(): boolean {
+  const savedProject = localStorage.getItem(FCM_PROJECT_KEY);
+  // Tokens created before the marker existed are kept as-is; the marker only
+  // guards against a later Firebase project switch.
+  return !savedProject || !FCM_PROJECT || savedProject === FCM_PROJECT;
+}
+
+function saveToken(token: string) {
+  localStorage.setItem('setka-fcm-token', token);
+  if (FCM_PROJECT) localStorage.setItem(FCM_PROJECT_KEY, FCM_PROJECT);
+}
 
 function storedToken(groupId: number): string | null {
   try {
     const saved = localStorage.getItem('setka-fcm-token');
-    if (saved) return saved;
+    if (saved) {
+      if (tokenMatchesProject()) return saved;
+      localStorage.removeItem('setka-fcm-token');
+    }
     // Migration from the pre-redesign key: fcm_token_group_<id>.
     const legacy = localStorage.getItem(`fcm_token_group_${groupId}`);
-    if (legacy) {
-      localStorage.setItem('setka-fcm-token', legacy);
+    if (legacy && tokenMatchesProject()) {
+      saveToken(legacy);
       return legacy;
     }
   } catch {
@@ -298,7 +315,7 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
         setStatus('Не удалось получить токен. Проверьте сеть и попробуйте ещё раз.');
         return false;
       }
-      localStorage.setItem('setka-fcm-token', nextToken);
+      saveToken(nextToken);
       setToken(nextToken);
       try {
         await subscribe(nextToken, 'group', groupId, subgroup, {
