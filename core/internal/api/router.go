@@ -138,6 +138,9 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/tutor/:id/ical", s.handleGetICal("tutor"))
 	v1.Get("/schedule/auditory/:id/ical", s.handleGetICal("auditory"))
 
+	// Public share pages for Telegram/OpenGraph previews and short /g/:id links.
+	v1.Get("/share/group/:id", s.handleShareGroup)
+
 	// Changes
 	v1.Get("/changes", s.handleGetChangesFeed)
 	v1.Get("/changes/:type/:id", s.handleGetChanges)

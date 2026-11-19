@@ -1398,6 +1398,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/share/group/{id}": {
+            "get": {
+                "description": "Returns a small HTML page with Open Graph metadata for Telegram/other link previews and a client-side redirect to today/week.",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "Schedules"
+                ],
+                "summary": "Share page for a group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group dictionary ID (dict_groups.id)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/subscribe": {
             "post": {
                 "parameters": [

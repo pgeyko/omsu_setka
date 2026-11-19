@@ -1127,6 +1127,30 @@ paths:
       summary: Search groups, tutors, or auditories
       tags:
       - Search
+  /share/group/{id}:
+    get:
+      description: Returns a small HTML page with Open Graph metadata for Telegram/other
+        link previews and a client-side redirect to today/week.
+      parameters:
+      - description: Group dictionary ID (dict_groups.id)
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
+        "404":
+          description: HTML
+          schema:
+            type: string
+      summary: Share page for a group
+      tags:
+      - Schedules
   /subscribe:
     post:
       parameters:
