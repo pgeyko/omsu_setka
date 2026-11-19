@@ -37,7 +37,7 @@ func TestShareGroupPage(t *testing.T) {
 		`property="og:title"`,
 		`https://s.pgeyko.ru/g/7`,
 		`https://s.pgeyko.ru/og.png`,
-		`window.location.replace(base + target)`,
+		`share-redirect.js`,
 	} {
 		if !strings.Contains(html, expected) {
 			t.Errorf("share page is missing %q", expected)

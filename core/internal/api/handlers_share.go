@@ -66,13 +66,7 @@ var shareGroupTemplate = template.Must(template.New("share-group").Parse(`<!doct
     </div>
     <noscript><p>Включите JavaScript — или откройте расписание по кнопкам выше.</p></noscript>
   </main>
-  <script>
-    (function () {
-      var base = '/g/{{.ID}}/';
-      var target = window.matchMedia('(min-width: 980px)').matches ? 'week' : 'today';
-      window.location.replace(base + target);
-    })();
-  </script>
+  <script src="/share-redirect.js" defer></script>
 </body>
 </html>
 `))
