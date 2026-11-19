@@ -61,6 +61,7 @@ func main() {
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
+	outboxRepo := storage.NewOutboxRepo(db)
 	webhookRepo := storage.NewWebhookRepo(db)
 	failedDeliveryRepo := storage.NewFailedDeliveryRepo(db)
 
@@ -87,6 +88,7 @@ func main() {
 		IncidentRepo:     incidentRepo,
 		ChangeRepo:       changeRepo,
 		SubscriptionRepo: subscriptionRepo,
+		OutboxRepo:       outboxRepo,
 		WebhookRepo:      webhookRepo,
 		WebhookNotifier:  webhookNotifier,
 		FCM:              fcm,
@@ -94,15 +96,15 @@ func main() {
 
 	// 8. Initialize API Server
 	server := api.NewServer(cfg, &api.ServerDeps{
-		Client:           client,
-		DictRepo:         dictRepo,
-		ScheduleRepo:     scheduleRepo,
-		MemoryCache:      memoryCache,
-		SearchIndex:      searchIndex,
-		Syncer:           syncer,
-		IncidentRepo:     incidentRepo,
-		ChangeRepo:       changeRepo,
-		SubscriptionRepo: subscriptionRepo,
+		Client:             client,
+		DictRepo:           dictRepo,
+		ScheduleRepo:       scheduleRepo,
+		MemoryCache:        memoryCache,
+		SearchIndex:        searchIndex,
+		Syncer:             syncer,
+		IncidentRepo:       incidentRepo,
+		ChangeRepo:         changeRepo,
+		SubscriptionRepo:   subscriptionRepo,
 		WebhookRepo:        webhookRepo,
 		FailedDeliveryRepo: failedDeliveryRepo,
 		FCM:                fcm,

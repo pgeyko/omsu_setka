@@ -402,30 +402,64 @@ func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 // @Tags Notifications
 // @Accept json
 // @Produce json
-// @Param subscription body storage.Subscription true "Subscription"
+type subscribeRequest struct {
+	FCMToken           string `json:"fcm_token"`
+	EntityType         string `json:"entity_type"`
+	EntityID           int    `json:"entity_id"`
+	NotifyOnChange     *bool  `json:"notify_on_change"`
+	NotifyDailyDigest  bool   `json:"notify_daily_digest"`
+	DigestTime         string `json:"digest_time"`
+	NotifyBeforeLesson bool   `json:"notify_before_lesson"`
+	BeforeMinutes      int    `json:"before_minutes"`
+	Timezone           string `json:"timezone"`
+	Subgroup           string `json:"subgroup"`
+}
+
+// @Param subscription body subscribeRequest true "Subscription"
 // @Success 200 {object} map[string]bool
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 422 {object} map[string]string
 // @Failure 429 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /subscribe [post]
 func (s *Server) handleSubscribe(c *fiber.Ctx) error {
-	var sub storage.Subscription
-	if err := c.BodyParser(&sub); err != nil {
+	var req subscribeRequest
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	if sub.FCMToken == "" || sub.EntityType == "" || sub.EntityID == 0 {
+	if req.FCMToken == "" || req.EntityType == "" || req.EntityID == 0 {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "missing required fields"})
 	}
-	if !isValidEntityType(sub.EntityType) {
+	if !isValidEntityType(req.EntityType) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid entity type"})
 	}
 
-	// Set NotifyOnChange to true by default as requested. The settings PATCH
-	// endpoint can turn it off explicitly.
-	sub.NotifyOnChange = true
-	sub.Subgroup = diff.NormalizeSubgroup(sub.Subgroup)
+	exists, err := s.DictRepo.Exists(c.Context(), req.EntityType, req.EntityID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to check entity"})
+	}
+	if !exists {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "entity not found"})
+	}
+
+	notifyOnChange := true
+	if req.NotifyOnChange != nil {
+		notifyOnChange = *req.NotifyOnChange
+	}
+	sub := storage.Subscription{
+		FCMToken:           req.FCMToken,
+		EntityType:         req.EntityType,
+		EntityID:           req.EntityID,
+		NotifyOnChange:     notifyOnChange,
+		NotifyDailyDigest:  req.NotifyDailyDigest,
+		DigestTime:         req.DigestTime,
+		NotifyBeforeLesson: req.NotifyBeforeLesson,
+		BeforeMinutes:      req.BeforeMinutes,
+		Timezone:           req.Timezone,
+		Subgroup:           diff.NormalizeSubgroup(req.Subgroup),
+	}
 
 	// 25.5 Add subscription limit check
 	count, err := s.SubscriptionRepo.GetSubscriptionCount(c.Context(), sub.FCMToken)

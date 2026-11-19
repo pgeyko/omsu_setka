@@ -46,7 +46,7 @@
 | Слой | Решение | Почему |
 |---|---|---|
 | UI | React 19 + TypeScript strict | уже в проекте, команда знает |
-| Сборка | Vite 8, npm, Node 24 | текущий тулинг |
+| Сборка | Vite 8, npm, Node 20 (как в CI/Docker) | существующий CI |
 | Роутинг | React Router 7 (`BrowserRouter`) | уже используется, deep links |
 | Серверные данные | TanStack Query 5 | кэш, ретраи, prefetch, offline |
 | Клиентское состояние | Zustand 5 + `persist` | группа, подгруппа, тема, избранное |
@@ -60,7 +60,7 @@
 | Push | Firebase JS SDK, lazy import | токен и permission только в настройках |
 | Тесты | Vitest + Testing Library + Playwright + axe | текущая база + e2e |
 
-Версии ориентира: Node 24, npm 11, React 19.2, Vite 8, TypeScript 6,
+Версии ориентира: Node 20 (как в CI/Docker; локально можно 24), npm 10/11, React 19.2, Vite 8, TypeScript 6,
 React Router 7, TanStack Query 5, Zustand 5, Axios 1.14, Firebase 12,
 lucide-react 1, vite-plugin-pwa 0.21, Vitest 4.
 
@@ -332,6 +332,10 @@ URL — источник истины для group/day/week; Zustand — для 
 
 - `vite-plugin-pwa` `injectManifest`; precache shell/fonts/icons, runtime cache
   GET расписания (stale-while-revalidate), не кэшировать мутации.
+- FCM worker — существующий `web/public/firebase-messaging-sw.js` без
+  изменений; в новом приложении он лежит в `public/firebase-messaging-sw.js`.
+  Dockerfile уже подставляет в него ключи через `sed`, поэтому имя и путь
+  обязательны.
 - Offline fallback: последний экран + баннер «Нет сети · данные от 2 минут».
 - Один service worker на scope `/`; FCM-обработчик внутри кастомного SW
   (`firebase-messaging-sw.js` import), без второго конкурирующего scope.
@@ -349,7 +353,7 @@ URL — источник истины для group/day/week; Zustand — для 
 - CSS transitions вместо JS-анимаций; никаких layout thrash.
 - ETag/304, gzip reverse proxy.
 - Lighthouse: LCP <2.5, CLS <0.1, INP <200 на 4G.
-- Bundle analyzer в CI, budget fail.
+- Bundle analyzer локально/на ревью; существующий CI не трогаем.
 
 ## 13. Доступность
 
@@ -370,17 +374,26 @@ URL — источник истины для group/day/week; Zustand — для 
 **Visual:** Playwright screenshots обоих видов и тем; сравнение с мокапами.
 **A11y:** axe, tab-order, Escape/backdrop.
 **Contract:** новые `/changes`, partial PATCH, `/subscriptions`.
-**CI:** lint → typecheck → unit → build → e2e → visual.
+**Перед мерджем:** lint → typecheck → unit → build → e2e → visual. Существующий CI уже собирает `web/`.
 
 ## 15. Миграция и выкатка
 
-1. Новый фронтенд в `web-next/`; `web/` остаётся рабочим и откатным.
+1. Новый фронтенд разрабатывается в `web-next/`, `web/` остаётся рабочим и
+   откатным.
 2. На staging `new.s.pgeyko.ru`; CORS добавить домен.
 3. Проверить PWA/старый SW: новый scope, очистка старых кэшей.
-4. Переключить Dockerfile/`run.sh` на `web-next/dist`; старый `web/` оставить
-   в ветке до стабилизации.
-5. Редиректы старых URL и миграция localStorage при первом запуске.
-6. Мониторинг 429/503, health, ошибок; rollback — вернуть `web/`.
+4. **Перед мерджем в `main` заменить содержимое `web/` на новый фронтенд.**
+   CI и Dockerfile не меняются: workflow собирает `web/`, Dockerfile делает
+   `COPY web/` и подставляет Firebase-ключи в `dist/firebase-messaging-sw.js`.
+5. Сохранить `web/public/firebase-messaging-sw.js` и
+   `web/src/utils/firebase.ts` — worker уже рабочий, путь и имя менять нельзя.
+6. Редиректы старых URL и миграция localStorage при первом запуске.
+7. Мониторинг 429/503, health, ошибок; rollback — вернуть старый `web/`.
+
+> CI/CD не переписываем: он уже собирает `web/` на push в `main`. Совместимость
+> достигается тем, что новый фронтенд к моменту мерджа лежит в `web/` и
+> сохраняет `public/firebase-messaging-sw.js`; `.github/workflows/ci.yml`,
+> `Dockerfile` и `web/Dockerfile` не требуют правок.
 
 ## 16. Этапы и оценки
 
@@ -407,7 +420,7 @@ P1 API. Буфер на визуальную полировку — 20%.
 - **FCM/SW**: два service worker конфликтуют; один scope, аккуратный update.
 - **reverse proxy/origin**: мутации не через reverse proxy; проверить CORS на новом домене.
 - **Старые ссылки/закладки**: редиректы и localStorage миграция.
-- **Визуальный дрейф**: сравнение с мокапами в CI, а не «на глаз».
+- **Визуальный дрейф**: сравнение с мокапами перед мерджем, а не «на глаз».
 
 ## 18. Definition of Done
 
@@ -418,7 +431,10 @@ P1 API. Буфер на визуальную полировку — 20%.
 - Настройки сохраняются частичным PATCH; push учитывает подгруппу/пояс.
 - Offline показывает кэш и баннер; нет горизонтального скролла.
 - Visual/a11y/e2e/perf-прогоны зелёные; старые URL редиректят.
-- `web-next` заменяет `web` в Docker только после приёмки.
+- `web-next` заменяет **содержимое `web/`** перед мерджем в `main`; Dockerfile и CI не меняются.
+- В новом `web/package.json` сохранить контракт `npm run build`:
+  lint → test → tsc → vite build. Dockerfile и CI вызывают именно его.
+- Node в CI/Docker — 20; не использовать API, которых нет в Node 20.
 
 ## 19. Спринты
 
@@ -440,7 +456,7 @@ Week query, daystrip, now band, слоты, merge, подгруппа, штор�
 Карточки преподавателя/аудитории, PWA/offline, visual regression, a11y,
 perf, редиректы, staging, cutover. Демо: production-кандидат.
 
-## 20. CI-гейты
+## 20. Локальные гейты (как в CI)
 
 ```bash
 npm run lint
@@ -454,7 +470,7 @@ npm run test:a11y
 
 - `typecheck` — отдельный `tsc --noEmit` до сборки.
 - `test:visual` — скриншоты 390×844 и 1440×1000, light/dark.
-- `bundle` — budget на initial JS/CSS; падение CI при превышении.
+- `bundle` — budget на initial JS/CSS проверяется локально перед мерджем.
 - `api-contract` — MSW-схемы + smoke против staging.
 
 ## 21. Что считаем «редизайном завершённым»

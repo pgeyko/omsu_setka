@@ -55,7 +55,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Register a new webhook subscriber for schedule change notifications",
+                "description": "Register a new webhook subscriber or update existing by URL (idempotent)",
                 "consumes": [
                     "application/json"
                 ],
@@ -65,7 +65,7 @@ const docTemplate = `{
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Create webhook subscriber",
+                "summary": "Create or update webhook subscriber",
                 "parameters": [
                     {
                         "description": "Webhook subscriber data",
@@ -168,6 +168,41 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/webhooks/failed": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get all failed webhook deliveries (dead-letter queue)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List failed webhook deliveries",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -400,6 +435,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/changes": {
+            "get": {
+                "description": "Returns a filterable, paginated feed of schedule changes. Omit entity filters for all entities.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Changes"
+                ],
+                "summary": "Get schedule changes feed",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "group, tutor, auditory",
+                        "name": "entity_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Entity ID",
+                        "name": "entity_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Subgroup number (1, 2)",
+                        "name": "subgroup",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1..100, default 20",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Cursor for pagination (last received id)",
+                        "name": "before_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "RFC3339 or YYYY-MM-DD lower bound by created_at",
+                        "name": "since",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "all — ignore entity filters",
+                        "name": "scope",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/changes/{type}/{id}": {
             "get": {
                 "description": "Returns recent schedule changes for a group, tutor, or auditory.",
@@ -596,7 +695,7 @@ const docTemplate = `{
         },
         "/notifications/settings": {
             "patch": {
-                "description": "Updates subscription preferences for a specific entity (group, tutor, auditory).",
+                "description": "Partially updates subscription preferences for an entity. Omitted fields keep their values.",
                 "consumes": [
                     "application/json"
                 ],
@@ -609,12 +708,12 @@ const docTemplate = `{
                 "summary": "Update notification settings",
                 "parameters": [
                     {
-                        "description": "Notification Settings",
+                        "description": "Notification settings patch",
                         "name": "settings",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
+                            "$ref": "#/definitions/internal_api.notificationSettingsPatch"
                         }
                     }
                 ],
@@ -1239,17 +1338,6 @@ const docTemplate = `{
         },
         "/subscribe": {
             "post": {
-                "description": "Creates or updates a notification subscription for a group, tutor, or auditory.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Notifications"
-                ],
-                "summary": "Subscribe to schedule notifications",
                 "parameters": [
                     {
                         "description": "Subscription",
@@ -1257,7 +1345,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/omsu_mirror_internal_storage.Subscription"
+                            "$ref": "#/definitions/internal_api.subscribeRequest"
                         }
                     }
                 ],
@@ -1273,6 +1361,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1300,6 +1397,44 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subscriptions": {
+            "get": {
+                "description": "Returns all subscriptions belonging to the FCM token from X-FCM-Token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "List subscriptions for a device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "FCM Token",
+                        "name": "X-FCM-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/omsu_mirror_internal_models.BFFResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1555,6 +1690,94 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_api.notificationSettingsPatch": {
+            "type": "object",
+            "properties": {
+                "before_minutes": {
+                    "type": "integer"
+                },
+                "digest_time": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "integer"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "fcm_token": {
+                    "type": "string"
+                },
+                "notify_before_lesson": {
+                    "type": "boolean"
+                },
+                "notify_daily_digest": {
+                    "type": "boolean"
+                },
+                "notify_on_change": {
+                    "type": "boolean"
+                },
+                "subgroup": {
+                    "type": "string"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_api.subscribeRequest": {
+            "description": "Creates or updates a notification subscription for a group, tutor, or auditory.",
+            "type": "object",
+            "properties": {
+                "before_minutes": {
+                    "type": "integer"
+                },
+                "digest_time": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "integer"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "fcm_token": {
+                    "type": "string"
+                },
+                "notify_before_lesson": {
+                    "type": "boolean"
+                },
+                "notify_daily_digest": {
+                    "type": "boolean"
+                },
+                "notify_on_change": {
+                    "type": "boolean"
+                },
+                "subgroup": {
+                    "type": "string"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            }
+        },
+        "omsu_mirror_internal_diff.Change": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "new": {
+                    "type": "string"
+                },
+                "old": {
+                    "type": "string"
+                }
+            }
+        },
         "omsu_mirror_internal_models.Auditory": {
             "type": "object",
             "properties": {
@@ -1600,6 +1823,9 @@ const docTemplate = `{
         "omsu_mirror_internal_models.Day": {
             "type": "object",
             "properties": {
+                "date": {
+                    "type": "string"
+                },
                 "day": {
                     "type": "string"
                 },
@@ -1631,6 +1857,9 @@ const docTemplate = `{
                 "auditCorps": {
                     "type": "string"
                 },
+                "building": {
+                    "type": "string"
+                },
                 "faculty": {
                     "type": "string"
                 },
@@ -1646,7 +1875,13 @@ const docTemplate = `{
                 "publishDate": {
                     "type": "string"
                 },
+                "room": {
+                    "type": "string"
+                },
                 "subgroupName": {
+                    "type": "string"
+                },
+                "subgroup_number": {
                     "type": "string"
                 },
                 "teacher": {
@@ -1678,7 +1913,18 @@ const docTemplate = `{
                     "description": "\"added\", \"removed\", \"modified\"",
                     "type": "string"
                 },
+                "changes": {
+                    "description": "normalized field changes",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/omsu_mirror_internal_diff.Change"
+                    }
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "day": {
+                    "description": "ISO date of the lesson",
                     "type": "string"
                 },
                 "entity_id": {
@@ -1694,9 +1940,23 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "new_data": {
+                    "description": "raw Lesson JSON",
                     "type": "string"
                 },
                 "old_data": {
+                    "description": "raw Lesson JSON",
+                    "type": "string"
+                },
+                "pair": {
+                    "description": "lesson time slot",
+                    "type": "integer"
+                },
+                "subgroup": {
+                    "description": "normalized subgroup number",
+                    "type": "string"
+                },
+                "subject": {
+                    "description": "readable lesson name",
                     "type": "string"
                 }
             }
@@ -1717,6 +1977,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "fcm_token": {
+                    "type": "string"
+                },
+                "last_digest_at": {
                     "type": "string"
                 },
                 "last_reminder_at": {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"omsu_mirror/internal/diff"
+	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
 )
 
@@ -139,5 +140,44 @@ func TestChangesFeedSince(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestSubscribeRespectsNotifyOnChangeAndEntity(t *testing.T) {
+	s := setupTestServer()
+	ctx := context.Background()
+	realID := 42
+	if err := s.DictRepo.UpsertGroups(ctx, []models.Group{{ID: 7, Name: "ЮСС-003-О-02", RealGroupID: &realID}}); err != nil {
+		t.Fatal(err)
+	}
+
+	body := `{"fcm_token":"token","entity_type":"group","entity_id":42,"notify_on_change":false}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/subscribe", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.App.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	subs, err := s.SubscriptionRepo.GetAllSubscriptionsByToken(ctx, "token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(subs) != 1 || subs[0].NotifyOnChange {
+		t.Fatalf("notify_on_change=false must be respected: %#v", subs)
+	}
+
+	missing := `{"fcm_token":"token2","entity_type":"group","entity_id":999,"notify_on_change":true}`
+	missingReq := httptest.NewRequest(http.MethodPost, "/api/v1/subscribe", strings.NewReader(missing))
+	missingReq.Header.Set("Content-Type", "application/json")
+	missingResp, err := s.App.Test(missingReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if missingResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 for missing entity, got %d", missingResp.StatusCode)
 	}
 }

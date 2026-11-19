@@ -46,6 +46,7 @@ type Deps struct {
 	IncidentRepo     *storage.IncidentRepo
 	ChangeRepo       *storage.ChangeRepo
 	SubscriptionRepo *storage.SubscriptionRepo
+	OutboxRepo       *storage.OutboxRepo
 	WebhookRepo      *storage.WebhookRepo
 	WebhookNotifier  *webhook.Notifier
 	FCM              *notifications.FCMClient
@@ -59,6 +60,7 @@ type Syncer struct {
 	incidentRepo     *storage.IncidentRepo
 	changeRepo       *storage.ChangeRepo
 	subscriptionRepo *storage.SubscriptionRepo
+	outboxRepo       *storage.OutboxRepo
 	webhookRepo      *storage.WebhookRepo
 	webhookNotifier  *webhook.Notifier
 	fcm              *notifications.FCMClient
@@ -84,6 +86,7 @@ func NewSyncer(cfg *config.Config, deps *Deps) *Syncer {
 		incidentRepo:     deps.IncidentRepo,
 		changeRepo:       deps.ChangeRepo,
 		subscriptionRepo: deps.SubscriptionRepo,
+		outboxRepo:       deps.OutboxRepo,
 		webhookRepo:      deps.WebhookRepo,
 		webhookNotifier:  deps.WebhookNotifier,
 		fcm:              deps.FCM,
@@ -232,6 +235,9 @@ func (s *Syncer) Run(ctx context.Context) {
 				if err := s.SyncScheduledNotifications(ctx); err != nil {
 					log.Error().Err(err).Msg("Scheduled notification processing failed")
 				}
+				if err := s.ProcessNotificationOutbox(ctx); err != nil {
+					log.Error().Err(err).Msg("Notification outbox processing failed")
+				}
 			}()
 		case <-cleanTicker.C:
 			s.wg.Add(1)
@@ -263,6 +269,18 @@ func (s *Syncer) Run(ctx context.Context) {
 					log.Error().Err(err).Msg("Failed to clean old schedule changes")
 				} else if n > 0 {
 					log.Info().Msgf("Cleaned %d old schedule changes", n)
+				}
+
+				if s.outboxRepo != nil {
+					retention := s.cfg.OutboxRetentionDays
+					if retention <= 0 {
+						retention = 30
+					}
+					if n, err := s.outboxRepo.CleanOld(ctx, time.Now().AddDate(0, 0, -retention)); err != nil {
+						log.Error().Err(err).Msg("Failed to clean notification outbox")
+					} else if n > 0 {
+						log.Info().Msgf("Cleaned %d old notification outbox entries", n)
+					}
 				}
 
 				if s.webhookNotifier != nil {

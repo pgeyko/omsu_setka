@@ -126,12 +126,11 @@ func (s *Syncer) processDailyDigests(ctx context.Context, now time.Time) error {
 			)
 		}
 
-		s.fcm.SendToTokens(ctx, []string{sub.FCMToken}, title, body, map[string]string{
+		s.enqueuePush(ctx, sub.FCMToken, title, body, map[string]string{
 			"type": sub.EntityType,
 			"id":   fmt.Sprintf("%d", sub.EntityID),
 			"kind": "digest",
-		})
-		_ = s.subscriptionRepo.MarkDigestSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, todayStr)
+		}, "digest", sub.FCMToken, sub.EntityType, sub.EntityID, todayStr)
 	}
 
 	if count > 0 {
@@ -182,13 +181,11 @@ func (s *Syncer) processLessonReminders(ctx context.Context, now time.Time) erro
 			title := fmt.Sprintf("Скоро: %s", lesson.Lesson)
 			body := fmt.Sprintf("Начнется в %s (%s)", startTime, lesson.AuditCorps)
 
-			s.fcm.SendToTokens(ctx, []string{sub.FCMToken}, title, body, map[string]string{
+			s.enqueuePush(ctx, sub.FCMToken, title, body, map[string]string{
 				"type": sub.EntityType,
 				"id":   fmt.Sprintf("%d", sub.EntityID),
 				"kind": "reminder",
-			})
-
-			_ = s.subscriptionRepo.MarkReminderSent(ctx, sub.FCMToken, sub.EntityType, sub.EntityID, reminderDateTimeStr)
+			}, "reminder", sub.FCMToken, sub.EntityType, sub.EntityID, reminderDateTimeStr)
 			break
 		}
 	}

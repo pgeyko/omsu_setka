@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"fmt"
 	"omsu_mirror/internal/config"
 	"os"
 	"strings"
@@ -64,7 +65,7 @@ func (c *FCMClient) SendToTokens(ctx context.Context, tokens []string, title, bo
 	}
 	data["title"] = title
 	data["body"] = body
-	data["click_url"] = ensureHTTPS(c.baseURL + "/schedule/" + data["type"] + "/" + data["id"])
+	data["click_url"] = c.clickURL(data["type"], data["id"], data["kind"])
 	data["tag"] = "schedule_alert"
 
 	message := &messaging.MulticastMessage{
@@ -102,4 +103,61 @@ func ensureHTTPS(url string) string {
 		return "https://" + strings.TrimPrefix(url, "http://")
 	}
 	return url
+}
+
+func (c *FCMClient) clickURL(entityType, entityID, kind string) string {
+	base := strings.TrimRight(c.baseURL, "/")
+	switch entityType {
+	case "group":
+		if kind == "change" {
+			return ensureHTTPS(base + "/g/" + entityID + "/changes")
+		}
+		return ensureHTTPS(base + "/g/" + entityID + "/today")
+	case "tutor":
+		return ensureHTTPS(base + "/tutor/" + entityID)
+	case "auditory":
+		return ensureHTTPS(base + "/auditory/" + entityID)
+	default:
+		return ensureHTTPS(base + "/")
+	}
+}
+
+// TokenResult classifies a single FCM delivery for the notification outbox.
+type TokenResult struct {
+	Success   bool
+	Invalid   bool
+	Retryable bool
+	Err       error
+}
+
+// SendToToken sends one message and returns a classification suitable for
+// retries. It is used by the outbox worker; SendToTokens remains for multicast.
+func (c *FCMClient) SendToToken(ctx context.Context, token, title, body string, data map[string]string) TokenResult {
+	if c.messaging == nil || token == "" {
+		return TokenResult{Err: fmt.Errorf("fcm is not configured")}
+	}
+	if data == nil {
+		data = make(map[string]string)
+	}
+	data["title"] = title
+	data["body"] = body
+	data["click_url"] = c.clickURL(data["type"], data["id"], data["kind"])
+	data["tag"] = "schedule_alert"
+
+	message := &messaging.Message{
+		Token: token,
+		Data:  data,
+		Webpush: &messaging.WebpushConfig{
+			FCMOptions: &messaging.WebpushFCMOptions{Link: data["click_url"]},
+		},
+	}
+	_, err := c.messaging.Send(ctx, message)
+	if err == nil {
+		return TokenResult{Success: true}
+	}
+	if messaging.IsUnregistered(err) || messaging.IsInvalidArgument(err) ||
+		messaging.IsMismatchedCredential(err) || messaging.IsSenderIDMismatch(err) {
+		return TokenResult{Invalid: true, Err: err}
+	}
+	return TokenResult{Retryable: true, Err: err}
 }

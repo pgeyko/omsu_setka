@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"omsu_mirror/internal/config"
 	"omsu_mirror/internal/models"
+	"omsu_mirror/internal/scheduleutil"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -131,6 +132,7 @@ func (c *Client) FetchGroupSchedule(ctx context.Context, realGroupID int) ([]mod
 	if err := c.doRequest(ctx, url, &schedule); err != nil {
 		return nil, err
 	}
+	scheduleutil.Normalize(schedule)
 	return schedule, nil
 }
 
@@ -140,6 +142,7 @@ func (c *Client) FetchTutorSchedule(ctx context.Context, tutorID int) ([]models.
 	if err := c.doRequest(ctx, url, &schedule); err != nil {
 		return nil, err
 	}
+	scheduleutil.Normalize(schedule)
 	return schedule, nil
 }
 
@@ -149,5 +152,6 @@ func (c *Client) FetchAuditorySchedule(ctx context.Context, auditoryID int) ([]m
 	if err := c.doRequest(ctx, url, &schedule); err != nil {
 		return nil, err
 	}
+	scheduleutil.Normalize(schedule)
 	return schedule, nil
 }

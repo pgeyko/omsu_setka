@@ -22,6 +22,65 @@ definitions:
       fcm_token:
         type: string
     type: object
+  internal_api.notificationSettingsPatch:
+    properties:
+      before_minutes:
+        type: integer
+      digest_time:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      fcm_token:
+        type: string
+      notify_before_lesson:
+        type: boolean
+      notify_daily_digest:
+        type: boolean
+      notify_on_change:
+        type: boolean
+      subgroup:
+        type: string
+      timezone:
+        type: string
+    type: object
+  internal_api.subscribeRequest:
+    description: Creates or updates a notification subscription for a group, tutor,
+      or auditory.
+    properties:
+      before_minutes:
+        type: integer
+      digest_time:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      fcm_token:
+        type: string
+      notify_before_lesson:
+        type: boolean
+      notify_daily_digest:
+        type: boolean
+      notify_on_change:
+        type: boolean
+      subgroup:
+        type: string
+      timezone:
+        type: string
+    type: object
+  omsu_mirror_internal_diff.Change:
+    properties:
+      field:
+        type: string
+      label:
+        type: string
+      new:
+        type: string
+      old:
+        type: string
+    type: object
   omsu_mirror_internal_models.Auditory:
     properties:
       building:
@@ -52,6 +111,8 @@ definitions:
     type: object
   omsu_mirror_internal_models.Day:
     properties:
+      date:
+        type: string
       day:
         type: string
       lessons:
@@ -72,6 +133,8 @@ definitions:
     properties:
       auditCorps:
         type: string
+      building:
+        type: string
       faculty:
         type: string
       group:
@@ -81,6 +144,10 @@ definitions:
       lesson:
         type: string
       publishDate:
+        type: string
+      room:
+        type: string
+      subgroup_number:
         type: string
       subgroupName:
         type: string
@@ -103,7 +170,15 @@ definitions:
       change_type:
         description: '"added", "removed", "modified"'
         type: string
+      changes:
+        description: normalized field changes
+        items:
+          $ref: '#/definitions/omsu_mirror_internal_diff.Change'
+        type: array
       created_at:
+        type: string
+      day:
+        description: ISO date of the lesson
         type: string
       entity_id:
         type: integer
@@ -114,8 +189,19 @@ definitions:
       lesson_id:
         type: integer
       new_data:
+        description: raw Lesson JSON
         type: string
       old_data:
+        description: raw Lesson JSON
+        type: string
+      pair:
+        description: lesson time slot
+        type: integer
+      subgroup:
+        description: normalized subgroup number
+        type: string
+      subject:
+        description: readable lesson name
         type: string
     type: object
   omsu_mirror_internal_storage.Subscription:
@@ -129,6 +215,8 @@ definitions:
       entity_type:
         type: string
       fcm_token:
+        type: string
+      last_digest_at:
         type: string
       last_reminder_at:
         type: string
@@ -175,7 +263,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new webhook subscriber for schedule change notifications
+      description: Register a new webhook subscriber or update existing by URL (idempotent)
       parameters:
       - description: Webhook subscriber data
         in: body
@@ -211,7 +299,7 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Create webhook subscriber
+      summary: Create or update webhook subscriber
       tags:
       - Admin
   /admin/webhooks/{id}:
@@ -343,6 +431,28 @@ paths:
       summary: Upsert webhook subscriber by URL
       tags:
       - Admin
+  /admin/webhooks/failed:
+    get:
+      description: Get all failed webhook deliveries (dead-letter queue)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List failed webhook deliveries
+      tags:
+      - Admin
   /auditories:
     get:
       description: Returns a list of all auditories and buildings.
@@ -393,6 +503,49 @@ paths:
       summary: Get auditory by ID
       tags:
       - Dictionaries
+  /changes:
+    get:
+      description: Returns a filterable, paginated feed of schedule changes. Omit
+        entity filters for all entities.
+      parameters:
+      - description: group, tutor, auditory
+        in: query
+        name: entity_type
+        type: string
+      - description: Entity ID
+        in: query
+        name: entity_id
+        type: integer
+      - description: Subgroup number (1, 2)
+        in: query
+        name: subgroup
+        type: string
+      - description: 1..100, default 20
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for pagination (last received id)
+        in: query
+        name: before_id
+        type: integer
+      - description: RFC3339 or YYYY-MM-DD lower bound by created_at
+        in: query
+        name: since
+        type: string
+      - description: all — ignore entity filters
+        in: query
+        name: scope
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+      summary: Get schedule changes feed
+      tags:
+      - Changes
   /changes/{type}/{id}:
     get:
       description: Returns recent schedule changes for a group, tutor, or auditory.
@@ -516,15 +669,15 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Updates subscription preferences for a specific entity (group,
-        tutor, auditory).
+      description: Partially updates subscription preferences for an entity. Omitted
+        fields keep their values.
       parameters:
-      - description: Notification Settings
+      - description: Notification settings patch
         in: body
         name: settings
         required: true
         schema:
-          $ref: '#/definitions/omsu_mirror_internal_storage.Subscription'
+          $ref: '#/definitions/internal_api.notificationSettingsPatch'
       produces:
       - application/json
       responses:
@@ -937,19 +1090,13 @@ paths:
       - Search
   /subscribe:
     post:
-      consumes:
-      - application/json
-      description: Creates or updates a notification subscription for a group, tutor,
-        or auditory.
       parameters:
       - description: Subscription
         in: body
         name: subscription
         required: true
         schema:
-          $ref: '#/definitions/omsu_mirror_internal_storage.Subscription'
-      produces:
-      - application/json
+          $ref: '#/definitions/internal_api.subscribeRequest'
       responses:
         "200":
           description: OK
@@ -959,6 +1106,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -981,7 +1134,29 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Subscribe to schedule notifications
+  /subscriptions:
+    get:
+      description: Returns all subscriptions belonging to the FCM token from X-FCM-Token.
+      parameters:
+      - description: FCM Token
+        in: header
+        name: X-FCM-Token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/omsu_mirror_internal_models.BFFResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List subscriptions for a device
       tags:
       - Notifications
   /sync/status:

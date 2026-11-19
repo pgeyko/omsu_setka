@@ -211,3 +211,28 @@ func (r *DictRepo) GetTutorByID(ctx context.Context, id int) (*models.Tutor, err
 	}
 	return &t, nil
 }
+
+// Exists checks that a schedule entity exists in the dictionary. Group
+// subscriptions use real_group_id, not the internal dictionary id.
+func (r *DictRepo) Exists(ctx context.Context, entityType string, entityID int) (bool, error) {
+	var query string
+	switch entityType {
+	case "group":
+		query = `SELECT 1 FROM dict_groups WHERE real_group_id = ? LIMIT 1`
+	case "tutor":
+		query = `SELECT 1 FROM dict_tutors WHERE id = ? LIMIT 1`
+	case "auditory":
+		query = `SELECT 1 FROM dict_auditories WHERE id = ? LIMIT 1`
+	default:
+		return false, nil
+	}
+	var exists int
+	err := r.db.DB.QueryRowContext(ctx, query, entityID).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}

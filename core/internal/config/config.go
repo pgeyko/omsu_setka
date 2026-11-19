@@ -34,6 +34,8 @@ type Config struct {
 	CacheDictTTL         time.Duration `env:"CACHE_DICT_TTL" envDefault:"12h"`
 	CacheActiveThreshold time.Duration `env:"CACHE_ACTIVE_THRESHOLD" envDefault:"24h"`
 	ChangeRetentionDays  int           `env:"CHANGE_RETENTION_DAYS" envDefault:"90"`
+	OutboxMaxAttempts    int           `env:"OUTBOX_MAX_ATTEMPTS" envDefault:"5"`
+	OutboxRetentionDays  int           `env:"OUTBOX_RETENTION_DAYS" envDefault:"30"`
 
 	// SQLite
 	SQLitePath        string `env:"SQLITE_PATH" envDefault:"./data/mirror.db"`

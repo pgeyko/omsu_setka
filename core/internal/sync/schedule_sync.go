@@ -343,11 +343,11 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 				data["day"] = webhookChanges[0].Date
 				data["pair"] = strconv.Itoa(webhookChanges[0].Pair)
 			}
-			invalidTokens := s.fcm.SendToTokens(ctx, tokens, "Изменение в расписании! 🔄", "Замечены изменения в расписании, нажми чтобы посмотреть.", data)
-			if len(invalidTokens) > 0 {
-				if err := s.subscriptionRepo.DeleteTokens(ctx, invalidTokens); err != nil {
-					log.Warn().Err(err).Msg("Failed to cleanup invalid FCM tokens")
-				}
+			for _, token := range tokens {
+				s.enqueuePush(ctx, token,
+					"Изменение в расписании! 🔄",
+					"Замечены изменения в расписании, нажми чтобы посмотреть.",
+					data, "change", "", "", 0, "")
 			}
 		}
 

@@ -4,6 +4,7 @@ import (
 	"omsu_mirror/internal/cache"
 	"omsu_mirror/internal/models"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -51,8 +52,8 @@ func (s *Server) handleSearch(c *fiber.Ctx) error {
 				grouped["auditories"] = append(grouped["auditories"], res)
 			}
 		}
-		return c.JSON(models.BFFResponse{Success: true, Data: grouped})
+		return c.JSON(models.BFFResponse{Success: true, Data: grouped, CachedAt: time.Now(), Source: "cache"})
 	}
 
-	return c.JSON(models.BFFResponse{Success: true, Data: results})
+	return c.JSON(models.BFFResponse{Success: true, Data: results, CachedAt: time.Now(), Source: "cache"})
 }

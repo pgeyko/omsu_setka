@@ -95,3 +95,30 @@ func TestDictRepo_TutorsAndAuditories(t *testing.T) {
 		t.Errorf("Unexpected auditory data")
 	}
 }
+
+func TestDictRepo_Exists(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	repo := NewDictRepo(db)
+	ctx := context.Background()
+	realID := 42
+	if err := repo.UpsertGroups(ctx, []models.Group{{ID: 7, Name: "ЮСС-003-О-02", RealGroupID: &realID}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.UpsertTutors(ctx, []models.Tutor{{ID: 15, Name: "Иванов Иван Иванович"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	if ok, err := repo.Exists(ctx, "group", 42); err != nil || !ok {
+		t.Errorf("group should exist: ok=%v err=%v", ok, err)
+	}
+	if ok, _ := repo.Exists(ctx, "group", 7); ok {
+		t.Error("internal dict id must not be treated as real_group_id")
+	}
+	if ok, _ := repo.Exists(ctx, "tutor", 15); !ok {
+		t.Error("tutor should exist")
+	}
+	if ok, _ := repo.Exists(ctx, "auditory", 1); ok {
+		t.Error("auditory should not exist")
+	}
+}

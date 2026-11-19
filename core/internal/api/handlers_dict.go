@@ -114,7 +114,7 @@ func (s *Server) handleGetGroupByID(c *fiber.Ctx) error {
 	if group == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "group not found"})
 	}
-	return c.JSON(models.BFFResponse{Success: true, Data: group})
+	return c.JSON(models.BFFResponse{Success: true, Data: group, CachedAt: time.Now(), Source: "cache"})
 }
 
 // @Summary Get auditory by ID
@@ -139,7 +139,7 @@ func (s *Server) handleGetAuditoryByID(c *fiber.Ctx) error {
 	if aud == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "auditory not found"})
 	}
-	return c.JSON(models.BFFResponse{Success: true, Data: aud})
+	return c.JSON(models.BFFResponse{Success: true, Data: aud, CachedAt: time.Now(), Source: "cache"})
 }
 
 // @Summary Get tutor by ID
@@ -164,5 +164,5 @@ func (s *Server) handleGetTutorByID(c *fiber.Ctx) error {
 	if tutor == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "tutor not found"})
 	}
-	return c.JSON(models.BFFResponse{Success: true, Data: tutor})
+	return c.JSON(models.BFFResponse{Success: true, Data: tutor, CachedAt: time.Now(), Source: "cache"})
 }
