@@ -94,9 +94,9 @@ export function TodayPage({ groupId }: { groupId: number }) {
     ? Math.round(((nowMinutes - slotMinutes(current).start) / (slotMinutes(current).end - slotMinutes(current).start)) * 100)
     : 0;
   const remaining = current ? slotMinutes(current).end - nowMinutes : 0;
-  const passedCount = isToday
-    ? slots.filter((slot) => !slot.window && slotMinutes(slot).end <= nowMinutes).length
-    : 0;
+  const pastSlots = isToday
+    ? slots.filter((slot) => !slot.window && slotMinutes(slot).end <= nowMinutes)
+    : [];
 
   const visible = isToday
     ? current
@@ -170,7 +170,9 @@ export function TodayPage({ groupId }: { groupId: number }) {
             {daySlots.length} {plural(daySlots.length, 'пара', 'пары', 'пар')}
             {dayFirst ? ` · ${dayFirst.start}–${dayLast.end}` : ''} · <b>{groupName}</b>
           </p>
-          <p className="now-left">{dayFirst ? `первая пара в ${dayFirst.start}` : 'выходной'}</p>
+          <p className="now-left">
+            {isToday && dayFirst ? 'занятия закончились' : dayFirst ? `первая пара в ${dayFirst.start}` : 'выходной'}
+          </p>
         </section>
       )}
 
@@ -190,7 +192,11 @@ export function TodayPage({ groupId }: { groupId: number }) {
           <li className="lesson">
             <span />
             <p className="window-text">
-              {subgroup ? `Для подгруппы ${subgroup} занятий нет. ` : 'На этот день занятий нет. '}
+              {subgroup
+                ? `Для подгруппы ${subgroup} занятий нет. `
+                : isToday && slots.length
+                  ? `${current || next ? 'После этой пары занятий больше нет.' : 'На сегодня пары закончились.'} `
+                  : 'На этот день занятий нет. '}
               {subgroup ? (
                 <button className="link-btn" type="button" onClick={() => setSubgroup('')}>
                   Показать все
@@ -201,8 +207,29 @@ export function TodayPage({ groupId }: { groupId: number }) {
         )}
       </ul>
 
+      {pastSlots.length ? (
+        <>
+          <div className="section-head">
+            <h2 className="section-title">Уже прошли</h2>
+            <span className="section-note">
+              {pastSlots.length} {plural(pastSlots.length, 'пара', 'пары', 'пар')}
+            </span>
+          </div>
+          <ul className="lesson-list">
+            {pastSlots.map((slot) => (
+              <SlotRow
+                key={`past-${selected}-${slot.pair}`}
+                slot={slot}
+                past
+                onOpen={() => setDetail({ iso: selected, slot })}
+              />
+            ))}
+          </ul>
+        </>
+      ) : null}
+
       <p className="footnote">
-        {passedCount ? `${passedCount} ${plural(passedCount, 'пара', 'пары', 'пар')} уже прошли. ` : ''}Источник — расписание ОмГУ. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <button className="link-btn" type="button" onClick={() => navigate(`/g/${groupId}/changes`)}>Что изменилось</button>
+        Источник — расписание ОмГУ. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <button className="link-btn" type="button" onClick={() => navigate(`/g/${groupId}/changes`)}>Что изменилось</button>
       </p>
 
       <DetailSheet

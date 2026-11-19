@@ -82,7 +82,7 @@ describe('DetailSheet', () => {
       new Set(),
     )[0];
     renderSheet({ slot: subgroupSlot });
-    expect(screen.getAllByText(/1 подгруппа/).length).toBeGreaterThan(1);
+    expect(screen.getAllByText(/1-я подгруппа/).length).toBeGreaterThan(1);
   });
 
   it('lists parallel options instead of a single teacher', () => {

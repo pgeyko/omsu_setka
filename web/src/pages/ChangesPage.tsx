@@ -3,9 +3,52 @@ import { Link } from 'react-router-dom';
 import { useChangesInfinite, useGroupName } from '../api/queries';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
-import type { ScheduleChange } from '../api/types';
-import { dayHeading, relativeDate, weekStartForDate } from '../lib/date';
-import { plural } from '../lib/schedule';
+import type { FieldChange, Lesson, ScheduleChange } from '../api/types';
+import { dayHeading, weekStartForDate } from '../lib/date';
+import { buildingOf, cleanSubject, dayMonthLabel, normalizeSubgroup, roomOf } from '../lib/schedule';
+
+function parseLesson(raw?: string): Lesson | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Lesson;
+    return value && typeof value === 'object' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function lessonForChange(change: ScheduleChange): Lesson | null {
+  return parseLesson(change.new_data) || parseLesson(change.old_data);
+}
+
+function subjectForChange(change: ScheduleChange, lesson: Lesson | null): string {
+  const raw = change.subject || lesson?.lesson || '';
+  if (!raw) return 'Изменение';
+  return cleanSubject({ ...(lesson || {}), lesson: raw } as Lesson);
+}
+
+function deriveDiff(change: ScheduleChange): FieldChange[] {
+  if (change.changes?.length) return change.changes;
+  if (change.change_type !== 'modified') return [];
+  const before = parseLesson(change.old_data);
+  const after = parseLesson(change.new_data);
+  if (!before || !after) return [];
+  const fields: Array<[keyof Lesson, string]> = [
+    ['lesson', 'предмет'],
+    ['teacher', 'преподаватель'],
+    ['auditCorps', 'аудитория'],
+    ['time', 'пара'],
+    ['subgroupName', 'подгруппа'],
+  ];
+  return fields
+    .filter(([field]) => String(before[field] ?? '') !== String(after[field] ?? ''))
+    .map(([field, label]) => ({
+      field,
+      label,
+      old: String(before[field] ?? ''),
+      new: String(after[field] ?? ''),
+    }));
+}
 
 function ChangeItem({
   change,
@@ -16,25 +59,41 @@ function ChangeItem({
   groupId: number;
   scope: 'group' | 'all';
 }) {
-  const day = change.day || change.created_at.slice(0, 10);
+  const lesson = lessonForChange(change);
+  const pair = change.pair || lesson?.time;
   const targetGroup = scope === 'all' ? change.entity_id : groupId;
-  const link = change.day && change.pair && (scope === 'group' || change.entity_type === 'group')
-    ? `/g/${targetGroup}/week?week_start=${weekStartForDate(change.day)}&day=${change.day}&slot=${change.pair}`
+  const link = change.day && pair && (scope === 'group' || change.entity_type === 'group')
+    ? `/g/${targetGroup}/week?week_start=${weekStartForDate(change.day)}&day=${change.day}&slot=${pair}`
     : null;
-  const subgroupLabel = change.subgroup
-    ? ` · ${change.subgroup} ${plural(Number(change.subgroup), 'подгруппа', 'подгруппы', 'подгруппы')}`
-    : '';
+  const subgroup = change.subgroup || lesson?.subgroup_number || normalizeSubgroup(lesson?.subgroupName);
+  const subject = subjectForChange(change, lesson);
+  const teacher = lesson?.teacher || '';
+  const room = lesson ? lesson.auditCorps || roomOf(lesson) : '';
+  const building = lesson ? buildingOf(lesson) : '';
+  const diff = deriveDiff(change);
   return (
     <article className="change-item">
-      <div className="change-pair">{change.pair || '—'}</div>
+      <div className="change-pair">{pair || '—'}</div>
       <div>
-        <h2 className="change-subject">{change.subject || 'Изменение'}</h2>
+        <h2 className="change-subject">{subject}</h2>
         <span className="change-kind">
           {change.change_type === 'added' ? 'добавлено' : change.change_type === 'removed' ? 'удалено' : 'изменено'}
-          {subgroupLabel}
+          {subgroup ? ` · ${subgroup}-я подгруппа` : ''}
         </span>
-        {change.changes?.length ? (
-          change.changes.map((field) => (
+        {teacher || room ? (
+          <p className="change-meta">
+            {teacher}
+            {teacher && room ? ' · ' : ''}
+            {room ? (
+              <>
+                ауд. <b>{room}</b>
+                {building ? ` · корпус ${building}` : ''}
+              </>
+            ) : null}
+          </p>
+        ) : null}
+        {diff.length ? (
+          diff.map((field) => (
             <p className="diff" key={`${change.id}-${field.field}`}>
               {field.label}: <del>{field.old || '—'}</del> <span className="diff-arrow">→</span>{' '}
               <ins>{field.new || '—'}</ins>
@@ -54,7 +113,6 @@ function ChangeItem({
             Открыть пару
           </Link>
         ) : null}
-        <span className="sr-only">{relativeDate(day)}</span>
       </div>
     </article>
   );
@@ -103,14 +161,18 @@ function ChangesBody({ groupId }: { groupId: number }) {
         <p className="empty-search" role="status">Изменений нет. Когда расписание поменяется, здесь появится запись.</p>
       ) : null}
 
-      {grouped.map(([day, list]) => (
-        <section className="change-day" key={day} aria-label={dayHeading(day)}>
-          <div className="change-day-head">{dayHeading(day)}</div>
+      {grouped.map(([day, list]) => {
+        const hasLessonDay = list.some((change) => change.day === day);
+        const heading = hasLessonDay ? dayHeading(day) : `Изменения от ${dayMonthLabel(day)}`;
+        return (
+        <section className="change-day" key={day} aria-label={heading}>
+          <div className="change-day-head">{heading}</div>
           {list.map((change) => (
             <ChangeItem key={change.id} change={change} groupId={groupId} scope={scope} />
           ))}
         </section>
-      ))}
+        );
+      })}
 
       {changes.hasNextPage ? (
         <div className="more-row">

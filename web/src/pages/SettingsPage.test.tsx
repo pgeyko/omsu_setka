@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { SettingsPage } from './SettingsPage';
 import { renderRoute, resetPreferences } from '../test/utils';
 import { usePreferences } from '../store/preferences';
@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   fetchNotificationSettings: vi.fn(),
   fetchTutor: vi.fn(),
   fetchAuditory: vi.fn(),
+  fetchGroupSubgroups: vi.fn(),
   patchNotificationSettings: vi.fn(),
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
@@ -39,16 +40,19 @@ const subscription = {
   entity_id: 472,
   notify_on_change: true,
   notify_daily_digest: true,
-  digest_time: '19:00',
+  digest_time: '18:30',
   notify_before_lesson: false,
   before_minutes: 30,
   timezone: 'Asia/Omsk',
   subgroup: '',
 };
 
-async function renderSettings(route = '/g/472/settings') {
+async function renderSettings(route = '/g/472/settings', withToken = true) {
+  if (!withToken) localStorage.removeItem('setka-fcm-token');
   renderRoute(<SettingsPage groupId={472} />, { route, width: 390 });
-  return screen.findByDisplayValue('19:00');
+  const hour = screen.getByLabelText('Час дайджеста');
+  await waitFor(() => expect(hour).toHaveValue(withToken ? '18' : '19'));
+  return hour;
 }
 
 describe('SettingsPage', () => {
@@ -58,6 +62,7 @@ describe('SettingsPage', () => {
     vi.setSystemTime(new Date('2026-11-19T12:00:00'));
     localStorage.setItem('setka-fcm-token', 'demo-token');
     api.fetchGroups.mockResolvedValue([{ id: 472, name: 'ЮСС-003-О-02', real_group_id: 12246 }]);
+    api.fetchGroupSubgroups.mockResolvedValue(['1', '2']);
     api.fetchWeek.mockResolvedValue(sampleWeek());
     api.fetchChanges.mockResolvedValue({ items: [], next_before_id: 0 });
     api.fetchHealth.mockResolvedValue({
@@ -81,8 +86,12 @@ describe('SettingsPage', () => {
     await renderSettings();
     expect(await screen.findByText(/Тема, подгруппа и уведомления/)).toBeInTheDocument();
     expect(screen.getByLabelText('Часовой пояс')).toHaveValue('Asia/Omsk');
-    const subgroup = screen.getByLabelText('Моя подгруппа') as HTMLSelectElement;
-    expect(Array.from(subgroup.options).map((option) => option.value)).toEqual(['', '1', '2']);
+    expect(screen.getByLabelText('Час дайджеста')).toHaveValue('18');
+    expect(screen.getByLabelText('Минуты дайджеста')).toHaveValue('30');
+    const subgroup = screen.getByRole('group', { name: 'Моя подгруппа' });
+    expect(within(subgroup).getByRole('button', { name: 'Все подгруппы' })).toBeInTheDocument();
+    expect(within(subgroup).getByRole('button', { name: '1-я подгруппа' })).toBeInTheDocument();
+    expect(within(subgroup).getByRole('button', { name: '2-я подгруппа' })).toBeInTheDocument();
     expect(screen.queryByText(/Разрешение на уведомления не выдано/)).toBeNull();
   });
 
@@ -119,21 +128,11 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('Сохранено')).toBeInTheDocument();
   });
 
-  it('validates the digest time before saving', async () => {
+  it('saves the digest time selected with the hour and minute pickers', async () => {
     await renderSettings();
-    const input = screen.getByLabelText('Время дайджеста');
-    fireEvent.change(input, { target: { value: '99:99' } });
-    fireEvent.blur(input);
-    expect(await screen.findByText('Время дайджеста — в формате ЧЧ:ММ')).toBeInTheDocument();
-    expect(input).toHaveValue('19:00');
-    expect(api.patchNotificationSettings).not.toHaveBeenCalled();
-  });
-
-  it('saves a valid digest time on blur', async () => {
-    await renderSettings();
-    const input = screen.getByLabelText('Время дайджеста');
-    fireEvent.change(input, { target: { value: '20:15' } });
-    fireEvent.blur(input);
+    fireEvent.change(screen.getByLabelText('Час дайджеста'), { target: { value: '20' } });
+    await waitFor(() => expect(screen.getByLabelText('Час дайджеста')).toHaveValue('20'));
+    fireEvent.change(screen.getByLabelText('Минуты дайджеста'), { target: { value: '15' } });
     await waitFor(() =>
       expect(api.patchNotificationSettings).toHaveBeenCalledWith(
         'demo-token',
@@ -142,13 +141,13 @@ describe('SettingsPage', () => {
         expect.objectContaining({ digest_time: '20:15' }),
       ),
     );
+    expect(screen.getByLabelText('Час дайджеста')).toHaveValue('20');
+    expect(screen.getByLabelText('Минуты дайджеста')).toHaveValue('15');
   });
 
   it('saves the subgroup together with notifications', async () => {
     await renderSettings();
-    await screen.findByRole('option', { name: '2' });
-    const subgroup = screen.getByLabelText('Моя подгруппа');
-    fireEvent.change(subgroup, { target: { value: '2' } });
+    fireEvent.click(await screen.findByRole('button', { name: '2-я подгруппа' }));
     expect(usePreferences.getState().subgroup).toBe('2');
     await waitFor(() =>
       expect(api.patchNotificationSettings).toHaveBeenCalledWith(
@@ -170,6 +169,28 @@ describe('SettingsPage', () => {
     await waitFor(() => expect(api.unsubscribe).toHaveBeenCalledWith('demo-token', 'group', 472));
     expect(await screen.findByRole('button', { name: 'Вы отписаны от группы' })).toBeDisabled();
     expect(screen.getByText('Вы отписаны от группы.')).toBeInTheDocument();
+  });
+
+  it('offers a permission sheet after enabling notifications without a token', async () => {
+    await renderSettings(undefined, false);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Напоминание перед парой' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 3000 });
+    expect(dialog).toHaveAttribute('open');
+    expect(within(dialog).getByText(/Уведомления для ЮСС-003-О-02/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Позже' }));
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+    expect(localStorage.getItem('setka-push-dismissed-472')).toBeTruthy();
+  });
+
+  it('requests browser permission from the sheet and subscribes', async () => {
+    firebase.requestForToken.mockResolvedValue('sheet-token');
+    await renderSettings(undefined, false);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Напоминание перед парой' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 3000 });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Разрешить' }));
+    await waitFor(() => expect(api.subscribe).toHaveBeenCalledWith('sheet-token', 'group', 472, '', expect.any(Object)));
+    expect(localStorage.getItem('setka-fcm-token')).toBe('sheet-token');
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
   });
 
   it('explains that notifications are off when there is no token', async () => {

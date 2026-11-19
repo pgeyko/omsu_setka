@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   fetchChanges,
   fetchGroups,
+  fetchGroupSubgroups,
   fetchHealth,
   fetchNotificationSettings,
   fetchTutor,
@@ -43,6 +44,16 @@ export function useGroupName(groupId: number | null, savedName?: string) {
   if (savedName) return savedName;
   const group = groups.data?.find((item) => item.id === groupId);
   return group?.name || (groupId ? `Группа ${groupId}` : '');
+}
+
+export function useGroupSubgroups(groupId: number | null) {
+  return useQuery<string[]>({
+    queryKey: ['subgroups', groupId || 0],
+    queryFn: () => fetchGroupSubgroups(groupId!),
+    enabled: Boolean(groupId),
+    staleTime: 12 * 60 * 60 * 1000,
+    retry: 1,
+  });
 }
 
 export function useEntityInfo(type: 'tutor' | 'auditory', id: number | null) {

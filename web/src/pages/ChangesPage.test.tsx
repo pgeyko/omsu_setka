@@ -126,7 +126,7 @@ describe('ChangesPage', () => {
       'href',
       '/g/468/week?week_start=2026-11-16&day=2026-11-17&slot=3',
     );
-    expect(within(article).getByText(/2 подгруппы/)).toBeInTheDocument();
+    expect(within(article).getByText(/2-я подгруппа/)).toBeInTheDocument();
   });
 
   it('does not link tutor changes to a group schedule', async () => {
@@ -150,6 +150,29 @@ describe('ChangesPage', () => {
     fireEvent.click(button);
     expect(await screen.findByText('Вторая страница')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Показать ещё' })).toBeNull();
+  });
+
+  it('restores details from legacy old_data rows', async () => {
+    mockPages([
+      {
+        id: 99,
+        entity_type: 'group',
+        entity_id: 472,
+        change_type: 'removed',
+        lesson_id: 5,
+        old_data:
+          '{"id":5,"time":4,"lesson":"Иностранный язык Лаб","type_work":"Лаб","teacher":"Невежина Светлана Борисовна","group":"МСС-501-О-01","auditCorps":"4-101"}',
+        created_at: '2026-11-18T06:00:00Z',
+      },
+    ]);
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
+    expect(await screen.findByText('Иностранный язык')).toBeInTheDocument();
+    expect(screen.getByText('4')).toHaveClass('change-pair');
+    expect(screen.getByText(/Невежина Светлана Борисовна/)).toBeInTheDocument();
+    expect(screen.getByText(/ауд\./)).toHaveTextContent('4-101');
+    expect(screen.getByText(/корпус 4/)).toBeInTheDocument();
+    expect(screen.getByText('Изменения от 18 ноября')).toBeInTheDocument();
+    expect(screen.queryByText('Изменение')).toBeNull();
   });
 
   it('shows an empty state', async () => {

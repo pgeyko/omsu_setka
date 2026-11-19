@@ -250,8 +250,9 @@ export function slotLabel(slot: Slot): string {
 
 export function subgroupLabel(entry: SlotEntry): string {
   if (!entry.subgroups.length) return '';
-  if (entry.subgroups.length === 1) return `${entry.subgroups[0]} подгруппа`;
-  return `${entry.subgroups.join(', ')} подгруппы`;
+  const ordinal = (value: string) => `${value}-я`;
+  if (entry.subgroups.length === 1) return `${ordinal(entry.subgroups[0])} подгруппа`;
+  return `${entry.subgroups.map(ordinal).join(', ')} подгруппы`;
 }
 
 export function plural(count: number, one: string, few: string, many: string): string {

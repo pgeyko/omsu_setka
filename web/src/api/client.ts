@@ -58,6 +58,10 @@ export async function fetchAuditory(id: number): Promise<Auditory> {
   return unwrap(await readClient.get<BFFResponse<Auditory>>(`/auditories/${id}`));
 }
 
+export async function fetchGroupSubgroups(id: number): Promise<string[]> {
+  return unwrap(await readClient.get<BFFResponse<string[]>>(`/schedule/group/${id}/subgroups`));
+}
+
 export async function fetchWeek(
   type: 'group' | 'tutor' | 'auditory',
   id: number,

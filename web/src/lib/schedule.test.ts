@@ -347,8 +347,8 @@ describe('labels', () => {
 
   it('builds subgroup labels', () => {
     const entry = { subgroups: ['1'] } as SlotEntry;
-    expect(subgroupLabel(entry)).toBe('1 подгруппа');
-    expect(subgroupLabel({ subgroups: ['1', '2'] } as SlotEntry)).toBe('1, 2 подгруппы');
+    expect(subgroupLabel(entry)).toBe('1-я подгруппа');
+    expect(subgroupLabel({ subgroups: ['1', '2'] } as SlotEntry)).toBe('1-я, 2-я подгруппы');
     expect(subgroupLabel({ subgroups: [] } as unknown as SlotEntry)).toBe('');
   });
 

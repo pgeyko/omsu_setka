@@ -523,6 +523,9 @@ h1, h2, h3, p { margin: 0; }
   cursor: pointer;
 }
 .lesson-btn:hover { background: var(--surface-2); }
+.lesson-btn.is-past { opacity: 0.58; }
+.lesson-btn.is-past:hover { opacity: 1; }
+.lesson-btn.is-past .change-flag { opacity: 0.8; }
 .lesson-btn:active { background: var(--surface-3); }
 .lesson-btn:focus-visible { outline-offset: -2px; }
 
@@ -1815,3 +1818,36 @@ body.sheet-open { overflow: hidden; }
   line-height: 1.35;
 }
 .sheet-variant-room { color: var(--muted); text-align: right; }
+
+/* subgroup selector */
+.subgroup-segmented { max-width: 320px; }
+
+/* digest time selector */
+.time-field { gap: 4px; }
+.time-field select { min-width: 64px; }
+.time-colon { color: var(--muted); font-weight: 600; }
+
+/* notification permission sheet */
+.permission-body {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.permission-body p { color: var(--ink); }
+.permission-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.permission-actions .btn-primary,
+.permission-actions .btn-quiet {
+  width: auto;
+  flex: 1 1 160px;
+  margin-top: 0;
+}
+
+.change-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.change-meta b { color: var(--ink); font-weight: 500; }

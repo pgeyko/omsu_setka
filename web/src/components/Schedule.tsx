@@ -99,7 +99,15 @@ function SlotMeta({ entry }: { entry: SlotEntry }) {
   );
 }
 
-export function SlotRow({ slot, onOpen }: { slot: Slot; onOpen: () => void }) {
+export function SlotRow({
+  slot,
+  onOpen,
+  past = false,
+}: {
+  slot: Slot;
+  onOpen: () => void;
+  past?: boolean;
+}) {
   if (slot.window) {
     return (
       <li className="lesson is-window">
@@ -117,7 +125,12 @@ export function SlotRow({ slot, onOpen }: { slot: Slot; onOpen: () => void }) {
   const changed = slot.entries.some((entry) => entry.changed);
   return (
     <li>
-      <button className="lesson lesson-btn" type="button" onClick={onOpen} aria-haspopup="dialog">
+      <button
+        className={`lesson lesson-btn${past ? ' is-past' : ''}`}
+        type="button"
+        onClick={onOpen}
+        aria-haspopup="dialog"
+      >
         <span className="time-col">
           <span className="pair-no">{slot.pair}</span>
           <span className="t">{slot.start}</span>

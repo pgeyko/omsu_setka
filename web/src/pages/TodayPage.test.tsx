@@ -96,13 +96,26 @@ describe('TodayPage', () => {
     expect(screen.getByText('до 16:05')).toBeInTheDocument();
   });
 
-  it('shows a day summary when no current or next lesson is left', async () => {
+  it('shows passed lessons and a correct end-of-day summary', async () => {
     vi.setSystemTime(new Date('2026-11-19T22:00:00'));
     const heading = await renderToday('/g/472/today?day=2026-11-19');
     expect(heading).toHaveTextContent('Четверг');
     expect(screen.getByText(/2 пары · 08:45–14:20/)).toBeInTheDocument();
-    expect(screen.getByText('первая пара в 08:45')).toBeInTheDocument();
-    expect(screen.getByText(/На этот день занятий нет/)).toBeInTheDocument();
+    expect(screen.getByText('занятия закончились')).toBeInTheDocument();
+    expect(screen.getByText(/На сегодня пары закончились/)).toBeInTheDocument();
+    expect(screen.getByText('Уже прошли')).toBeInTheDocument();
+    expect(document.querySelectorAll('.lesson-btn.is-past')).toHaveLength(2);
+    expect(screen.queryByText(/На этот день занятий нет/)).toBeNull();
+  });
+
+  it('keeps passed lessons visible while the day is still going', async () => {
+    const heading = await renderToday('/g/472/today?day=2026-11-19&now=13:00');
+    expect(heading).toHaveTextContent('Программирование');
+    expect(screen.getByText('Уже прошли')).toBeInTheDocument();
+    expect(screen.getByText('1 пара')).toBeInTheDocument();
+    const past = document.querySelectorAll('.lesson-btn.is-past');
+    expect(past).toHaveLength(1);
+    expect(past[0]).toHaveTextContent('Математический анализ');
   });
 
   it('renders a skeleton while loading', () => {

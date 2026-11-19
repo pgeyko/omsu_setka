@@ -73,7 +73,7 @@ if (typeof window.matchMedia !== 'function') {
   installMatchMedia();
 }
 
-if (!('Notification' in window)) {
+if (typeof window.Notification !== 'function') {
   Object.defineProperty(window, 'Notification', {
     writable: true,
     configurable: true,

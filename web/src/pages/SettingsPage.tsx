@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useGroupName, useHealth, useNotificationSettings, useWeekSchedule } from '../api/queries';
+import { X } from 'lucide-react';
+import { useGroupName, useGroupSubgroups, useHealth, useNotificationSettings, useWeekSchedule } from '../api/queries';
 import { patchNotificationSettings, subscribe, unsubscribe } from '../api/client';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
@@ -31,6 +32,10 @@ const DEFAULTS: SettingsState = {
   minutes: '30',
   timezone: 'Asia/Omsk',
 };
+
+const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
+const MINUTES = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
+const PERMISSION_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function storedToken(groupId: number): string | null {
   try {
@@ -73,11 +78,20 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   const theme = usePreferences((state) => state.theme);
   const setTheme = usePreferences((state) => state.setTheme);
   const [token, setToken] = useState<string | null>(() => storedToken(groupId));
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+  );
   const [status, setStatus] = useState('Изменения сохраняются автоматически');
-  const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
-  const [digestDraft, setDigestDraft] = useState(DEFAULTS.digestTime);
+  const [settings, setSettings] = useState<SettingsState>(() =>
+    token ? DEFAULTS : { ...DEFAULTS, changes: false, digest: false, reminder: false },
+  );
+  const settingsRef = useRef(settings);
   const [unsubscribeStep, setUnsubscribeStep] = useState(0);
+  const [permissionOpen, setPermissionOpen] = useState(false);
+  const permissionRef = useRef<HTMLDialogElement>(null);
+  const permissionTimer = useRef<number | undefined>(undefined);
   const week = useWeekSchedule('group', groupId, currentWeekStart());
+  const remoteSubgroups = useGroupSubgroups(groupId);
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
   const health = useHealth();
@@ -96,19 +110,38 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   }, [remote.data]);
 
   useEffect(() => {
-    setDigestDraft(settings.digestTime);
-  }, [settings.digestTime]);
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    const dialog = permissionRef.current;
+    if (!dialog) return;
+    if (permissionOpen && !dialog.open) dialog.showModal();
+    if (!permissionOpen && dialog.open) dialog.close();
+  }, [permissionOpen]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(permissionTimer.current);
+    },
+    [],
+  );
 
   const subgroups = useMemo(() => {
-    const values = new Set<string>();
+    const values = new Set<string>(remoteSubgroups.data || []);
     week.data?.forEach((day) => {
       day.lessons.forEach((lesson) => {
         const value = lesson.subgroup_number || normalizeSubgroup(lesson.subgroupName);
         if (value) values.add(value);
       });
     });
-    return Array.from(values).sort();
-  }, [week.data]);
+    return Array.from(values).sort((left, right) => {
+      const a = Number(left);
+      const b = Number(right);
+      if (Number.isFinite(a) && Number.isFinite(b)) return a - b;
+      return left.localeCompare(right);
+    });
+  }, [remoteSubgroups.data, week.data]);
 
   const persist = async (next: SettingsState, message = 'Сохранено', subgroupOverride = subgroup) => {
     setStatus('Сохраняем…');
@@ -132,37 +165,60 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
     }
   };
 
+  const dismissKey = `setka-push-dismissed-${groupId}`;
+  const dismissedRecently = () => {
+    try {
+      const dismissedAt = Number(localStorage.getItem(dismissKey));
+      return Number.isFinite(dismissedAt) && Date.now() - dismissedAt < PERMISSION_DISMISS_MS;
+    } catch {
+      return false;
+    }
+  };
+
+  const schedulePermissionPrompt = () => {
+    if (token || permission === 'unsupported' || dismissedRecently()) return;
+    window.clearTimeout(permissionTimer.current);
+    permissionTimer.current = window.setTimeout(() => setPermissionOpen(true), 1200);
+  };
+
   const update = (patch: Partial<SettingsState>) => {
-    const next = { ...settings, ...patch };
+    const next = { ...settingsRef.current, ...patch };
+    settingsRef.current = next;
     setSettings(next);
     setUnsubscribeStep(0);
+    if ((patch.changes === true || patch.digest === true || patch.reminder === true) && !token) {
+      schedulePermissionPrompt();
+    }
+    if (!next.changes && !next.digest && !next.reminder) {
+      window.clearTimeout(permissionTimer.current);
+      setPermissionOpen(false);
+    }
     void persist(next);
   };
 
-  const commitDigestTime = () => {
-    const value = digestDraft.trim();
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
-      setDigestDraft(settings.digestTime);
-      setStatus('Время дайджеста — в формате ЧЧ:ММ');
-      return;
-    }
-    if (value !== settings.digestTime) update({ digestTime: value });
+  const setDigestTime = (part: 'hour' | 'minute', value: string) => {
+    const [currentHour = '19', currentMinute = '00'] = settingsRef.current.digestTime.split(':');
+    const hour = part === 'hour' ? value : currentHour;
+    const minute = part === 'minute' ? value : currentMinute;
+    update({ digestTime: `${hour}:${minute}` });
   };
 
-  const enablePush = async () => {
+  const enablePush = async (): Promise<boolean> => {
     if (!('Notification' in window)) {
       setStatus('Браузер не поддерживает уведомления.');
-      return;
+      setPermission('unsupported');
+      return false;
     }
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
+    const nextPermission = await Notification.requestPermission();
+    setPermission(nextPermission);
+    if (nextPermission !== 'granted') {
       setStatus('Разрешение на уведомления не выдано.');
-      return;
+      return false;
     }
     const nextToken = await requestForToken();
     if (!nextToken) {
       setStatus('Не удалось получить токен уведомлений.');
-      return;
+      return false;
     }
     localStorage.setItem('setka-fcm-token', nextToken);
     setToken(nextToken);
@@ -176,9 +232,32 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
         timezone: settings.timezone,
       });
       setStatus('Уведомления разрешены.');
+      return true;
     } catch {
       setStatus('Разрешение получено, но подписка не сохранилась. Попробуйте ещё раз.');
+      return false;
     }
+  };
+
+  const allowPushFromSheet = async () => {
+    const allowed = await enablePush();
+    if (allowed) {
+      try {
+        localStorage.removeItem(dismissKey);
+      } catch {
+        /* private mode */
+      }
+      setPermissionOpen(false);
+    }
+  };
+
+  const dismissPermission = () => {
+    try {
+      localStorage.setItem(dismissKey, String(Date.now()));
+    } catch {
+      /* private mode */
+    }
+    setPermissionOpen(false);
   };
 
   const handleUnsubscribe = async () => {
@@ -200,6 +279,8 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   };
 
   const online = health.data?.upstream.healthy !== false;
+  const [digestHour = '19', digestMinute = '00'] = settings.digestTime.split(':');
+  const digestMinuteOptions = Array.from(new Set([...MINUTES, digestMinute])).sort();
 
   return (
     <>
@@ -228,35 +309,57 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
         </div>
 
         <h2 className="settings-heading">Расписание</h2>
-        <div className="setting-row">
-          <div>
-            <span className="setting-label">Моя подгруппа</span>
-            <p className="setting-desc">Влияет на расписание и уведомления. Если не знаете — оставьте «Все».</p>
-          </div>
-          <div className="inline-field">
-            <label className="sr-only" htmlFor="subgroup">Моя подгруппа</label>
-            <select
-              id="subgroup"
-              value={subgroup}
-              onChange={(event) => {
-                const value = event.target.value;
-                setSubgroup(value);
-                void persist(settings, 'Сохранено', value);
+        <div className="setting-block">
+          <span className="setting-label">Моя подгруппа</span>
+          <p className="setting-desc">Влияет на расписание и уведомления. Если не знаете — оставьте «Все».</p>
+          <div className="segmented subgroup-segmented" role="group" aria-label="Моя подгруппа">
+            <button
+              type="button"
+              aria-pressed={!subgroup}
+              aria-label="Все подгруппы"
+              onClick={() => {
+                setSubgroup('');
+                void persist(settings, 'Сохранено', '');
               }}
             >
-              <option value="">Все</option>
-              {subgroups.map((value) => <option value={value} key={value}>{value}</option>)}
-            </select>
+              Все
+            </button>
+            {subgroups.map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={subgroup === value}
+                aria-label={`${value}-я подгруппа`}
+                onClick={() => {
+                  setSubgroup(value);
+                  void persist(settings, 'Сохранено', value);
+                }}
+              >
+                {value}
+              </button>
+            ))}
           </div>
+          {!subgroups.length ? <p className="setting-desc" style={{ marginTop: 6 }}>В расписании этой группы подгрупп нет.</p> : null}
         </div>
 
         <h2 className="settings-heading">Уведомления</h2>
         {!token ? (
           <div className="setting-sub">
-            Разрешение на уведомления не выдано.{' '}
-            <button className="link-btn" type="button" onClick={() => void enablePush()}>
-              Разрешить в браузере
-            </button>
+            {permission === 'denied'
+              ? 'Уведомления заблокированы в настройках браузера.'
+              : permission === 'unsupported'
+                ? 'Браузер не поддерживает уведомления.'
+                : 'Разрешение на уведомления не выдано. '}
+            {permission === 'default' ? (
+              <button className="link-btn" type="button" onClick={() => void enablePush()}>
+                Разрешить в браузере
+              </button>
+            ) : null}
+            {permission === 'granted' ? (
+              <button className="link-btn" type="button" onClick={() => void enablePush()}>
+                Подключить уведомления
+              </button>
+            ) : null}
           </div>
         ) : null}
         <div className="setting-row">
@@ -275,26 +378,28 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
         </div>
         <div className="setting-row">
           <div><span className="setting-label">Время дайджеста</span></div>
-          <div className="inline-field">
-            <label className="sr-only" htmlFor="digest-time">Время дайджеста</label>
-            <input
-              id="digest-time"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              pattern="[0-2][0-9]:[0-5][0-9]"
-              maxLength={5}
-              value={digestDraft}
+          <div className="inline-field time-field">
+            <label className="sr-only" htmlFor="digest-hour">Час дайджеста</label>
+            <select
+              id="digest-hour"
+              aria-label="Час дайджеста"
+              value={digestHour}
               disabled={!settings.digest}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (/^[0-9:]*$/.test(value)) setDigestDraft(value);
-              }}
-              onBlur={commitDigestTime}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') event.currentTarget.blur();
-              }}
-            />
+              onChange={(event) => setDigestTime('hour', event.target.value)}
+            >
+              {HOURS.map((hour) => <option value={hour} key={hour}>{hour}</option>)}
+            </select>
+            <span className="time-colon" aria-hidden="true">:</span>
+            <label className="sr-only" htmlFor="digest-minute">Минуты дайджеста</label>
+            <select
+              id="digest-minute"
+              aria-label="Минуты дайджеста"
+              value={digestMinute}
+              disabled={!settings.digest}
+              onChange={(event) => setDigestTime('minute', event.target.value)}
+            >
+              {digestMinuteOptions.map((minute) => <option value={minute} key={minute}>{minute}</option>)}
+            </select>
           </div>
         </div>
         <div className="setting-row">
@@ -342,6 +447,49 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
         <i className={`dot${online ? '' : ' is-stale'}`} />
         {online ? 'Сервер отвечает, кэш обновлён недавно' : 'Сервер недоступен, показаны сохранённые данные'}
       </div>
+      <dialog
+        ref={permissionRef}
+        className="sheet permission-sheet"
+        aria-labelledby="permission-title"
+        onClose={() => setPermissionOpen(false)}
+        onClick={(event) => {
+          if (event.target === permissionRef.current) dismissPermission();
+        }}
+      >
+        <header className="sheet-head">
+          <div className="sheet-head-text">
+            <h2 className="sheet-title" id="permission-title">Уведомления для {groupName}</h2>
+            <p className="sheet-sub">Изменения пар, дайджест и напоминания</p>
+          </div>
+          <button className="sheet-close" type="button" aria-label="Закрыть" onClick={dismissPermission}>
+            <X size={22} strokeWidth={1.6} />
+          </button>
+        </header>
+        <div className="sheet-scroll">
+          <div className="permission-body">
+            {permission === 'denied' ? (
+              <p>Браузер заблокировал уведомления для этого сайта. Разрешите их в настройках сайта в браузере, затем вернитесь сюда.</p>
+            ) : permission === 'unsupported' ? (
+              <p>Этот браузер не поддерживает push-уведомления. Можно пользоваться расписанием без них.</p>
+            ) : (
+              <p>
+                Разрешите уведомления в браузере — и мы пришлём изменения расписания и дайджест на завтра для группы {groupName}.
+              </p>
+            )}
+            <div className="permission-actions">
+              {permission !== 'denied' && permission !== 'unsupported' ? (
+                <button className="btn-primary" type="button" onClick={() => void allowPushFromSheet()}>
+                  {permission === 'granted' ? 'Подключить' : 'Разрешить'}
+                </button>
+              ) : null}
+              <button className="btn-quiet" type="button" onClick={dismissPermission}>
+                Позже
+              </button>
+            </div>
+          </div>
+        </div>
+      </dialog>
+
       <p className="footnote">
         Вернуться к расписанию: <Link to={`/g/${groupId}/today`}>сегодня</Link> · <Link to={`/g/${groupId}/week`}>неделя</Link>
       </p>

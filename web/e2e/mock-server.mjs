@@ -142,6 +142,16 @@ const changes = [
     changes: [],
     created_at: '2026-11-18T06:40:00Z',
   },
+  {
+    id: 4,
+    entity_type: 'group',
+    entity_id: 472,
+    change_type: 'removed',
+    lesson_id: 205,
+    old_data:
+      '{"id":205,"time":5,"lesson":"Правовое регулирование Лаб","type_work":"Лаб","teacher":"Вишнякова Марина Анатольевна","group":"ЮСС-003-О-02","auditCorps":"4-101"}',
+    created_at: '2026-11-18T05:00:00Z',
+  },
 ];
 
 const state = {
@@ -261,6 +271,9 @@ const server = createServer(async (req, res) => {
     return send(res, 200, bff(searchAll(q.get('q') || '')));
   }
 
+  if (path.startsWith('/api/v1/schedule/group/') && path.endsWith('/subgroups')) {
+    return send(res, 200, bff(['1', '2']));
+  }
   if (path.startsWith('/api/v1/schedule/group/')) {
     return send(res, 200, bff(weekFrom(q.get('week_start') || '2026-11-16')));
   }

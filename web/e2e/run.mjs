@@ -135,7 +135,7 @@ async function seedToken() {
 
 async function setSubgroup(value) {
   await goto('/g/472/settings');
-  await page.locator('#subgroup').selectOption(value);
+  await page.getByRole('button', { name: value ? `${value}-я подгруппа` : 'Все подгруппы' }).click();
   await page.waitForTimeout(150);
 }
 
@@ -218,6 +218,15 @@ async function main() {
       await screenshot('02-today-other-day');
     });
 
+    await scenario('today: passed lessons stay visible', async () => {
+      await goto('/g/472/today?day=2026-11-19&now=13:00');
+      await page.waitForSelector('.lesson-btn.is-past');
+      assert.equal(await text('.section-title >> nth=1'), 'Уже прошли');
+      assert.equal(await count('.lesson-btn.is-past'), 1);
+      assert.match(await text('.lesson-btn.is-past'), /Математический анализ/);
+      assert.match(await text('.now-subject'), /Программирование/);
+    });
+
     await scenario('week: list, ranges and empty week', async () => {
       await goto('/g/472/week?week_start=2026-11-16');
       assert.equal(await text('.week-range'), '16–21 ноября');
@@ -287,15 +296,25 @@ async function main() {
         await otherArticle.locator('.change-open').getAttribute('href'),
         '/g/468/week?week_start=2026-11-16&day=2026-11-17&slot=3',
       );
-      assert.match(await otherArticle.textContent(), /2 подгруппы/);
+      assert.match(await otherArticle.textContent(), /2-я подгруппа/);
+      const legacyArticle = page.locator('.change-item').filter({ hasText: 'Правовое регулирование' });
+      await legacyArticle.waitFor();
+      assert.match(await legacyArticle.textContent(), /Вишнякова Марина Анатольевна/);
+      assert.match(await legacyArticle.textContent(), /4-101/);
+      assert.match(await legacyArticle.textContent(), /5/);
       await screenshot('05-changes-all');
     });
 
-    await scenario('settings: theme, digest validation and unsubscribe', async () => {
+    await scenario('settings: theme, subgroup and digest selectors, unsubscribe', async () => {
       await seedToken();
       await goto('/g/472/settings');
-      await page.waitForSelector('#digest-time');
-      assert.equal(await page.locator('#digest-time').inputValue(), '19:00');
+      await page.waitForSelector('#digest-hour');
+      assert.equal(await page.locator('#digest-hour').inputValue(), '19');
+      assert.equal(await page.locator('#digest-minute').inputValue(), '00');
+      const subgroupButtons = page.getByRole('group', { name: 'Моя подгруппа' }).getByRole('button');
+      assert.equal(await subgroupButtons.count(), 3);
+      await page.getByRole('button', { name: '2-я подгруппа' }).click();
+      await page.getByRole('button', { name: 'Все подгруппы' }).click();
 
       await page.getByRole('button', { name: 'Тёмная' }).click();
       assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
@@ -303,13 +322,8 @@ async function main() {
       await page.getByRole('button', { name: 'Светлая' }).click();
       assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
 
-      await page.locator('#digest-time').fill('99:99');
-      await page.locator('#digest-time').blur();
-      assert.equal(await page.locator('#digest-time').inputValue(), '19:00');
-      assert.match(await text('.autosave'), /формате ЧЧ:ММ/);
-
-      await page.locator('#digest-time').fill('20:15');
-      await page.locator('#digest-time').blur();
+      await page.locator('#digest-hour').selectOption('20');
+      await page.locator('#digest-minute').selectOption('15');
       await page.waitForFunction(() => document.querySelector('.autosave')?.textContent === 'Сохранено');
       const stateAfterPatch = await (await fetch(`http://127.0.0.1:${MOCK_PORT}/__state`)).json();
       const lastPatch = stateAfterPatch.patch.at(-1) || {};
@@ -321,6 +335,16 @@ async function main() {
       const stateAfterUnsub = await (await fetch(`http://127.0.0.1:${MOCK_PORT}/__state`)).json();
       assert.equal(stateAfterUnsub.unsubscribe.length, 1);
       assert.equal(stateAfterUnsub.unsubscribe[0].entity_id, 472);
+    });
+
+    await scenario('notifications: permission sheet appears after enabling', async () => {
+      await page.evaluate(() => localStorage.removeItem('setka-fcm-token'));
+      await goto('/g/472/settings');
+      await page.getByRole('checkbox', { name: 'Напоминание перед парой' }).click();
+      await page.waitForSelector('dialog.permission-sheet[open]', { timeout: 4000 });
+      assert.match(await text('.permission-sheet .sheet-title'), /Уведомления для/);
+      await page.getByRole('button', { name: 'Позже' }).click();
+      await page.waitForFunction(() => !document.querySelector('dialog.permission-sheet')?.open);
     });
 
     await scenario('tutor page works without a saved group', async () => {
