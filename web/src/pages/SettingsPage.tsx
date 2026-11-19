@@ -122,6 +122,7 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   const settingsRef = useRef(settings);
   const [unsubscribeStep, setUnsubscribeStep] = useState(0);
   const [permissionOpen, setPermissionOpen] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const permissionRef = useRef<HTMLDialogElement>(null);
   const permissionTimer = useRef<number | undefined>(undefined);
   const week = useWeekSchedule('group', groupId, currentWeekStart());
@@ -271,38 +272,51 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   };
 
   const enablePush = async (): Promise<boolean> => {
+    if (connecting) return false;
     if (!('Notification' in window)) {
       setStatus('Браузер не поддерживает уведомления.');
       setPermission('unsupported');
       return false;
     }
-    const nextPermission = await Notification.requestPermission();
-    setPermission(nextPermission);
-    if (nextPermission !== 'granted') {
-      setStatus('Разрешение на уведомления не выдано.');
-      return false;
-    }
-    const nextToken = await requestForToken();
-    if (!nextToken) {
-      setStatus('Не удалось получить токен уведомлений.');
-      return false;
-    }
-    localStorage.setItem('setka-fcm-token', nextToken);
-    setToken(nextToken);
+    setConnecting(true);
+    setStatus('Запрашиваем разрешение…');
     try {
-      await subscribe(nextToken, 'group', groupId, subgroup, {
-        notify_on_change: settings.changes,
-        notify_daily_digest: settings.digest,
-        digest_time: settings.digestTime,
-        notify_before_lesson: settings.reminder,
-        before_minutes: Number(settings.minutes),
-        timezone: settings.timezone,
-      });
-      setStatus('Уведомления разрешены.');
-      return true;
-    } catch {
-      setStatus('Разрешение получено, но подписка не сохранилась. Попробуйте ещё раз.');
-      return false;
+      const nextPermission = await Notification.requestPermission();
+      setPermission(nextPermission);
+      if (nextPermission !== 'granted') {
+        setStatus('Разрешение на уведомления не выдано.');
+        return false;
+      }
+      setStatus('Подключаем уведомления…');
+      // FCM registration can take a while on a cold start; never leave the
+      // sheet spinning forever if the push service is unreachable.
+      const nextToken = await Promise.race([
+        requestForToken(),
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 45_000)),
+      ]);
+      if (!nextToken) {
+        setStatus('Не удалось получить токен. Проверьте сеть и попробуйте ещё раз.');
+        return false;
+      }
+      localStorage.setItem('setka-fcm-token', nextToken);
+      setToken(nextToken);
+      try {
+        await subscribe(nextToken, 'group', groupId, subgroup, {
+          notify_on_change: settings.changes,
+          notify_daily_digest: settings.digest,
+          digest_time: settings.digestTime,
+          notify_before_lesson: settings.reminder,
+          before_minutes: Number(settings.minutes),
+          timezone: settings.timezone,
+        });
+        setStatus('Уведомления разрешены.');
+        return true;
+      } catch {
+        setStatus('Разрешение получено, но подписка не сохранилась. Попробуйте ещё раз.');
+        return false;
+      }
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -423,12 +437,15 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
                 : permission === 'granted'
                   ? 'Разрешение уже выдано, но уведомления ещё не подключены. '
                   : 'Разрешение на уведомления не выдано. '}
-            {permission === 'default' ? (
+            {connecting ? (
+              <span className="permission-progress" role="status" aria-live="polite">
+                <span className="spinner" aria-hidden="true" /> Подключаем…
+              </span>
+            ) : permission === 'default' ? (
               <button className="link-btn" type="button" onClick={() => void enablePush()}>
                 Разрешить в браузере
               </button>
-            ) : null}
-            {permission === 'granted' ? (
+            ) : permission === 'granted' ? (
               <button className="link-btn" type="button" onClick={() => void enablePush()}>
                 Подключить уведомления
               </button>
@@ -549,10 +566,29 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
                 Разрешите уведомления в браузере — и мы пришлём изменения расписания и дайджест на завтра для группы {groupName}.
               </p>
             )}
+            {connecting ? (
+              <p className="permission-progress" role="status" aria-live="polite">
+                <span className="spinner" aria-hidden="true" />
+                Подключаем уведомления… Обычно это занимает несколько секунд.
+              </p>
+            ) : null}
             <div className="permission-actions">
               {permission !== 'denied' && permission !== 'unsupported' ? (
-                <button className="btn-primary" type="button" onClick={() => void allowPushFromSheet()}>
-                  {permission === 'granted' ? 'Подключить' : 'Разрешить'}
+                <button
+                  className={`btn-primary${connecting ? ' is-loading' : ''}`}
+                  type="button"
+                  disabled={connecting}
+                  onClick={() => void allowPushFromSheet()}
+                >
+                  {connecting ? (
+                    <>
+                      <span className="spinner" aria-hidden="true" /> Подключаем…
+                    </>
+                  ) : permission === 'granted' ? (
+                    'Подключить'
+                  ) : (
+                    'Разрешить'
+                  )}
                 </button>
               ) : null}
               <button className="btn-quiet" type="button" onClick={dismissPermission}>

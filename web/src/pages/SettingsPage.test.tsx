@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { SettingsPage } from './SettingsPage';
 import { renderRoute, resetPreferences } from '../test/utils';
 import { usePreferences } from '../store/preferences';
@@ -191,6 +191,24 @@ describe('SettingsPage', () => {
     await waitFor(() => expect(api.subscribe).toHaveBeenCalledWith('sheet-token', 'group', 472, '', expect.any(Object)));
     expect(localStorage.getItem('setka-fcm-token')).toBe('sheet-token');
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+  });
+
+  it('shows a loader while the push subscription is being created', async () => {
+    let resolveToken: (value: string | null) => void = () => {};
+    firebase.requestForToken.mockImplementation(
+      () => new Promise<string | null>((resolve) => { resolveToken = resolve; }),
+    );
+    await renderSettings(undefined, false);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Напоминание перед парой' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 3000 });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Разрешить' }));
+    expect(within(dialog).getByRole('status')).toHaveTextContent(/Подключаем уведомления/);
+    expect(within(dialog).getByRole('button', { name: /Подключаем/ })).toBeDisabled();
+    await waitFor(() => expect(firebase.requestForToken).toHaveBeenCalled());
+    await act(async () => {
+      resolveToken('loader-token');
+    });
+    await waitFor(() => expect(api.subscribe).toHaveBeenCalledWith('loader-token', 'group', 472, '', expect.any(Object)));
   });
 
   it('shows a connect action when browser permission is granted but there is no token', async () => {

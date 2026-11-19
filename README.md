@@ -103,7 +103,7 @@ docker compose -f docker-compose.local.yml up --build    # backend + frontend
 
 ```bash
 cd core && go vet ./... && go test ./...   # backend
-cd web  && npm test                        # 147 unit/component
+cd web  && npm test                        # 148 unit/component
 cd web  && npm run build && npm run test:build
 cd web  && npm run test:e2e                # 19 браузерных сценариев
 ```
