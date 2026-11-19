@@ -119,8 +119,9 @@ upstream; для групп upstream-ID хранится в `real_group_id`.
 - Отправка идёт через `notification_outbox` с повторами и retention; мёртвые
   FCM-токены отключаются.
 - Для реальных push нужны `VITE_FIREBASE_*` при сборке фронтенда и
-  `FIREBASE_SERVICE_ACCOUNT` на backend. Без них UI работает, но токен не
-  выдаётся.
+  `FIREBASE_SERVICE_ACCOUNT` на backend. Они должны быть из одного
+  Firebase-проекта, иначе FCM возвращает `SenderId mismatch`. Без них UI
+  работает, но токен не выдаётся.
 
 ## Вебхуки
 
