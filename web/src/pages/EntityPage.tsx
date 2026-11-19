@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { AppLink } from '../components/AppLink';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useEntityInfo, useRecentChanges, useWeekSchedule } from '../api/queries';
 import { usePreferences } from '../store/preferences';
@@ -59,9 +59,9 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
   const content = (
     <>
       <div className="entity-head">
-        <Link className="back-link" to={savedGroup ? `/g/${savedGroup.id}/today` : '/search'}>
+        <AppLink className="back-link" to={savedGroup ? `/g/${savedGroup.id}/today` : '/search'}>
           <ArrowLeft size={15} strokeWidth={1.6} /> К расписанию группы
-        </Link>
+        </AppLink>
         <h1 className="entity-title">{title}</h1>
         <p className="entity-meta">{meta}</p>
       </div>
@@ -105,7 +105,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
       })}
       {week.isError ? <p className="empty-search">Не удалось загрузить расписание.</p> : null}
       <p className="footnote">
-        Расписание может меняться. <Link to={savedGroup ? `/g/${savedGroup.id}/changes` : '/search'}>Смотреть изменения</Link>
+        Расписание может меняться. <AppLink to={savedGroup ? `/g/${savedGroup.id}/changes` : '/search'}>Смотреть изменения</AppLink>
       </p>
       <DetailSheet
         open={Boolean(detail)}

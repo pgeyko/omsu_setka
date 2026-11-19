@@ -209,6 +209,28 @@ async function main() {
       await page.waitForSelector('.now-detail');
     });
 
+    await scenario('navigation cross-fades through a view transition', async () => {
+      await goto('/g/472/today');
+      await page.evaluate(() => {
+        const view = window;
+        view.__vtCount = 0;
+        if (typeof document.startViewTransition === 'function') {
+          const original = document.startViewTransition.bind(document);
+          document.startViewTransition = (callback) => {
+            view.__vtCount += 1;
+            return original(callback);
+          };
+        }
+      });
+      await page.locator('.bn-item', { hasText: 'Неделя' }).click();
+      await page.waitForURL('**/g/472/week');
+      assert.equal(await page.evaluate(() => window.__vtCount), 1);
+      await page.locator('.bn-item', { hasText: 'Изменения' }).click();
+      await page.waitForURL('**/g/472/changes');
+      assert.equal(await page.evaluate(() => window.__vtCount), 2);
+      await goto('/g/472/today');
+    });
+
     await scenario('today: detail sheet and day switching', async () => {
       await page.locator('.now-detail').click();
       await page.waitForSelector('dialog.sheet[open]');

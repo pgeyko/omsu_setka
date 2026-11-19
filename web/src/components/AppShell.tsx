@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { AppLink } from './AppLink';
 import { CalendarDays, ChevronDown, LayoutGrid, ArrowLeftRight, SlidersHorizontal, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { usePreferences } from '../store/preferences';
@@ -34,10 +35,10 @@ function BottomNav({ groupId }: { groupId: number }) {
   return (
     <nav className="bottom-nav" aria-label="Основное меню">
       {items.map(({ to, label, icon: Icon, active }) => (
-        <Link key={to} to={to} className="bn-item" aria-current={active ? 'page' : undefined}>
+        <AppLink key={to} to={to} className="bn-item" aria-current={active ? 'page' : undefined}>
           <Icon size={21} strokeWidth={1.6} aria-hidden />
           <span>{label}</span>
-        </Link>
+        </AppLink>
       ))}
     </nav>
   );
@@ -72,25 +73,25 @@ export function MobileShell({
       <a className="skip skip-mobile" href="#content">Перейти к расписанию</a>
       <header className="m-top">
         <div className="m-top-row">
-          <Link className="brand" to={`/g/${groupId}/today`} aria-label="сетка — на главную">
+          <AppLink className="brand" to={`/g/${groupId}/today`} aria-label="сетка — на главную">
             <Brand />
-          </Link>
-          <Link className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
+          </AppLink>
+          <AppLink className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
             <Search size={22} strokeWidth={1.6} />
-          </Link>
+          </AppLink>
         </div>
         <div className="m-group-row">
           <div>
             <span className="m-group-label">
               группа{' '}
-              <Link className="subgroup-link" to={`/g/${groupId}/settings`}>
+              <AppLink className="subgroup-link" to={`/g/${groupId}/settings`}>
                 {subgroup ? `· подгруппа ${subgroup}` : ''}
-              </Link>
+              </AppLink>
             </span>
-            <Link className="m-group-name" to="/search">
+            <AppLink className="m-group-name" to="/search">
               {groupName}
               <ChevronDown size={16} strokeWidth={1.6} />
-            </Link>
+            </AppLink>
           </div>
           <span className="freshness">
             <i className={`dot${online ? '' : ' is-stale'}`} />
@@ -113,12 +114,12 @@ export function PlainMobileShell({ children }: { children: ReactNode }) {
       </a>
       <header className="m-top">
         <div className="m-top-row">
-          <Link className="brand" to="/search" aria-label="сетка — поиск">
+          <AppLink className="brand" to="/search" aria-label="сетка — поиск">
             <Brand />
-          </Link>
-          <Link className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
+          </AppLink>
+          <AppLink className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
             <Search size={22} strokeWidth={1.6} />
-          </Link>
+          </AppLink>
         </div>
       </header>
       <main id="content">{children}</main>
@@ -133,13 +134,13 @@ export function PlainDesktopShell({ children }: { children: ReactNode }) {
         Перейти к расписанию
       </a>
       <aside className="side" aria-label="Навигация">
-        <Link className="brand" to="/search" aria-label="сетка — поиск">
+        <AppLink className="brand" to="/search" aria-label="сетка — поиск">
           <Brand />
-        </Link>
-        <Link className="side-search" to="/search" aria-label="Открыть поиск">
+        </AppLink>
+        <AppLink className="side-search" to="/search" aria-label="Открыть поиск">
           <Search size={16} strokeWidth={1.6} />
           <span>Найти группу или преподавателя</span>
-        </Link>
+        </AppLink>
         <div className="side-foot">Расписание ОмГУ, зеркало на этом сервере.</div>
       </aside>
       <div className="desk-main" id="d-content">{children}</div>
@@ -175,15 +176,15 @@ export function DesktopShell({
     <div className="desktop-app">
       <a className="skip skip-desktop" href="#d-content">Перейти к расписанию</a>
       <aside className="side" aria-label="Навигация">
-        <Link className="brand" to={`/g/${groupId}/week`} aria-label="сетка — на главную">
+        <AppLink className="brand" to={`/g/${groupId}/week`} aria-label="сетка — на главную">
           <Brand />
-        </Link>
-        <Link className="side-search" to="/search" aria-label="Открыть поиск">
+        </AppLink>
+        <AppLink className="side-search" to="/search" aria-label="Открыть поиск">
           <Search size={16} strokeWidth={1.6} />
           <span>Найти группу или преподавателя</span>
-        </Link>
+        </AppLink>
         <nav className="side-nav" aria-label="Разделы">
-          <Link
+          <AppLink
             to={`/g/${groupId}/week`}
             aria-current={
               location.pathname.endsWith('/week') ||
@@ -194,19 +195,19 @@ export function DesktopShell({
             }
           >
             <LayoutGrid size={17} strokeWidth={1.6} /> Неделя
-          </Link>
-          <Link to={`/g/${groupId}/changes`} aria-current={location.pathname.endsWith('/changes') ? 'page' : undefined}>
+          </AppLink>
+          <AppLink to={`/g/${groupId}/changes`} aria-current={location.pathname.endsWith('/changes') ? 'page' : undefined}>
             <ArrowLeftRight size={17} strokeWidth={1.6} /> Изменения
-          </Link>
-          <Link to={`/g/${groupId}/settings`} aria-current={location.pathname.endsWith('/settings') ? 'page' : undefined}>
+          </AppLink>
+          <AppLink to={`/g/${groupId}/settings`} aria-current={location.pathname.endsWith('/settings') ? 'page' : undefined}>
             <SlidersHorizontal size={17} strokeWidth={1.6} /> Настройки
-          </Link>
+          </AppLink>
         </nav>
         <div>
           <p className="side-label">Мои группы</p>
           <div className="side-groups">
             {groups.map((item) => (
-              <Link
+              <AppLink
                 key={item.id}
                 className="side-group"
                 to={`/g/${item.id}/week`}
@@ -220,7 +221,7 @@ export function DesktopShell({
               >
                 <span>{item.name || `Группа ${item.id}`}</span>
                 <i className="pin" />
-              </Link>
+              </AppLink>
             ))}
           </div>
         </div>

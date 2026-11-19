@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AppLink } from '../components/AppLink';
+import { runViewTransition } from '../lib/viewTransition';
 import { ArrowLeft, Search } from 'lucide-react';
 import { useSearch } from '../api/queries';
 import { usePreferences } from '../store/preferences';
@@ -61,12 +63,12 @@ function SearchBody({
       addRecent(saved);
       addFavorite(saved);
       addRecentEntity({ type: 'group', id: saved.id, name: saved.name });
-      navigate(`/g/${saved.id}/today`);
+      runViewTransition(() => navigate(`/g/${saved.id}/today`));
       return;
     }
     addRecentEntity({ type: kind, id: item.id, name: item.name });
-    if (kind === 'tutor') navigate(`/tutor/${item.id}`);
-    if (kind === 'auditory') navigate(`/auditory/${item.id}`);
+    if (kind === 'tutor') runViewTransition(() => navigate(`/tutor/${item.id}`));
+    if (kind === 'auditory') runViewTransition(() => navigate(`/auditory/${item.id}`));
   };
 
   const recentHref = (entity: { type: 'group' | 'tutor' | 'auditory'; id: number }) =>
@@ -176,10 +178,10 @@ function SearchBody({
             <ul className="recent-list">
               {recentEntities.length ? recentEntities.map((item) => (
                 <li key={`${item.type}-${item.id}`}>
-                  <Link className="recent-row" to={recentHref(item)}>
+                  <AppLink className="recent-row" to={recentHref(item)}>
                     <span>{item.name}</span>
                     <span>{recentLabel(item.type)}</span>
-                  </Link>
+                  </AppLink>
                 </li>
               )) : (
                 <li className="recent-row"><span>Пока пусто</span><span>найдите группу</span></li>
@@ -239,8 +241,8 @@ export function SearchPage() {
     return (
       <div className="desktop-app">
         <aside className="side" aria-label="Навигация">
-          <Link className="brand" to="/search">сетка<span className="brand-dot" /></Link>
-          <Link className="side-search" to="/search"><Search size={16} strokeWidth={1.6} /><span>Найти группу или преподавателя</span></Link>
+          <AppLink className="brand" to="/search">сетка<span className="brand-dot" /></AppLink>
+          <AppLink className="side-search" to="/search"><Search size={16} strokeWidth={1.6} /><span>Найти группу или преподавателя</span></AppLink>
           <div className="side-foot">Расписание ОмГУ, зеркало на этом сервере.</div>
         </aside>
         <div className="desk-main" id="d-content">

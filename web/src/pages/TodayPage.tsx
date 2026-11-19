@@ -4,6 +4,7 @@ import { DayStrip, NowBand, SlotRow } from '../components/Schedule';
 import { DetailSheet } from '../components/DetailSheet';
 import { useGroupName, useRecentChanges, useWeekSchedule } from '../api/queries';
 import { usePageMeta } from '../lib/usePageMeta';
+import { runViewTransition } from '../lib/viewTransition';
 import { usePreferences } from '../store/preferences';
 import type { Day } from '../api/types';
 import {
@@ -181,6 +182,7 @@ export function TodayPage({ groupId }: { groupId: number }) {
   return (
     <>
       <DayStrip days={days} selected={selected} onSelect={selectDay} />
+      <div className="day-view" key={`${selected}-${subgroup}`}>
       {autoTarget ? (
         <div className="next-day-note" role="status">
           <span>
@@ -287,8 +289,9 @@ export function TodayPage({ groupId }: { groupId: number }) {
       ) : null}
 
       <p className="footnote">
-        Источник — расписание ОмГУ. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <button className="link-btn" type="button" onClick={() => navigate(`/g/${groupId}/changes`)}>Что изменилось</button>
+        Источник — расписание ОмГУ. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <button className="link-btn" type="button" onClick={() => runViewTransition(() => navigate(`/g/${groupId}/changes`))}>Что изменилось</button>
       </p>
+      </div>
 
       <DetailSheet
         open={Boolean(detail)}

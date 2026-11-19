@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { AppLink } from '../components/AppLink';
 import { useChangesInfinite, useGroupName } from '../api/queries';
 import { usePageMeta } from '../lib/usePageMeta';
 import { usePreferences } from '../store/preferences';
@@ -120,9 +120,9 @@ function ChangeItem({
           </p>
         )}
         {link ? (
-          <Link className="link-btn change-open" to={link}>
+          <AppLink className="link-btn change-open" to={link}>
             Открыть пару
-          </Link>
+          </AppLink>
         ) : null}
       </div>
     </article>
@@ -229,7 +229,7 @@ export function ChangesPage({ groupId }: { groupId: number }) {
         <p className="page-sub">{groupName} · последние 7 дней</p>
       </div>
       <ChangesBody groupId={groupId} />
-      <p className="footnote">Изменения копятся с момента последней синхронизации. <Link to={`/g/${groupId}/settings`}>Подписаться на уведомления</Link></p>
+      <p className="footnote">Изменения копятся с момента последней синхронизации. <AppLink to={`/g/${groupId}/settings`}>Подписаться на уведомления</AppLink></p>
     </>
   );
 }

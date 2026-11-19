@@ -1575,13 +1575,19 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .sheet[open] {
   display: flex;
   flex-direction: column;
-  animation: sheet-in 220ms var(--ease);
+  animation: sheet-in 260ms var(--ease);
 }
-.sheet::backdrop { background: rgba(8, 11, 9, 0.52); }
+.sheet::backdrop {
+  background: rgba(8, 11, 9, 0.52);
+  animation: veil-in 240ms var(--ease);
+}
 
 @keyframes sheet-in {
-  from { transform: translateY(18px); opacity: 0.85; }
+  from { transform: translateY(28px); opacity: 0.7; }
   to { transform: none; opacity: 1; }
+}
+@keyframes veil-in {
+  from { opacity: 0; }
 }
 
 .sheet-head {
@@ -1818,7 +1824,17 @@ body.sheet-open { overflow: hidden; }
 .fatal p { color: var(--muted); font-size: 14px; }
 
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
   .skeleton-row { animation: none; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
 }
 
 .result-row {
@@ -1906,3 +1922,65 @@ body.sheet-open { overflow: hidden; }
   line-height: 1.45;
 }
 .next-day-note .link-btn { flex: none; }
+
+
+/* ============================== motion ============================== */
+
+/* The page body is snapshotted as its own group during router navigations:
+   the top bar, sidebar and bottom tabs stay still while the content
+   cross-fades into the next screen. */
+#content,
+#d-content { view-transition-name: page; }
+
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }
+
+::view-transition-old(page) {
+  animation: page-out 140ms var(--ease) both;
+}
+::view-transition-new(page) {
+  animation: page-in 260ms var(--ease) both;
+}
+
+@keyframes page-out {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+/* In-page swaps: selected day, week, banner, lists. */
+.day-view,
+.week-view {
+  animation: rise-in 260ms var(--ease) both;
+}
+
+.next-day-note,
+.offline-bar {
+  animation: drop-in 240ms var(--ease) both;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+.lesson-list > li {
+  animation: rise-in 240ms var(--ease) backwards;
+}
+.lesson-list > li:nth-child(2) { animation-delay: 20ms; }
+.lesson-list > li:nth-child(3) { animation-delay: 40ms; }
+.lesson-list > li:nth-child(4) { animation-delay: 60ms; }
+.lesson-list > li:nth-child(5) { animation-delay: 80ms; }
+.lesson-list > li:nth-child(6) { animation-delay: 100ms; }
+.lesson-list > li:nth-child(n + 7) { animation-delay: 120ms; }
+
+.result-row,
+.change-day {
+  animation: fade-in 180ms var(--ease) both;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}

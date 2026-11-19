@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { AppLink } from './AppLink';
 import { X } from 'lucide-react';
 import type { ScheduleChange } from '../api/types';
 import type { Slot, SlotEntry } from '../lib/schedule';
@@ -120,14 +120,14 @@ export function DetailSheet({ open, dayISO, slot, groupName, changesByLesson, on
                 ) : null}
                 <div className="sheet-actions">
                   {entry.variants.length === 1 && entry.teacher ? (
-                    <Link to={`/search?q=${encodeURIComponent(entry.teacher)}`} data-close-sheet onClick={onClose}>
+                    <AppLink to={`/search?q=${encodeURIComponent(entry.teacher)}`} data-close-sheet onClick={onClose}>
                       Расписание преподавателя
-                    </Link>
+                    </AppLink>
                   ) : null}
                   {entry.variants.length === 1 && entry.room ? (
-                    <Link to={`/search?q=${encodeURIComponent(entry.room)}`} data-close-sheet onClick={onClose}>
+                    <AppLink to={`/search?q=${encodeURIComponent(entry.room)}`} data-close-sheet onClick={onClose}>
                       Аудитория {entry.room}
-                    </Link>
+                    </AppLink>
                   ) : null}
                 </div>
               </article>

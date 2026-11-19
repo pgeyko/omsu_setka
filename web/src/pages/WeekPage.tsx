@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { AppLink } from '../components/AppLink';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DetailSheet } from '../components/DetailSheet';
 import { WeekGrid, WeekList } from '../components/Schedule';
@@ -121,16 +122,18 @@ export function WeekPage({ groupId }: { groupId: number }) {
             </button>
           </div>
         </div>
-        <WeekList
-          days={days}
-          schedule={schedule}
-          subgroup={subgroup}
-          changedIds={changedIds}
-          onOpen={openSlot}
-          onClearSubgroup={() => setSubgroup('')}
-        />
+        <div className="week-view" key={`${weekStart}-${subgroup}`}>
+          <WeekList
+            days={days}
+            schedule={schedule}
+            subgroup={subgroup}
+            changedIds={changedIds}
+            onOpen={openSlot}
+            onClearSubgroup={() => setSubgroup('')}
+          />
+        </div>
         <p className="footnote">
-          Неделя начинается с понедельника. <Link to={`/g/${groupId}/settings`}>Настроить уведомления</Link>
+          Неделя начинается с понедельника. <AppLink to={`/g/${groupId}/settings`}>Настроить уведомления</AppLink>
         </p>
         <DetailSheet
           open={Boolean(detail)}
@@ -167,7 +170,7 @@ export function WeekPage({ groupId }: { groupId: number }) {
           <span className="desk-updated"><i className="dot" />обновлено недавно</span>
         </div>
       </header>
-      <div className="desk-body">
+      <div className="desk-body week-view" key={`${weekStart}-${subgroup}`}>
         <div className="week-wrap">
           <WeekGrid
             days={days}
@@ -215,18 +218,18 @@ export function WeekPage({ groupId }: { groupId: number }) {
               {selectedChanges.length ? (
                 <>
                   {selectedChanges.slice(0, 2).map((change) => (
-                    <Link className="aside-change" to={`/g/${groupId}/changes`} key={change.id}>
+                    <AppLink className="aside-change" to={`/g/${groupId}/changes`} key={change.id}>
                       <div className="ac-subject">
                         {change.subject || 'Изменение'} · {change.pair ? `${change.pair} пара` : ''}
                       </div>
                       <div className="ac-text">
                         {change.changes?.[0] ? `${change.changes[0].label}: ${change.changes[0].old} → ${change.changes[0].new}` : change.change_type}
                       </div>
-                    </Link>
+                    </AppLink>
                   ))}
-                  <Link className="aside-link" to={`/g/${groupId}/changes`}>
+                  <AppLink className="aside-link" to={`/g/${groupId}/changes`}>
                     Все изменения <ChevronRight size={14} strokeWidth={1.6} />
-                  </Link>
+                  </AppLink>
                 </>
               ) : (
                 <p className="aside-sub">Изменений нет.</p>
@@ -238,9 +241,9 @@ export function WeekPage({ groupId }: { groupId: number }) {
             <p className="aside-sub" style={{ marginTop: 4 }}>
               Подписка на изменения этой группы. Дайджест приходит в 19:00.
             </p>
-            <Link className="aside-link" to={`/g/${groupId}/settings`}>
+            <AppLink className="aside-link" to={`/g/${groupId}/settings`}>
               Настроить <ChevronRight size={14} strokeWidth={1.6} />
-            </Link>
+            </AppLink>
           </div>
         </aside>
       </div>

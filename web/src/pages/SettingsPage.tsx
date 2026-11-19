@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { AppLink } from '../components/AppLink';
 import { X } from 'lucide-react';
 import { useGroupName, useGroupSubgroups, useHealth, useNotificationSettings, useWeekSchedule } from '../api/queries';
 import { patchNotificationSettings, subscribe, unsubscribe } from '../api/client';
@@ -564,7 +564,7 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
       </dialog>
 
       <p className="footnote">
-        Вернуться к расписанию: <Link to={`/g/${groupId}/today`}>сегодня</Link> · <Link to={`/g/${groupId}/week`}>неделя</Link>
+        Вернуться к расписанию: <AppLink to={`/g/${groupId}/today`}>сегодня</AppLink> · <AppLink to={`/g/${groupId}/week`}>неделя</AppLink>
       </p>
     </>
   );

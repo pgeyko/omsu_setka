@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { AppLink } from '../components/AppLink';
 import { usePageMeta } from '../lib/usePageMeta';
 
 export function NotFoundPage() {
@@ -7,7 +7,7 @@ export function NotFoundPage() {
     <div className="fatal">
       <h1>Страница не найдена</h1>
       <p>Возможно, ссылка устарела. Вернитесь к расписанию.</p>
-      <Link className="retry-btn" to="/">На главную</Link>
+      <AppLink className="retry-btn" to="/">На главную</AppLink>
     </div>
   );
 }
