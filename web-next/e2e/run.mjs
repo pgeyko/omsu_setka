@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,10 @@ const ARTIFACTS = join(ROOT, 'e2e', 'artifacts');
 
 function findChromium() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  for (const name of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']) {
+    const probe = spawnSync('which', [name], { encoding: 'utf8' });
+    if (probe.status === 0 && probe.stdout.trim()) return probe.stdout.trim();
+  }
   const cache = join(homedir(), '.cache', 'ms-playwright');
   if (existsSync(cache)) {
     const builds = readdirSync(cache)
@@ -129,7 +134,7 @@ async function seedToken() {
 }
 
 async function setSubgroup(value) {
-  await goto('/g/12246/settings');
+  await goto('/g/472/settings');
   await page.locator('#subgroup').selectOption(value);
   await page.waitForTimeout(150);
 }
@@ -180,7 +185,7 @@ async function main() {
       assert.equal(await count('.result-row'), 2);
       assert.match(await text('.group-name'), /Группы/);
       await page.locator('.result-row').first().click();
-      await page.waitForURL('**/g/12246/today');
+      await page.waitForURL('**/g/472/today');
       assert.equal(await text('.m-group-name'), 'ЮСС-003-О-02');
       assert.equal(await text('.now-chip'), 'сейчас');
       assert.equal(await text('.now-subject'), 'Математический анализ');
@@ -188,7 +193,7 @@ async function main() {
       assert.match(await text('.section-note'), /3 пары и 1 окно/);
       assert.match(
         await page.evaluate(() => localStorage.getItem('setka-preferences') || ''),
-        /"id":12246/,
+        /"id":472/,
       );
       await screenshot('01-today');
     });
@@ -214,7 +219,7 @@ async function main() {
     });
 
     await scenario('week: list, ranges and empty week', async () => {
-      await goto('/g/12246/week?week_start=2026-11-16');
+      await goto('/g/472/week?week_start=2026-11-16');
       assert.equal(await text('.week-range'), '16–21 ноября');
       assert.equal(await count('.wday'), 6);
       assert.equal(await count('.wrow-btn'), 21);
@@ -230,7 +235,7 @@ async function main() {
     });
 
     await scenario('week: deep link opens the pair sheet', async () => {
-      await goto('/g/12246/week?week_start=2026-11-16&day=2026-11-18&slot=4');
+      await goto('/g/472/week?week_start=2026-11-16&day=2026-11-18&slot=4');
       await page.waitForSelector('dialog.sheet[open]');
       assert.equal(await text('.sheet-title'), '4 пара · 14:30–16:05');
       assert.equal(await text('.sheet-sub'), 'Среда, 18 ноября · 2 занятия');
@@ -240,7 +245,7 @@ async function main() {
 
     await scenario('subgroup: filters lessons and resets from settings', async () => {
       await setSubgroup('1');
-      await goto('/g/12246/today?day=2026-11-18');
+      await goto('/g/472/today?day=2026-11-18');
       assert.match(await text('.m-group-label'), /подгруппа 1/);
       const subjects = await page.locator('.lesson-btn .subject').allTextContents();
       assert.ok(subjects.includes('Базы данных'), subjects.join(', '));
@@ -268,19 +273,19 @@ async function main() {
     });
 
     await scenario('changes: own group, all groups and deep links', async () => {
-      await goto('/g/12246/changes');
+      await goto('/g/472/changes');
       assert.equal(await text('.change-day-head'), 'Вчера, 18 ноября');
       const ownArticle = page.locator('.change-item').filter({ hasText: 'Математический анализ' });
       assert.equal(
         await ownArticle.locator('.change-open').getAttribute('href'),
-        '/g/12246/week?week_start=2026-11-16&day=2026-11-18&slot=2',
+        '/g/472/week?week_start=2026-11-16&day=2026-11-18&slot=2',
       );
       await page.getByRole('button', { name: 'Все группы' }).click();
       const otherArticle = page.locator('.change-item').filter({ hasText: 'Иностранный язык' });
       await otherArticle.waitFor();
       assert.equal(
         await otherArticle.locator('.change-open').getAttribute('href'),
-        '/g/12190/week?week_start=2026-11-16&day=2026-11-17&slot=3',
+        '/g/468/week?week_start=2026-11-16&day=2026-11-17&slot=3',
       );
       assert.match(await otherArticle.textContent(), /2 подгруппы/);
       await screenshot('05-changes-all');
@@ -288,7 +293,7 @@ async function main() {
 
     await scenario('settings: theme, digest validation and unsubscribe', async () => {
       await seedToken();
-      await goto('/g/12246/settings');
+      await goto('/g/472/settings');
       await page.waitForSelector('#digest-time');
       assert.equal(await page.locator('#digest-time').inputValue(), '19:00');
 
@@ -315,7 +320,7 @@ async function main() {
       await page.waitForFunction(() => document.querySelector('.autosave')?.textContent === 'Вы отписаны от группы.');
       const stateAfterUnsub = await (await fetch(`http://127.0.0.1:${MOCK_PORT}/__state`)).json();
       assert.equal(stateAfterUnsub.unsubscribe.length, 1);
-      assert.equal(stateAfterUnsub.unsubscribe[0].entity_id, 12246);
+      assert.equal(stateAfterUnsub.unsubscribe[0].entity_id, 472);
     });
 
     await scenario('tutor page works without a saved group', async () => {
@@ -334,8 +339,8 @@ async function main() {
 
     await scenario('desktop: week grid, aside and redirect', async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
-      await goto('/g/12246/today');
-      await page.waitForURL('**/g/12246/week');
+      await goto('/g/472/today');
+      await page.waitForURL('**/g/472/week');
       assert.equal(await count('.wk-head'), 6);
       assert.equal(await count('.wk-time'), 8);
       assert.match(await text('.desk-sub'), /на неделе/);
@@ -345,7 +350,7 @@ async function main() {
       await page.locator('.sheet-close').click();
       await screenshot('07-desktop-week');
 
-      await goto('/g/12246/settings');
+      await goto('/g/472/settings');
       assert.ok(await page.locator('.desk-page .settings-group').isVisible());
       await goto('/search?q=юсс');
       await page.waitForSelector('.result-row');
@@ -355,7 +360,7 @@ async function main() {
     });
 
     await scenario('offline: banner appears', async () => {
-      await goto('/g/12246/week?week_start=2026-11-16');
+      await goto('/g/472/week?week_start=2026-11-16');
       await context.setOffline(true);
       await page.waitForSelector('.offline-bar', { timeout: 5000 });
       assert.match(await text('.offline-bar'), /Нет сети/);

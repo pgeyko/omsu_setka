@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node e2e/run.mjs",
-    "test:build": "node e2e/check-build.mjs"
+    "test:build": "node e2e/check-build.mjs",
+    "test:real-api": "node e2e/real-api.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.96.2",
@@ -24,7 +25,7 @@
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",
-    "@testing-library/jest-dom": "^8.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.13",
     "@types/react": "^19.2.14",

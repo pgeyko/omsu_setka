@@ -57,11 +57,59 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci --legacy-peer-deps
       - run: npm run build
+      - run: npm run test --if-present
+
+  # The redesign lives in web-next until it replaces web/. After the merge this
+  # job becomes a no-op because web-next/ no longer exists.
+  frontend-next-test:
+    name: Frontend (redesign) Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: hashFiles('web-next/package.json') != ''
+        with:
+          node-version: '20'
+      - name: Unit tests, build and PWA check
+        if: hashFiles('web-next/package.json') != ''
+        run: |
+          cd web-next
+          npm ci --legacy-peer-deps
+          npm test
+          npm run build
+          npm run test:build
+
+  frontend-next-e2e:
+    name: Frontend (redesign) E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: hashFiles('web-next/package.json') != ''
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        if: hashFiles('web-next/package.json') != ''
+        working-directory: web-next
+        run: npm ci --legacy-peer-deps
+      - name: Browser scenarios
+        if: hashFiles('web-next/package.json') != ''
+        working-directory: web-next
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run test:e2e
+      - name: Upload E2E artifacts
+        if: failure() && hashFiles('web-next/e2e/artifacts/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: web-next/e2e/artifacts
+          if-no-files-found: ignore
 
   build-and-push:
     name: Build & Push ${{ matrix.target }}
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]
+    needs: [backend-test, frontend-test, frontend-next-test, frontend-next-e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read

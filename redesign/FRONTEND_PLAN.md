@@ -167,7 +167,7 @@ hover / focus-visible / active / disabled / loading / error / empty / selected.
 /auditory/:auditoryId
 ```
 
-- `real_group_id` — только он, не `dict_groups.id`.
+- Для группы используется `dict_groups.id`; `real_group_id` — устаревшее поле и не является ключом расписания.
 - `day`, `week_start`, `slot` — в query, чтобы ссылки и back/forward работали.
 - Редиректы со старых URL:
   - `/schedule/group/:id` → `/g/:id/today`;
@@ -216,7 +216,7 @@ React Query keys:
 
 ### Обязательные преобразования
 
-- Идентификаторы: `real_group_id` и `dict id` — разные; храним оба.
+- Идентификаторы: ключ расписания — `dict_groups.id`; `real_group_id` храним только как справочное поле.
 - `subgroup`: `GROUP/1`, `Подгруппа 1`, `1 подгруппа` → `"1"`.
 - `merge`: ключ `lesson + type_work + teacher + auditCorps`; подгруппы
   объединяются, разные преподаватели/аудитории — отдельные занятия.
@@ -415,7 +415,7 @@ P1 API. Буфер на визуальную полировку — 20%.
 ## 17. Риски
 
 - **API P1** (FCM retry, source/cached_at) не блокирует, но влияет на доверие.
-- **Group ID**: ошибка `id` vs `real_group_id` — тип-бренд + тесты.
+- **Group ID**: всегда `dict_groups.id`; `real_group_id` не использовать — тесты и real-API проверка.
 - **Подгруппы**: разные форматы — один util + тесты.
 - **FCM/SW**: два service worker конфликтуют; один scope, аккуратный update.
 - **reverse proxy/origin**: мутации не через reverse proxy; проверить CORS на новом домене.

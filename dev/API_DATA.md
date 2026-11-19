@@ -36,13 +36,13 @@
 **Поля:**
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `id` | int | Внутренний ID записи в справочнике |
+| `id` | int | ID группы; используется в `/schedule/group/{id}`, подписках и изменениях |
 | `name` | string | Полное название группы |
-| `real_group_id` | int? | Внешний ID для запроса расписания (nullable) |
+| `real_group_id` | int? | Устаревший внешний ID; **не использовать** для расписания (может указывать на другую группу) |
 
 **Особенности:**
 - По коду группы можно определить факультет, курс и форму обучения.
-- Записи-заглушки типа `"Резерв"` не имеют `real_group_id`.
+- `real_group_id` не является ключом расписания: значения могут совпадать с `id` других групп. Используйте только `id`.
 
 ---
 
@@ -100,8 +100,8 @@
 ## 2. Расписание — динамические данные
 
 ### 2.1 Расписание группы
-- **URL:** `GET /schedule/group/{real_group_id}`
-- **Пример:** `/schedule/group/15103`
+- **URL:** `GET /schedule/group/{dict_groups.id}`
+- **Пример:** `/schedule/group/472`
 
 ### 2.2 Расписание аудитории
 - **URL:** `GET /schedule/auditory/{id}`
@@ -152,7 +152,7 @@
 ## 3. Связи данных
 
 ```
-dict/groups.id → schedule/group/{real_group_id}
+dict/groups.id → schedule/group/{dict_groups.id}
 dict/auditories.id → schedule/auditory/{id}
 dict/tutors.id → schedule/tutor/{id}
 ```

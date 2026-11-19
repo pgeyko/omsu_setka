@@ -58,10 +58,8 @@ function readStore<T>(key: string): T | null {
 }
 
 function legacyGroup(entity?: LegacyEntity | null): SavedGroup | null {
-  if (!entity) return null;
-  const type = entity.type || (entity.real_group_id ? 'group' : '');
-  if (type !== 'group') return null;
-  const id = Number(entity.real_group_id || entity.id);
+  if (!entity || entity.type !== 'group') return null;
+  const id = Number(entity.id);
   if (!Number.isFinite(id) || id <= 0) return null;
   return { id, name: entity.name || `Группа ${id}` };
 }
@@ -70,7 +68,7 @@ function legacyEntity(entity?: LegacyEntity | null): RecentEntity | null {
   if (!entity) return null;
   const type = entity.type;
   if (type !== 'group' && type !== 'tutor' && type !== 'auditory') return null;
-  const id = Number(type === 'group' ? entity.real_group_id || entity.id : entity.id);
+  const id = Number(entity.id);
   if (!Number.isFinite(id) || id <= 0) return null;
   return { type, id, name: entity.name || `${id}` };
 }

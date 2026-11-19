@@ -952,7 +952,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Group ID (real_group_id)",
+                        "description": "Group dictionary ID (dict_groups.id)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1020,7 +1020,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Group ID (real_group_id)",
+                        "description": "Group dictionary ID (dict_groups.id)",
                         "name": "id",
                         "in": "path",
                         "required": true

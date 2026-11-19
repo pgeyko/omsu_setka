@@ -151,7 +151,7 @@ func TestSubscribeRespectsNotifyOnChangeAndEntity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body := `{"fcm_token":"token","entity_type":"group","entity_id":42,"notify_on_change":false}`
+	body := `{"fcm_token":"token","entity_type":"group","entity_id":7,"notify_on_change":false}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/subscribe", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.App.Test(req)

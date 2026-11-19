@@ -946,7 +946,7 @@
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Group ID (real_group_id)",
+                        "description": "Group dictionary ID (dict_groups.id)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1014,7 +1014,7 @@
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Group ID (real_group_id)",
+                        "description": "Group dictionary ID (dict_groups.id)",
                         "name": "id",
                         "in": "path",
                         "required": true

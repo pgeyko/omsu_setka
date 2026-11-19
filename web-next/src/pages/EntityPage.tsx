@@ -47,9 +47,10 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
   const building = type === 'auditory' && info.data && 'building' in info.data
     ? (info.data as { building?: string }).building
     : '';
+  const buildingLabel = building && building !== '0' ? ` · корпус ${building}` : '';
   const meta = type === 'tutor'
     ? `преподаватель${pairLabel}`
-    : `аудитория${building ? ` · корпус ${building}` : ''}${pairLabel}`;
+    : `аудитория${buildingLabel}${pairLabel}`;
 
   const openSlot = (iso: string, slot: Slot) => setDetail({ iso, slot });
 

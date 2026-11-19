@@ -8,10 +8,10 @@ function seedLegacy() {
         pinnedEntity: { id: 472, type: 'group', name: 'ЮСС-003-О-02', real_group_id: 12246 },
         favorites: [
           { id: 472, type: 'group', name: 'ЮСС-003-О-02', real_group_id: 12246 },
-          { id: 12190, type: 'group', name: 'ЮСС-002-О-01' },
+          { id: 468, type: 'group', name: 'ЮСС-002-О-01' },
           { id: 15, type: 'tutor', name: 'Иванов Иван Иванович' },
         ],
-        recent: [{ id: 12246, type: 'group', name: 'ЮСС-003-О-02' }],
+        recent: [{ id: 472, type: 'group', name: 'ЮСС-003-О-02' }],
         recentTutors: [{ id: 15, type: 'tutor', name: 'Иванов Иван Иванович' }],
         recentAuditories: [{ id: 3310, type: 'auditory', name: '4-308' }],
         subgroup: '2',
@@ -32,25 +32,25 @@ describe('preferences migration from the old app', () => {
     seedLegacy();
     const { usePreferences } = await import('./preferences');
     const state = usePreferences.getState();
-    expect(state.group).toEqual({ id: 12246, name: 'ЮСС-003-О-02' });
+    expect(state.group).toEqual({ id: 472, name: 'ЮСС-003-О-02' });
     expect(state.subgroup).toBe('2');
     expect(state.theme).toBe('dark');
-    expect(state.favorites.map((item) => item.id)).toEqual([12246, 12190]);
-    expect(state.recent.map((item) => item.id)).toEqual([12246]);
+    expect(state.favorites.map((item) => item.id)).toEqual([472, 468]);
+    expect(state.recent.map((item) => item.id)).toEqual([472]);
     expect(state.recentEntities).toEqual([
       { type: 'tutor', id: 15, name: 'Иванов Иван Иванович' },
       { type: 'auditory', id: 3310, name: '4-308' },
-      { type: 'group', id: 12246, name: 'ЮСС-003-О-02' },
+      { type: 'group', id: 472, name: 'ЮСС-003-О-02' },
     ]);
   });
 
-  it('falls back to the dictionary id when real_group_id is missing', async () => {
+  it('uses the dictionary id of a legacy group', async () => {
     localStorage.setItem(
       'omsu-setka-favorites',
-      JSON.stringify({ state: { pinnedEntity: { id: 12190, type: 'group', name: 'ЮСС-002-О-01' } } }),
+      JSON.stringify({ state: { pinnedEntity: { id: 468, type: 'group', name: 'ЮСС-002-О-01' } } }),
     );
     const { usePreferences } = await import('./preferences');
-    expect(usePreferences.getState().group).toEqual({ id: 12190, name: 'ЮСС-002-О-01' });
+    expect(usePreferences.getState().group).toEqual({ id: 468, name: 'ЮСС-002-О-01' });
   });
 
   it('prefers the new keys over the legacy data', async () => {

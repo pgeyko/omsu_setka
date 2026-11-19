@@ -85,6 +85,27 @@ describe('DetailSheet', () => {
     expect(screen.getAllByText(/1 подгруппа/).length).toBeGreaterThan(1);
   });
 
+  it('lists parallel options instead of a single teacher', () => {
+    const elective = slotsOf(
+      {
+        day: '18.11.2026',
+        date: '2026-11-18',
+        lessons: [
+          lesson({ id: 1, time: 1, lesson: 'Физкультура', teacher: 'Иванов И. И.' }),
+          lesson({ id: 2, time: 1, lesson: 'Физкультура', teacher: 'Петров П. П.', auditCorps: '6-115' }),
+        ],
+      },
+      '',
+      new Set(),
+    )[0];
+    renderSheet({ slot: elective });
+    expect(screen.getByText('По выбору · 2 варианта')).toBeInTheDocument();
+    expect(screen.getByText('Иванов И. И.')).toBeInTheDocument();
+    expect(screen.getByText('Петров П. П.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Расписание преподавателя' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Аудитория/ })).toBeNull();
+  });
+
   it('renders nothing without a slot', () => {
     const { container } = renderSheet({ slot: null });
     expect(container.querySelector('dialog')).toBeNull();

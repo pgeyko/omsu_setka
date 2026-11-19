@@ -67,6 +67,8 @@ export function NowBand({
           <>
             {names} · <b>{rooms}</b>
           </>
+        ) : first && first.variants.length > 1 ? (
+          <>{first.kind}</>
         ) : (
           <>
             {first?.kind} · ауд. <b>{first?.room}</b> · {first?.teacher}
@@ -86,6 +88,9 @@ export function NowBand({
 }
 
 function SlotMeta({ entry }: { entry: SlotEntry }) {
+  if (entry.variants.length > 1) {
+    return <span className="kind">{entry.kind}</span>;
+  }
   return (
     <>
       <span className="kind">{entry.kind}</span> · ауд. <b>{entry.room}</b>
@@ -208,7 +213,9 @@ export function WeekList({
                       ) : null}
                     </span>
                     <span className="wrow-room">
-                      {Array.from(new Set(slot.entries.map((entry) => entry.room))).join(', ')}
+                      {slot.entries.length === 1 && slot.entries[0].variants.length > 1
+                        ? 'по выбору'
+                        : Array.from(new Set(slot.entries.map((entry) => entry.room))).join(', ')}
                     </span>
                     <span className="wrow-sub">
                       {slot.entries.length > 1
@@ -309,7 +316,9 @@ export function WeekGrid({
                     <span className="m">
                       {slot.entries.length > 1
                         ? Array.from(new Set(slot.entries.map((entry) => entry.room))).join(', ')
-                        : `${slot.entries[0]?.room} · ${slot.entries[0]?.kind}`}
+                        : slot.entries[0]?.variants.length > 1
+                          ? 'по выбору'
+                          : `${slot.entries[0]?.room} · ${slot.entries[0]?.kind}`}
                     </span>
                     {slot.entries.some((entry) => entry.changed) ? (
                       <span className="f">замена</span>

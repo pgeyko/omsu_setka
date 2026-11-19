@@ -66,7 +66,7 @@ npm run preview
 ## Тесты
 
 ```bash
-npm test          # Vitest + jsdom + Testing Library, 129 тестов
+npm test          # Vitest + jsdom + Testing Library, 135 тестов
 npm run test:watch
 ```
 
@@ -124,6 +124,15 @@ CI для `web/` остаётся прежним: `npm ci --legacy-peer-deps && 
 | `/g/:groupId/settings` | тема, подгруппа, уведомления, отписка |
 | `/tutor/:id`, `/auditory/:id` | расписание преподавателя/аудитории |
 
+## CI
+
+- `frontend-test` (web) выполняет `npm ci`, сборку и `npm run test --if-present`.
+- Пока приложение живёт в `web-next`, отдельные джобы гоняют его unit-тесты,
+  сборку, проверку PWA и браузерные сценарии; после переноса в `web/` они
+  становятся no-op, а тесты подхватывает основной job.
+- Браузерные тесты используют предустановленный Chrome
+  (`CHROME_PATH=/usr/bin/google-chrome` на ubuntu-latest).
+
 ## Интеграция в `main`
 
 1. Содержимое `web-next/` переносится в `web/` (без `node_modules` и `dist`).
@@ -138,3 +147,20 @@ CI для `web/` остаётся прежним: `npm ci --legacy-peer-deps && 
    лежит в `public/` как статический файл, а `sw.js` регистрируется вручную в
    `src/main.tsx`. `npm run test:build` следит, чтобы манифест, precache и
    плейсхолдеры FCM-воркера не разъехались.
+7. ID группы в URL и API — `dict_groups.id`, а не `real_group_id`.
+   `real_group_id` из справочника может указывать на другую группу и для
+   расписания/подписок/изменений не используется.
+
+## Проверка на реальном бэкенде
+
+```bash
+# .env рядом с docker-compose.yml: ADMIN_KEY, CORS_ALLOWED_ORIGINS
+docker compose -f docker-compose.yml up -d --build backend
+REAL_API=http://127.0.0.1:8080 npm run test:real-api
+```
+
+Скрипт поднимает Vite с прокси на реальный BFF и проверяет словари, поиск,
+расписание группы по `dict_groups.id` (включая совпадение названий занятий),
+преподавателя, аудиторию, `/changes`, полный цикл `subscribe → PATCH →
+unsubscribe`, а затем проходит браузером поиск → группу → неделю → шторку.
+Нужен доступ к upstream (`eservice.omsu.ru`) и заполненный справочник.

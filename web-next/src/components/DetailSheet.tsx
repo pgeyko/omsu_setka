@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { X } from 'lucide-react';
 import type { ScheduleChange } from '../api/types';
 import type { Slot, SlotEntry } from '../lib/schedule';
-import { dayLabel, lessonCountLabel, subgroupLabel } from '../lib/schedule';
+import { dayLabel, lessonCountLabel, subgroupLabel, variantCountLabel } from '../lib/schedule';
 
 interface DetailSheetProps {
   open: boolean;
@@ -68,17 +68,21 @@ export function DetailSheet({ open, dayISO, slot, groupName, changesByLesson, on
                   {subgroupLabel(entry) ? ` · ${subgroupLabel(entry)}` : ''}
                 </p>
                 <dl className="sheet-facts">
-                  <div>
-                    <dt>Преподаватель</dt>
-                    <dd>{entry.teacher || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>Аудитория</dt>
-                    <dd>
-                      {entry.room}
-                      {entry.building ? ` · корпус ${entry.building}` : ''}
-                    </dd>
-                  </div>
+                  {entry.variants.length === 1 ? (
+                    <>
+                      <div>
+                        <dt>Преподаватель</dt>
+                        <dd>{entry.teacher || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt>Аудитория</dt>
+                        <dd>
+                          {entry.room}
+                          {entry.building ? ` · корпус ${entry.building}` : ''}
+                        </dd>
+                      </div>
+                    </>
+                  ) : null}
                   <div>
                     <dt>Группа</dt>
                     <dd>{groupName}</dd>
@@ -90,6 +94,24 @@ export function DetailSheet({ open, dayISO, slot, groupName, changesByLesson, on
                     </div>
                   ) : null}
                 </dl>
+                {entry.variants.length > 1 ? (
+                  <div className="sheet-variants">
+                    <p className="sheet-variants-label">
+                      По выбору · {variantCountLabel(entry.variants.length)}
+                    </p>
+                    <ul>
+                      {entry.variants.map((variant) => (
+                        <li key={`${variant.teacher}-${variant.room}`}>
+                          <span>{variant.teacher || '—'}</span>
+                          <span className="sheet-variant-room">
+                            {variant.room}
+                            {variant.building ? ` · корпус ${variant.building}` : ''}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 {change?.changes?.length ? (
                   <p className="sheet-change">
                     {change.changes[0].label}: <del>{change.changes[0].old}</del>{' '}
@@ -97,12 +119,12 @@ export function DetailSheet({ open, dayISO, slot, groupName, changesByLesson, on
                   </p>
                 ) : null}
                 <div className="sheet-actions">
-                  {entry.teacher ? (
+                  {entry.variants.length === 1 && entry.teacher ? (
                     <Link to={`/search?q=${encodeURIComponent(entry.teacher)}`} data-close-sheet onClick={onClose}>
                       Расписание преподавателя
                     </Link>
                   ) : null}
-                  {entry.room ? (
+                  {entry.variants.length === 1 && entry.room ? (
                     <Link to={`/search?q=${encodeURIComponent(entry.room)}`} data-close-sheet onClick={onClose}>
                       Аудитория {entry.room}
                     </Link>

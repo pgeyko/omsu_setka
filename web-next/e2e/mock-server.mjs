@@ -106,7 +106,7 @@ const changes = [
   {
     id: 1,
     entity_type: 'group',
-    entity_id: 12246,
+    entity_id: 472,
     change_type: 'modified',
     lesson_id: 302,
     day: '2026-11-18',
@@ -119,7 +119,7 @@ const changes = [
   {
     id: 2,
     entity_type: 'group',
-    entity_id: 12190,
+    entity_id: 468,
     change_type: 'modified',
     lesson_id: 202,
     day: '2026-11-17',
@@ -132,7 +132,7 @@ const changes = [
   {
     id: 3,
     entity_type: 'group',
-    entity_id: 12246,
+    entity_id: 472,
     change_type: 'removed',
     lesson_id: 201,
     day: '2026-11-17',
@@ -151,7 +151,7 @@ const state = {
   settings: {
     fcm_token: 'e2e-token',
     entity_type: 'group',
-    entity_id: 12246,
+    entity_id: 472,
     notify_on_change: true,
     notify_daily_digest: true,
     digest_time: '19:00',

@@ -36,7 +36,7 @@ vi.mock('../lib/firebase', () => firebase);
 const subscription = {
   fcm_token: 'demo-token',
   entity_type: 'group' as const,
-  entity_id: 12246,
+  entity_id: 472,
   notify_on_change: true,
   notify_daily_digest: true,
   digest_time: '19:00',
@@ -46,8 +46,8 @@ const subscription = {
   subgroup: '',
 };
 
-async function renderSettings(route = '/g/12246/settings') {
-  renderRoute(<SettingsPage groupId={12246} />, { route, width: 390 });
+async function renderSettings(route = '/g/472/settings') {
+  renderRoute(<SettingsPage groupId={472} />, { route, width: 390 });
   return screen.findByDisplayValue('19:00');
 }
 
@@ -88,10 +88,10 @@ describe('SettingsPage', () => {
 
   it('migrates the legacy per-entity FCM token', async () => {
     localStorage.removeItem('setka-fcm-token');
-    localStorage.setItem('fcm_token_group_12246', 'legacy-token');
-    renderRoute(<SettingsPage groupId={12246} />, { route: '/g/12246/settings', width: 390 });
+    localStorage.setItem('fcm_token_group_472', 'legacy-token');
+    renderRoute(<SettingsPage groupId={472} />, { route: '/g/472/settings', width: 390 });
     await waitFor(() =>
-      expect(api.fetchNotificationSettings).toHaveBeenCalledWith('legacy-token', 'group', 12246),
+      expect(api.fetchNotificationSettings).toHaveBeenCalledWith('legacy-token', 'group', 472),
     );
     expect(localStorage.getItem('setka-fcm-token')).toBe('legacy-token');
   });
@@ -112,7 +112,7 @@ describe('SettingsPage', () => {
       expect(api.patchNotificationSettings).toHaveBeenCalledWith(
         'demo-token',
         'group',
-        12246,
+        472,
         expect.objectContaining({ notify_on_change: false }),
       ),
     );
@@ -138,7 +138,7 @@ describe('SettingsPage', () => {
       expect(api.patchNotificationSettings).toHaveBeenCalledWith(
         'demo-token',
         'group',
-        12246,
+        472,
         expect.objectContaining({ digest_time: '20:15' }),
       ),
     );
@@ -154,7 +154,7 @@ describe('SettingsPage', () => {
       expect(api.patchNotificationSettings).toHaveBeenCalledWith(
         'demo-token',
         'group',
-        12246,
+        472,
         expect.objectContaining({ subgroup: '2' }),
       ),
     );
@@ -167,14 +167,14 @@ describe('SettingsPage', () => {
     expect(api.unsubscribe).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: /Нажмите ещё раз/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Нажмите ещё раз/ }));
-    await waitFor(() => expect(api.unsubscribe).toHaveBeenCalledWith('demo-token', 'group', 12246));
+    await waitFor(() => expect(api.unsubscribe).toHaveBeenCalledWith('demo-token', 'group', 472));
     expect(await screen.findByRole('button', { name: 'Вы отписаны от группы' })).toBeDisabled();
     expect(screen.getByText('Вы отписаны от группы.')).toBeInTheDocument();
   });
 
   it('explains that notifications are off when there is no token', async () => {
     localStorage.removeItem('setka-fcm-token');
-    renderRoute(<SettingsPage groupId={12246} />, { route: '/g/12246/settings', width: 390 });
+    renderRoute(<SettingsPage groupId={472} />, { route: '/g/472/settings', width: 390 });
     expect(await screen.findByText(/Разрешение на уведомления не выдано/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Отписаться от группы/ }));
     expect(await screen.findByText('Уведомления не включены для этой группы.')).toBeInTheDocument();

@@ -19,7 +19,7 @@ import (
 // @Description Returns the schedule for a specific group. Lazy-fetches if not in cache.
 // @Tags Schedules
 // @Produce json
-// @Param id path int true "Group ID (real_group_id)"
+// @Param id path int true "Group dictionary ID (dict_groups.id)"
 // @Param week_start query string false "Week start date in YYYY-MM-DD format"
 // @Success 200 {object} models.BFFResponse{data=[]models.Day}
 // @Failure 400 {object} map[string]string

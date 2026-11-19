@@ -41,7 +41,7 @@ export function useGroups() {
 export function useGroupName(groupId: number | null, savedName?: string) {
   const groups = useGroups();
   if (savedName) return savedName;
-  const group = groups.data?.find((item) => item.real_group_id === groupId);
+  const group = groups.data?.find((item) => item.id === groupId);
   return group?.name || (groupId ? `Группа ${groupId}` : '');
 }
 

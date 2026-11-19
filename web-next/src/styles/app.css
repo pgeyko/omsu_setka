@@ -1789,3 +1789,29 @@ body.sheet-open { overflow: hidden; }
   cursor: pointer;
 }
 .result-row.is-disabled { opacity: 0.55; cursor: default; }
+
+/* parallel options (electives, language groups) in the lesson sheet */
+.sheet-variants {
+  margin-top: 10px;
+  border-top: 1px solid var(--rule);
+  padding-top: 8px;
+}
+.sheet-variants-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sheet-variants ul {
+  margin-top: 5px;
+  display: grid;
+  gap: 3px;
+}
+.sheet-variants li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.sheet-variant-room { color: var(--muted); text-align: right; }

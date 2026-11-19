@@ -106,6 +106,30 @@ describe('SlotRow', () => {
     expect(screen.getByText('замена')).toBeInTheDocument();
   });
 
+  it('renders parallel options as a choice instead of a lesson count', () => {
+    const elective = slotsOf(
+      {
+        day: '18.11.2026',
+        date: '2026-11-18',
+        lessons: [
+          lesson({ id: 1, time: 1, lesson: 'Физкультура', type_work: 'Прак', teacher: 'Иванов И. И.' }),
+          lesson({ id: 2, time: 1, lesson: 'Физкультура', type_work: 'Прак', teacher: 'Петров П. П.', auditCorps: '6-115' }),
+        ],
+      },
+      '',
+      noChanges,
+    )[0];
+    render(
+      <ul>
+        <SlotRow slot={elective} onOpen={() => {}} />
+      </ul>,
+    );
+    expect(screen.getByText('Физкультура')).toBeInTheDocument();
+    expect(screen.getByText('практика')).toBeInTheDocument();
+    expect(screen.queryByText('Иванов И. И.')).toBeNull();
+    expect(screen.queryByText('Петров П. П.')).toBeNull();
+  });
+
   it('shows subgroup chips and merged entries', () => {
     const merged = slotAt('2026-11-18', 4);
     render(

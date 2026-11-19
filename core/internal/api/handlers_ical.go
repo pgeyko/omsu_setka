@@ -17,7 +17,7 @@ import (
 // @Description Returns the schedule for a group in .ics format. If ICAL_ACCESS_TOKEN is configured, pass it as the token query parameter.
 // @Tags Schedules
 // @Produce text/calendar
-// @Param id path int true "Group ID (real_group_id)"
+// @Param id path int true "Group dictionary ID (dict_groups.id)"
 // @Param token query string false "Optional iCal access token"
 // @Success 200 {string} string "iCalendar payload"
 // @Failure 400 {object} map[string]string

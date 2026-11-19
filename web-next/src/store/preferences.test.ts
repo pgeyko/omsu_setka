@@ -11,9 +11,9 @@ describe('preferences store', () => {
   });
 
   it('stores the selected group and mirrors it to localStorage', () => {
-    usePreferences.getState().setGroup(group(12246, 'ЮСС-003-О-02'));
-    expect(usePreferences.getState().group).toEqual({ id: 12246, name: 'ЮСС-003-О-02' });
-    expect(localStorage.getItem('setka-group')).toBe('12246');
+    usePreferences.getState().setGroup(group(472, 'ЮСС-003-О-02'));
+    expect(usePreferences.getState().group).toEqual({ id: 472, name: 'ЮСС-003-О-02' });
+    expect(localStorage.getItem('setka-group')).toBe('472');
     expect(localStorage.getItem('setka-group-name')).toBe('ЮСС-003-О-02');
   });
 

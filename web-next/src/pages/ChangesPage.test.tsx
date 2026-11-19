@@ -36,7 +36,7 @@ const own = change({
 });
 const other = change({
   id: 2,
-  entity_id: 12190,
+  entity_id: 468,
   day: '2026-11-17',
   pair: 3,
   subgroup: '2',
@@ -82,7 +82,7 @@ describe('ChangesPage', () => {
   });
 
   it('renders grouped changes, diffs and a pair link', async () => {
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     expect(screen.getByRole('heading', { name: 'Изменения' })).toBeInTheDocument();
     expect(await screen.findByText('Вчера, 18 ноября')).toBeInTheDocument();
     expect(screen.getAllByText('17 ноября').length).toBeGreaterThan(0);
@@ -93,20 +93,20 @@ describe('ChangesPage', () => {
     const ownArticle = screen.getByText('Математический анализ').closest('article')!;
     expect(within(ownArticle).getByRole('link', { name: 'Открыть пару' })).toHaveAttribute(
       'href',
-      '/g/12246/week?week_start=2026-11-16&day=2026-11-18&slot=2',
+      '/g/472/week?week_start=2026-11-16&day=2026-11-18&slot=2',
     );
   });
 
   it('requests only the own group without a subgroup filter by default', async () => {
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     await screen.findByText('Математический анализ');
     expect(api.fetchChanges).toHaveBeenCalledWith(
-      expect.objectContaining({ entity_type: 'group', entity_id: 12246, subgroup: undefined, limit: 20 }),
+      expect.objectContaining({ entity_type: 'group', entity_id: 472, subgroup: undefined, limit: 20 }),
     );
   });
 
   it('switches to all groups without entity or subgroup filters', async () => {
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     await screen.findByText('Математический анализ');
     fireEvent.click(screen.getByRole('button', { name: 'Все группы' }));
     expect(await screen.findByText('Иностранный язык')).toBeInTheDocument();
@@ -118,19 +118,19 @@ describe('ChangesPage', () => {
   });
 
   it('links changes of other groups to their own schedule', async () => {
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     await screen.findByText('Математический анализ');
     fireEvent.click(screen.getByRole('button', { name: 'Все группы' }));
     const article = (await screen.findByText('Иностранный язык')).closest('article')!;
     expect(within(article).getByRole('link', { name: 'Открыть пару' })).toHaveAttribute(
       'href',
-      '/g/12190/week?week_start=2026-11-16&day=2026-11-17&slot=3',
+      '/g/468/week?week_start=2026-11-16&day=2026-11-17&slot=3',
     );
     expect(within(article).getByText(/2 подгруппы/)).toBeInTheDocument();
   });
 
   it('does not link tutor changes to a group schedule', async () => {
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     await screen.findByText('Математический анализ');
     fireEvent.click(screen.getByRole('button', { name: 'Все группы' }));
     const article = (await screen.findByText('Физика')).closest('article')!;
@@ -145,7 +145,7 @@ describe('ChangesPage', () => {
           : { items: [own], next_before_id: 1 },
       ),
     );
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     const button = await screen.findByRole('button', { name: 'Показать ещё' });
     fireEvent.click(button);
     expect(await screen.findByText('Вторая страница')).toBeInTheDocument();
@@ -154,13 +154,13 @@ describe('ChangesPage', () => {
 
   it('shows an empty state', async () => {
     mockPages([]);
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     expect(await screen.findByText(/Изменений нет/)).toBeInTheDocument();
   });
 
   it('shows an error state', async () => {
     api.fetchChanges.mockRejectedValue(new Error('boom'));
-    renderRoute(<ChangesPage groupId={12246} />, { route: '/g/12246/changes', width: 390 });
+    renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     await waitFor(() => expect(screen.getByText(/Не удалось загрузить изменения/)).toBeInTheDocument(), {
       timeout: 4000,
     });

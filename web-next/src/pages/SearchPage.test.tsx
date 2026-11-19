@@ -52,13 +52,13 @@ describe('SearchPage', () => {
   it('shows recent entities for an empty query', () => {
     usePreferences.setState({
       recentEntities: [
-        { type: 'group', id: 12246, name: 'ЮСС-003-О-02' },
+        { type: 'group', id: 472, name: 'ЮСС-003-О-02' },
         { type: 'tutor', id: 15, name: 'Иванов Иван Иванович' },
       ],
     });
     renderRoute(<SearchPage />, { route: '/search' });
     expect(screen.getByText('Недавние запросы')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /ЮСС-003-О-02/ })).toHaveAttribute('href', '/g/12246/today');
+    expect(screen.getByRole('link', { name: /ЮСС-003-О-02/ })).toHaveAttribute('href', '/g/472/today');
     expect(screen.getByRole('link', { name: /Иванов Иван Иванович/ })).toHaveAttribute('href', '/tutor/15');
     expect(screen.getByText(/Если нужной группы нет/)).toBeInTheDocument();
     expect(api.search).not.toHaveBeenCalled();
@@ -93,12 +93,12 @@ describe('SearchPage', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'юсс' } });
     const link = await screen.findByRole('link', { name: /ЮСС-003-О-02/ });
     fireEvent.click(link);
-    expect(screen.getByTestId('location')).toHaveTextContent('/g/12246/today');
-    expect(usePreferences.getState().group).toEqual({ id: 12246, name: 'ЮСС-003-О-02' });
+    expect(screen.getByTestId('location')).toHaveTextContent('/g/472/today');
+    expect(usePreferences.getState().group).toEqual({ id: 472, name: 'ЮСС-003-О-02' });
     expect(usePreferences.getState().favorites).toHaveLength(1);
     expect(usePreferences.getState().recentEntities[0]).toEqual({
       type: 'group',
-      id: 12246,
+      id: 472,
       name: 'ЮСС-003-О-02',
     });
   });
@@ -138,7 +138,7 @@ describe('SearchPage', () => {
     expect(await screen.findByText(/Ничего не нашлось/)).toBeInTheDocument();
   });
 
-  it('disables group rows without a real_group_id', async () => {
+  it('opens a group by the dictionary id even without real_group_id', async () => {
     api.search.mockResolvedValue({
       groups: [{ id: 1, name: 'Старая группа', type: 'group', real_group_id: null }],
       tutors: [],
@@ -146,7 +146,8 @@ describe('SearchPage', () => {
     });
     renderRoute(<SearchPage />, { route: '/search' });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'стар' } });
-    expect(await screen.findByText('нет ID для расписания')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Старая группа/ })).toBeNull();
+    fireEvent.click(await screen.findByRole('link', { name: /Старая группа/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/g/1/today');
+    expect(usePreferences.getState().group).toEqual({ id: 1, name: 'Старая группа' });
   });
 });

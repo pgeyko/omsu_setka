@@ -54,8 +54,8 @@ function SearchBody({
   const openResult = (item: SearchResult, forcedType?: 'group' | 'tutor' | 'auditory') => {
     const kind = forcedType || item.type;
     if (kind === 'group') {
-      if (!item.real_group_id) return;
-      const saved = { id: item.real_group_id, name: item.name };
+      if (!item.id) return;
+      const saved = { id: item.id, name: item.name };
       setGroup(saved);
       addRecent(saved);
       addFavorite(saved);
@@ -84,7 +84,7 @@ function SearchBody({
         <ul className="result-list">
           {items.map((item) => {
             const href = type === 'group'
-              ? item.real_group_id ? `/g/${item.real_group_id}/today` : undefined
+              ? item.id ? `/g/${item.id}/today` : undefined
               : type === 'tutor'
                 ? `/tutor/${item.id}`
                 : `/auditory/${item.id}`;

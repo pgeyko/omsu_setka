@@ -14,6 +14,12 @@ export const TIME_SLOTS: Record<number, { start: string; end: string }> = {
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const WEEKDAYS_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
+export interface SlotVariant {
+  teacher: string;
+  room: string;
+  building: string;
+}
+
 export interface SlotEntry {
   id: number;
   lesson: Lesson;
@@ -24,6 +30,8 @@ export interface SlotEntry {
   building: string;
   subgroups: string[];
   changed: boolean;
+  /** Parallel options (electives, language groups) merged into one entry. */
+  variants: SlotVariant[];
 }
 
 export interface Slot {
@@ -70,9 +78,10 @@ export function cleanSubject(lesson: Lesson): string {
 }
 
 export function buildingOf(lesson: Lesson): string {
-  if (lesson.building) return lesson.building;
   const match = lesson.auditCorps.match(/^\(?(\d+)-/);
-  return match ? match[1] : '';
+  const derived = match && match[1] !== '0' ? match[1] : '';
+  if (lesson.building && lesson.building !== '0') return lesson.building;
+  return derived;
 }
 
 export function roomOf(lesson: Lesson): string {
@@ -187,24 +196,39 @@ export function slotsOf(day: Day, subgroup: string, changedIds: Set<number>): Sl
     }
     const merged = new Map<string, SlotEntry>();
     lessons.forEach((lesson) => {
-      const key = [cleanSubject(lesson), typeLabel(lesson.type_work), lesson.teacher, lesson.auditCorps, lesson.group].join('|');
+      const subject = cleanSubject(lesson);
+      const kind = typeLabel(lesson.type_work);
       const subgroupNumber = lessonSubgroup(lesson);
+      // Entries without a subgroup are parallel options (electives, language
+      // groups): merge them by subject. Split-by-subgroup lessons stay apart.
+      const key = subgroupNumber
+        ? [subject, kind, lesson.teacher, lesson.auditCorps, lesson.group].join('|')
+        : [subject, kind, lesson.group].join('|');
+      const variant: SlotVariant = {
+        teacher: lesson.teacher,
+        room: lesson.auditCorps || roomOf(lesson),
+        building: buildingOf(lesson),
+      };
       const existing = merged.get(key);
       if (existing) {
         if (subgroupNumber && !existing.subgroups.includes(subgroupNumber)) existing.subgroups.push(subgroupNumber);
+        if (!existing.variants.some((item) => item.teacher === variant.teacher && item.room === variant.room)) {
+          existing.variants.push(variant);
+        }
         if (changedIds.has(lesson.id)) existing.changed = true;
         return;
       }
       merged.set(key, {
         id: lesson.id,
         lesson,
-        subject: cleanSubject(lesson),
-        kind: typeLabel(lesson.type_work),
+        subject,
+        kind,
         teacher: lesson.teacher,
-        room: lesson.auditCorps || roomOf(lesson),
-        building: buildingOf(lesson),
+        room: variant.room,
+        building: variant.building,
         subgroups: subgroupNumber ? [subgroupNumber] : [],
         changed: changedIds.has(lesson.id),
+        variants: [variant],
       });
     });
     result.push({ pair, ...times, entries: Array.from(merged.values()), window: false });
@@ -214,6 +238,10 @@ export function slotsOf(day: Day, subgroup: string, changedIds: Set<number>): Sl
 
 export function lessonCountLabel(count: number): string {
   return `${count} ${plural(count, 'занятие', 'занятия', 'занятий')}`;
+}
+
+export function variantCountLabel(count: number): string {
+  return `${count} ${plural(count, 'вариант', 'варианта', 'вариантов')}`;
 }
 
 export function slotLabel(slot: Slot): string {

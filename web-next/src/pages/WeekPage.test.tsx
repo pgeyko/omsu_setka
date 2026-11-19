@@ -45,8 +45,8 @@ describe('WeekPage', () => {
   });
 
   it('renders the mobile week list with a range and every day', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16',
       width: 390,
     });
     expect(await screen.findByText('16–21 ноября')).toBeInTheDocument();
@@ -56,19 +56,19 @@ describe('WeekPage', () => {
   });
 
   it('moves to the next week and refetches it', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16',
       width: 390,
     });
     await screen.findByText('16–21 ноября');
     fireEvent.click(screen.getByRole('button', { name: 'Следующая неделя' }));
     expect(screen.getByTestId('location')).toHaveTextContent('week_start=2026-11-23');
-    await waitFor(() => expect(api.fetchWeek).toHaveBeenCalledWith('group', 12246, '2026-11-23'));
+    await waitFor(() => expect(api.fetchWeek).toHaveBeenCalledWith('group', 472, '2026-11-23'));
   });
 
   it('shows an empty week when the API returns no days', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-23',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-23',
       width: 390,
     });
     expect(await screen.findByText('23–28 ноября')).toBeInTheDocument();
@@ -76,19 +76,19 @@ describe('WeekPage', () => {
   });
 
   it('opens the sheet from a deep link and removes the slot parameter', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16&day=2026-11-18&slot=4',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16&day=2026-11-18&slot=4',
       width: 390,
     });
     const dialog = await screen.findByRole('dialog', {}, { timeout: 3000 });
     expect(dialog).toHaveAttribute('open');
     expect(screen.getByRole('heading', { name: '4 пара · 14:30–16:05' })).toBeInTheDocument();
-    expect(screen.getByTestId('location')).not.toHaveTextContent('slot=');
+    await waitFor(() => expect(screen.getByTestId('location')).not.toHaveTextContent('slot='));
   });
 
   it('opens the sheet when a lesson row is clicked', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16&day=2026-11-18',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16&day=2026-11-18',
       width: 390,
     });
     await screen.findByText('16–21 ноября');
@@ -97,8 +97,8 @@ describe('WeekPage', () => {
   });
 
   it('renders the desktop grid, aside and pair count', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16',
       width: 1440,
     });
     await screen.findByText('16–21 ноября');
@@ -111,8 +111,8 @@ describe('WeekPage', () => {
 
   it('filters the desktop grid by the selected subgroup', async () => {
     usePreferences.setState({ subgroup: '1' });
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16',
       width: 1440,
     });
     await screen.findByText('16–21 ноября');
@@ -122,8 +122,8 @@ describe('WeekPage', () => {
   });
 
   it('opens a slot from the desktop aside', async () => {
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16',
       width: 1440,
     });
     await screen.findByText('16–21 ноября');
@@ -133,8 +133,8 @@ describe('WeekPage', () => {
 
   it('shows a retry state when the week fails', async () => {
     api.fetchWeek.mockRejectedValue(new Error('boom'));
-    renderRoute(<WeekPage groupId={12246} />, {
-      route: '/g/12246/week?week_start=2026-11-16',
+    renderRoute(<WeekPage groupId={472} />, {
+      route: '/g/472/week?week_start=2026-11-16',
       width: 390,
     });
     expect(await screen.findByText(/Не удалось загрузить неделю/, {}, { timeout: 4000 })).toBeInTheDocument();

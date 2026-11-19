@@ -882,7 +882,7 @@ paths:
       description: Returns the schedule for a specific group. Lazy-fetches if not
         in cache.
       parameters:
-      - description: Group ID (real_group_id)
+      - description: Group dictionary ID (dict_groups.id)
         in: path
         name: id
         required: true
@@ -925,7 +925,7 @@ paths:
       description: Returns the schedule for a group in .ics format. If ICAL_ACCESS_TOKEN
         is configured, pass it as the token query parameter.
       parameters:
-      - description: Group ID (real_group_id)
+      - description: Group dictionary ID (dict_groups.id)
         in: path
         name: id
         required: true

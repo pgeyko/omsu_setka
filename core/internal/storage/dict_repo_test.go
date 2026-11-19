@@ -109,11 +109,11 @@ func TestDictRepo_Exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ok, err := repo.Exists(ctx, "group", 42); err != nil || !ok {
-		t.Errorf("group should exist: ok=%v err=%v", ok, err)
+	if ok, err := repo.Exists(ctx, "group", 7); err != nil || !ok {
+		t.Errorf("group should exist by dictionary id: ok=%v err=%v", ok, err)
 	}
-	if ok, _ := repo.Exists(ctx, "group", 7); ok {
-		t.Error("internal dict id must not be treated as real_group_id")
+	if ok, _ := repo.Exists(ctx, "group", 42); ok {
+		t.Error("real_group_id must not be used as a schedule key")
 	}
 	if ok, _ := repo.Exists(ctx, "tutor", 15); !ok {
 		t.Error("tutor should exist")

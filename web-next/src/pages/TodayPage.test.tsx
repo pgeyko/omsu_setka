@@ -27,8 +27,8 @@ vi.mock('../api/client', () => ({
 
 const groups = [{ id: 472, name: 'ЮСС-003-О-02', real_group_id: 12246 }];
 
-async function renderToday(route = '/g/12246/today?day=2026-11-19&now=09:00') {
-  renderRoute(<TodayPage groupId={12246} />, { route });
+async function renderToday(route = '/g/472/today?day=2026-11-19&now=09:00') {
+  renderRoute(<TodayPage groupId={472} />, { route });
   return screen.findByRole('heading', { level: 1 });
 }
 
@@ -63,7 +63,7 @@ describe('TodayPage', () => {
         {
           id: 1,
           entity_type: 'group',
-          entity_id: 12246,
+          entity_id: 472,
           change_type: 'modified',
           lesson_id: 402,
           day: '2026-11-19',
@@ -98,7 +98,7 @@ describe('TodayPage', () => {
 
   it('shows a day summary when no current or next lesson is left', async () => {
     vi.setSystemTime(new Date('2026-11-19T22:00:00'));
-    const heading = await renderToday('/g/12246/today?day=2026-11-19');
+    const heading = await renderToday('/g/472/today?day=2026-11-19');
     expect(heading).toHaveTextContent('Четверг');
     expect(screen.getByText(/2 пары · 08:45–14:20/)).toBeInTheDocument();
     expect(screen.getByText('первая пара в 08:45')).toBeInTheDocument();
@@ -107,13 +107,13 @@ describe('TodayPage', () => {
 
   it('renders a skeleton while loading', () => {
     api.fetchWeek.mockReturnValue(new Promise(() => {}));
-    renderRoute(<TodayPage groupId={12246} />, { route: '/g/12246/today?day=2026-11-19&now=09:00' });
+    renderRoute(<TodayPage groupId={472} />, { route: '/g/472/today?day=2026-11-19&now=09:00' });
     expect(document.querySelector('.skeleton-list')).toBeInTheDocument();
   });
 
   it('shows an error state and retries the request', async () => {
     api.fetchWeek.mockRejectedValue(new Error('network'));
-    renderRoute(<TodayPage groupId={12246} />, { route: '/g/12246/today?day=2026-11-19&now=09:00' });
+    renderRoute(<TodayPage groupId={472} />, { route: '/g/472/today?day=2026-11-19&now=09:00' });
     expect(await screen.findByText(/Не удалось загрузить расписание/, {}, { timeout: 4000 })).toBeInTheDocument();
     const callsBefore = api.fetchWeek.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));

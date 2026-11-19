@@ -9,6 +9,7 @@ import {
   lessonDate,
   lessonSubgroup,
   matchesSubgroup,
+  variantCountLabel,
   normalizeSubgroup,
   plural,
   roomOf,
@@ -97,6 +98,11 @@ describe('buildingOf and roomOf', () => {
     expect(roomOf(lesson({ auditCorps: '4-308' }))).toBe('308');
     expect(roomOf(lesson({ auditCorps: '4-308*' }))).toBe('308');
     expect(roomOf(lesson({ auditCorps: 'кафедра' }))).toBe('кафедра');
+  });
+
+  it('ignores the unknown building 0 but parses the room prefix', () => {
+    expect(buildingOf(lesson({ building: '0', auditCorps: '(6-31) Фитнесс зал' }))).toBe('6');
+    expect(buildingOf(lesson({ building: '0', auditCorps: 'Д-2/16' }))).toBe('');
   });
 });
 
@@ -226,6 +232,42 @@ describe('slotsOf', () => {
     expect(slots[0].entries[0].id).toBe(1);
   });
 
+  it('merges parallel options with the same subject into variants', () => {
+    const slots = slotsOf(
+      {
+        day: '18.11.2026',
+        lessons: [
+          lesson({ id: 1, time: 1, lesson: 'Физкультура', teacher: 'Иванов И. И.', auditCorps: '6-113' }),
+          lesson({ id: 2, time: 1, lesson: 'Физкультура', teacher: 'Петров П. П.', auditCorps: '6-115' }),
+        ],
+      },
+      '',
+      noChanges,
+    );
+    expect(slots).toHaveLength(1);
+    expect(slots[0].entries).toHaveLength(1);
+    expect(slots[0].entries[0].variants).toEqual([
+      { teacher: 'Иванов И. И.', room: '6-113', building: '6' },
+      { teacher: 'Петров П. П.', room: '6-115', building: '6' },
+    ]);
+    expect(slots[0].entries[0].teacher).toBe('Иванов И. И.');
+  });
+
+  it('keeps different subjects as separate entries', () => {
+    const slots = slotsOf(
+      {
+        day: '18.11.2026',
+        lessons: [
+          lesson({ id: 1, time: 1, lesson: 'Физика' }),
+          lesson({ id: 2, time: 1, lesson: 'История', type_work: 'Сем' }),
+        ],
+      },
+      '',
+      noChanges,
+    );
+    expect(slots[0].entries).toHaveLength(2);
+  });
+
   it('does not merge lessons from different groups (tutor schedule)', () => {
     const slots = slotsOf(
       {
@@ -267,8 +309,8 @@ describe('slotsOf', () => {
       {
         day: '18.11.2026',
         lessons: [
-          lesson({ id: 1, time: 2 }),
-          lesson({ id: 2, time: 2, subgroup_number: '2' }),
+          lesson({ id: 1, time: 2, auditCorps: '1-102' }),
+          lesson({ id: 2, time: 2, auditCorps: '1-103' }),
         ],
       },
       '',
@@ -295,6 +337,12 @@ describe('labels', () => {
     expect(lessonCountLabel(1)).toBe('1 занятие');
     expect(lessonCountLabel(2)).toBe('2 занятия');
     expect(lessonCountLabel(5)).toBe('5 занятий');
+  });
+
+  it('pluralizes variant counts', () => {
+    expect(variantCountLabel(1)).toBe('1 вариант');
+    expect(variantCountLabel(2)).toBe('2 варианта');
+    expect(variantCountLabel(5)).toBe('5 вариантов');
   });
 
   it('builds subgroup labels', () => {

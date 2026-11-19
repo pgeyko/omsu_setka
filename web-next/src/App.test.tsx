@@ -57,15 +57,15 @@ describe('App routing', () => {
   });
 
   it('redirects the root to the saved group', async () => {
-    usePreferences.setState({ group: { id: 12246, name: 'ЮСС-003-О-02' } });
+    usePreferences.setState({ group: { id: 472, name: 'ЮСС-003-О-02' } });
     renderRoute(<App />, { route: '/' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/12246/today'));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/472/today'));
   });
 
   it('redirects today to the week on desktop', async () => {
-    usePreferences.setState({ group: { id: 12246, name: 'ЮСС-003-О-02' } });
-    renderRoute(<App />, { route: '/g/12246/today', width: 1440 });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/12246/week'));
+    usePreferences.setState({ group: { id: 472, name: 'ЮСС-003-О-02' } });
+    renderRoute(<App />, { route: '/g/472/today', width: 1440 });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/g/472/week'));
   });
 
   it('redirects an invalid group id to search', async () => {
@@ -93,11 +93,11 @@ describe('App routing', () => {
   });
 
   it('applies and persists the dark theme from settings', async () => {
-    usePreferences.setState({ group: { id: 12246, name: 'ЮСС-003-О-02' } });
+    usePreferences.setState({ group: { id: 472, name: 'ЮСС-003-О-02' } });
     const meta = document.createElement('meta');
     meta.setAttribute('name', 'theme-color');
     document.head.appendChild(meta);
-    renderRoute(<App />, { route: '/g/12246/settings' });
+    renderRoute(<App />, { route: '/g/472/settings' });
     fireEvent.click(await screen.findByRole('button', { name: 'Тёмная' }));
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
     expect(meta.getAttribute('content')).toBe('#131814');
@@ -110,9 +110,9 @@ describe('App routing', () => {
   });
 
   it('shows the offline bar when the network goes down', async () => {
-    usePreferences.setState({ group: { id: 12246, name: 'ЮСС-003-О-02' } });
+    usePreferences.setState({ group: { id: 472, name: 'ЮСС-003-О-02' } });
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
-    renderRoute(<App />, { route: '/g/12246/week' });
+    renderRoute(<App />, { route: '/g/472/week' });
     await screen.findByText('16–21 ноября');
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
     window.dispatchEvent(new Event('offline'));
