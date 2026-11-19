@@ -33,6 +33,10 @@ jobs:
         working-directory: core
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks scans `event.before^..event.after`; a shallow clone makes
+          # the base commit unavailable and fails the whole job.
+          fetch-depth: 0
       - name: Secret scanning
         uses: gitleaks/gitleaks-action@v2
       - uses: actions/setup-go@v5
