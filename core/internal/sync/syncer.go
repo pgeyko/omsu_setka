@@ -20,9 +20,9 @@ type UpstreamStatus struct {
 	LastSuccessSync     time.Time `json:"last_success,omitempty"`
 	LastFailTime        time.Time `json:"last_fail,omitempty"`
 	lastErrAtomic       atomic.Value
-	LastError           string    `json:"last_error,omitempty"`
-	ConsecutiveFailures int       `json:"consecutive_failures"`
-	TotalFailures       int       `json:"total_failures"`
+	LastError           string `json:"last_error,omitempty"`
+	ConsecutiveFailures int    `json:"consecutive_failures"`
+	TotalFailures       int    `json:"total_failures"`
 	mu                  sync.RWMutex
 }
 
@@ -253,6 +253,16 @@ func (s *Syncer) Run(ctx context.Context) {
 					log.Error().Err(err).Msg("Failed to clean old incidents")
 				} else if n > 0 {
 					log.Info().Msgf("Cleaned %d old incident entries", n)
+				}
+
+				retentionDays := s.cfg.ChangeRetentionDays
+				if retentionDays <= 0 {
+					retentionDays = 90
+				}
+				if n, err := s.changeRepo.CleanOld(ctx, time.Now().AddDate(0, 0, -retentionDays)); err != nil {
+					log.Error().Err(err).Msg("Failed to clean old schedule changes")
+				} else if n > 0 {
+					log.Info().Msgf("Cleaned %d old schedule changes", n)
 				}
 
 				if s.webhookNotifier != nil {

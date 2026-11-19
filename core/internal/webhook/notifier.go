@@ -16,11 +16,11 @@ import (
 )
 
 type Notifier struct {
-	repo              *storage.WebhookRepo
+	repo               *storage.WebhookRepo
 	failedDeliveryRepo *storage.FailedDeliveryRepo
-	client            *fasthttp.Client
-	retry             int
-	delay             time.Duration
+	client             *fasthttp.Client
+	retry              int
+	delay              time.Duration
 }
 
 func NewNotifier(repo *storage.WebhookRepo, failedDeliveryRepo *storage.FailedDeliveryRepo, timeout time.Duration, retry int, delay time.Duration) *Notifier {
@@ -82,7 +82,7 @@ func (n *Notifier) Notify(ctx context.Context, entityType string, entityID int, 
 	}
 
 	for _, sub := range subscribers {
-		if !n.matchesGroup(sub, entityID) {
+		if !n.matchesEntity(sub, entityType, entityID) {
 			continue
 		}
 
@@ -90,12 +90,18 @@ func (n *Notifier) Notify(ctx context.Context, entityType string, entityID int, 
 	}
 }
 
-func (n *Notifier) matchesGroup(sub storage.WebhookSubscriber, groupID int) bool {
+func (n *Notifier) matchesEntity(sub storage.WebhookSubscriber, entityType string, entityID int) bool {
 	if len(sub.GroupIDs) == 0 {
 		return true
 	}
+	// A subscriber can only be filtered by numeric group IDs. For tutor and
+	// auditory changes we cannot resolve the affected groups here, so deliver
+	// the event instead of silently dropping it.
+	if entityType != "group" {
+		return true
+	}
 	for _, gid := range sub.GroupIDs {
-		if gid == groupID {
+		if gid == entityID {
 			return true
 		}
 	}

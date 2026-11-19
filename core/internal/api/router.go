@@ -18,13 +18,13 @@ import (
 )
 
 type Server struct {
-	App              *fiber.App
-	Cfg              *config.Config
-	Client           *upstream.Client
-	DictRepo         *storage.DictRepo
-	ScheduleRepo     *storage.ScheduleRepo
-	ChangeRepo       *storage.ChangeRepo
-	SubscriptionRepo *storage.SubscriptionRepo
+	App                *fiber.App
+	Cfg                *config.Config
+	Client             *upstream.Client
+	DictRepo           *storage.DictRepo
+	ScheduleRepo       *storage.ScheduleRepo
+	ChangeRepo         *storage.ChangeRepo
+	SubscriptionRepo   *storage.SubscriptionRepo
 	WebhookRepo        *storage.WebhookRepo
 	FailedDeliveryRepo *storage.FailedDeliveryRepo
 	FCM                *notifications.FCMClient
@@ -77,21 +77,21 @@ func NewServer(cfg *config.Config, deps *ServerDeps) *Server {
 	schedService := service.NewScheduleService(cfg, deps.MemoryCache, deps.ScheduleRepo, deps.Client)
 
 	s := &Server{
-		App:              app,
-		Cfg:              cfg,
-		Client:           deps.Client,
-		DictRepo:         deps.DictRepo,
-		ScheduleRepo:     deps.ScheduleRepo,
-		ChangeRepo:       deps.ChangeRepo,
-		SubscriptionRepo: deps.SubscriptionRepo,
+		App:                app,
+		Cfg:                cfg,
+		Client:             deps.Client,
+		DictRepo:           deps.DictRepo,
+		ScheduleRepo:       deps.ScheduleRepo,
+		ChangeRepo:         deps.ChangeRepo,
+		SubscriptionRepo:   deps.SubscriptionRepo,
 		WebhookRepo:        deps.WebhookRepo,
 		FailedDeliveryRepo: deps.FailedDeliveryRepo,
 		FCM:                deps.FCM,
-		MemoryCache:      deps.MemoryCache,
-		SearchIndex:      deps.SearchIndex,
-		Syncer:           deps.Syncer,
-		IncidentRepo:     deps.IncidentRepo,
-		ScheduleService:  schedService,
+		MemoryCache:        deps.MemoryCache,
+		SearchIndex:        deps.SearchIndex,
+		Syncer:             deps.Syncer,
+		IncidentRepo:       deps.IncidentRepo,
+		ScheduleService:    schedService,
 	}
 
 	s.setupRoutes()
@@ -138,6 +138,7 @@ func (s *Server) setupRoutes() {
 	v1.Get("/schedule/auditory/:id/ical", s.handleGetICal("auditory"))
 
 	// Changes
+	v1.Get("/changes", s.handleGetChangesFeed)
 	v1.Get("/changes/:type/:id", s.handleGetChanges)
 
 	// Notifications
@@ -145,6 +146,7 @@ func (s *Server) setupRoutes() {
 	v1.Post("/unsubscribe", s.handleUnsubscribe)
 	v1.Patch("/notifications/settings", s.handleUpdateNotificationSettings)
 	v1.Get("/notifications/settings/:type/:id", s.handleGetNotificationSettings)
+	v1.Get("/subscriptions", s.handleListSubscriptions)
 
 	// Search — use stricter rate limit directly
 	v1.Get("/search", RateLimitMiddleware(s.Cfg.RateLimitSearch, s.Cfg.RateLimitWindow), s.handleSearch)

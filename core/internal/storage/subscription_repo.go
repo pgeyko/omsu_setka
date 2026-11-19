@@ -3,6 +3,9 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"strconv"
+
+	"omsu_mirror/internal/diff"
 )
 
 type Subscription struct {
@@ -16,6 +19,7 @@ type Subscription struct {
 	BeforeMinutes      int    `json:"before_minutes"`
 	Timezone           string `json:"timezone"`
 	Subgroup           string `json:"subgroup"`
+	LastDigestAt       string `json:"last_digest_at,omitempty"`
 	LastReminderAt     string `json:"last_reminder_at"`
 }
 
@@ -156,6 +160,18 @@ func (r *SubscriptionRepo) GetSubscriptionsForDigest(ctx context.Context, timeSt
 	`, timeStr, todayStr)
 }
 
+// GetDigestSubscriptions returns all subscriptions with daily digest enabled.
+// The timezone is applied in the caller, because each subscription has its own
+// local digest time.
+func (r *SubscriptionRepo) GetDigestSubscriptions(ctx context.Context) (*sql.Rows, error) {
+	return r.db.DB.QueryContext(ctx, `
+		SELECT fcm_token, entity_type, entity_id, timezone, subgroup,
+		       digest_time, COALESCE(last_digest_at, '')
+		FROM user_subscriptions
+		WHERE notify_daily_digest = 1
+	`)
+}
+
 func (r *SubscriptionRepo) MarkDigestSent(ctx context.Context, token, entityType string, entityID int, todayStr string) error {
 	_, err := r.db.DB.ExecContext(ctx, `
 		UPDATE user_subscriptions 
@@ -167,7 +183,8 @@ func (r *SubscriptionRepo) MarkDigestSent(ctx context.Context, token, entityType
 
 func (r *SubscriptionRepo) GetSubscriptionsWithReminders(ctx context.Context) (*sql.Rows, error) {
 	return r.db.DB.QueryContext(ctx, `
-		SELECT fcm_token, entity_type, entity_id, before_minutes, subgroup, last_reminder_at
+		SELECT fcm_token, entity_type, entity_id, before_minutes, subgroup,
+		       COALESCE(last_reminder_at, ''), timezone
 		FROM user_subscriptions
 		WHERE notify_before_lesson = 1
 	`)
@@ -180,4 +197,72 @@ func (r *SubscriptionRepo) MarkReminderSent(ctx context.Context, token, entityTy
 		WHERE fcm_token = ? AND entity_type = ? AND entity_id = ?
 	`, dateTimeStr, token, entityType, entityID)
 	return err
+}
+
+// GetScheduleKeys returns the entity keys that have at least one subscriber.
+// The syncer uses it to keep subscribed schedules hot.
+func (r *SubscriptionRepo) GetScheduleKeys(ctx context.Context) ([]string, error) {
+	rows, err := r.db.DB.QueryContext(ctx, `
+		SELECT DISTINCT entity_type, entity_id
+		FROM user_subscriptions
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keys := make([]string, 0)
+	for rows.Next() {
+		var entityType string
+		var entityID int
+		if err := rows.Scan(&entityType, &entityID); err != nil {
+			return nil, err
+		}
+		keys = append(keys, entityType+":"+strconv.Itoa(entityID))
+	}
+	return keys, nil
+}
+
+// GetTokensForChange returns FCM tokens that should receive a change
+// notification. When global is true or no subgroups are provided every
+// subscriber with notify_on_change=1 is included; otherwise empty subgroup
+// (common lessons) and requested subgroups are included.
+func (r *SubscriptionRepo) GetTokensForChange(ctx context.Context, entityType string, entityID int, subgroups []string, global bool) ([]string, error) {
+	rows, err := r.db.DB.QueryContext(ctx, `
+		SELECT fcm_token, COALESCE(subgroup, '')
+		FROM user_subscriptions
+		WHERE entity_type = ? AND entity_id = ? AND notify_on_change = 1
+	`, entityType, entityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	wanted := make(map[string]struct{}, len(subgroups))
+	for _, subgroup := range subgroups {
+		wanted[subgroup] = struct{}{}
+	}
+
+	seen := make(map[string]struct{})
+	tokens := make([]string, 0)
+	for rows.Next() {
+		var token, storedSubgroup string
+		if err := rows.Scan(&token, &storedSubgroup); err != nil {
+			return nil, err
+		}
+		if !global && len(wanted) > 0 {
+			normalized := diff.NormalizeSubgroup(storedSubgroup)
+			if normalized != "" {
+				if _, ok := wanted[normalized]; !ok {
+					continue
+				}
+			}
+		}
+		if _, ok := seen[token]; ok {
+			continue
+		}
+		seen[token] = struct{}{}
+		tokens = append(tokens, token)
+	}
+	return tokens, nil
 }

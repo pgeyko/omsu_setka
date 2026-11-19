@@ -3,9 +3,11 @@ package sync
 import (
 	"context"
 	"encoding/json"
+	"omsu_mirror/internal/diff"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
 	"omsu_mirror/internal/webhook"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,10 +27,45 @@ func safeMarshalJSON(v interface{}) string {
 }
 
 func (s *Syncer) SyncActiveSchedules(ctx context.Context) error {
-	keys, err := s.scheduleRepo.GetActiveScheduleKeys(ctx, 24*time.Hour)
+	activeKeys, err := s.scheduleRepo.GetActiveScheduleKeys(ctx, 24*time.Hour)
 	if err != nil {
 		return err
 	}
+
+	// A schedule can be cold (nobody opened it recently) but still have
+	// subscribers or webhook consumers. Keep those in the sync set too.
+	keySet := make(map[string]struct{}, len(activeKeys))
+	for _, key := range activeKeys {
+		keySet[key] = struct{}{}
+	}
+	if s.subscriptionRepo != nil {
+		if subKeys, err := s.subscriptionRepo.GetScheduleKeys(ctx); err == nil {
+			for _, key := range subKeys {
+				keySet[key] = struct{}{}
+			}
+		} else {
+			log.Warn().Err(err).Msg("Failed to load subscribed schedule keys")
+		}
+	}
+	if s.webhookRepo != nil {
+		if subscribers, err := s.webhookRepo.GetEnabled(ctx); err == nil {
+			for _, sub := range subscribers {
+				for _, groupID := range sub.GroupIDs {
+					if groupID > 0 {
+						keySet["group:"+strconv.Itoa(groupID)] = struct{}{}
+					}
+				}
+			}
+		} else {
+			log.Warn().Err(err).Msg("Failed to load webhook schedule keys")
+		}
+	}
+
+	keys := make([]string, 0, len(keySet))
+	for key := range keySet {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
 
 	log.Info().Msgf("Syncing %d active schedules...", len(keys))
 
@@ -175,20 +212,38 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 	}
 
 	hasChanges := false
+	globalChange := false
+	affectedSubgroups := make(map[string]struct{})
 	var webhookChanges []webhook.Change
+
+	addAffected := func(subgroup string) {
+		if subgroup == "" {
+			globalChange = true
+			return
+		}
+		affectedSubgroups[subgroup] = struct{}{}
+	}
 
 	// Check for removed or modified
 	for id, oldL := range oldLessons {
 		newL, exists := newLessons[id]
 		if !exists {
 			oldJSON := safeMarshalJSON(oldL.Lesson)
-			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
+			subgroup := diff.NormalizeSubgroup(oldL.SubgroupName)
+			if err := s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "removed",
 				LessonID:   id,
+				Day:        convertDate(oldL.Day),
+				Pair:       oldL.Time,
+				Subgroup:   subgroup,
+				Subject:    oldL.Lesson.Lesson,
 				OldData:    oldJSON,
-			})
+			}); err != nil {
+				log.Error().Err(err).Msg("Failed to log removed schedule change")
+			}
+			addAffected(subgroup)
 			hasChanges = true
 			oldLessonJSON := safeMarshalJSON(oldL.Lesson)
 			webhookChanges = append(webhookChanges, webhook.Change{
@@ -202,14 +257,30 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 		} else if oldL.Day != newL.Day || !s.isLessonEqual(oldL.Lesson, newL.Lesson) {
 			oldJSON := safeMarshalJSON(oldL.Lesson)
 			newJSON := safeMarshalJSON(newL.Lesson)
-			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
+			oldSubgroup := diff.NormalizeSubgroup(oldL.SubgroupName)
+			newSubgroup := diff.NormalizeSubgroup(newL.SubgroupName)
+			subgroup := newSubgroup
+			if subgroup == "" {
+				subgroup = oldSubgroup
+			}
+			changes := diff.Lessons(oldL.Lesson, newL.Lesson, convertDate(oldL.Day), convertDate(newL.Day))
+			if err := s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "modified",
 				LessonID:   id,
+				Day:        convertDate(newL.Day),
+				Pair:       newL.Time,
+				Subgroup:   subgroup,
+				Subject:    newL.Lesson.Lesson,
+				Diff:       changes,
 				OldData:    oldJSON,
 				NewData:    newJSON,
-			})
+			}); err != nil {
+				log.Error().Err(err).Msg("Failed to log modified schedule change")
+			}
+			addAffected(oldSubgroup)
+			addAffected(newSubgroup)
 			hasChanges = true
 			webhookChanges = append(webhookChanges, lessonDiffToChanges(oldL, newL)...)
 		}
@@ -219,13 +290,21 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 	for id, newL := range newLessons {
 		if _, exists := oldLessons[id]; !exists {
 			newJSON := safeMarshalJSON(newL.Lesson)
-			_ = s.changeRepo.LogChange(ctx, storage.ScheduleChange{
+			subgroup := diff.NormalizeSubgroup(newL.SubgroupName)
+			if err := s.changeRepo.LogChange(ctx, storage.ScheduleChange{
 				EntityType: entityType,
 				EntityID:   entityID,
 				ChangeType: "added",
 				LessonID:   id,
+				Day:        convertDate(newL.Day),
+				Pair:       newL.Time,
+				Subgroup:   subgroup,
+				Subject:    newL.Lesson.Lesson,
 				NewData:    newJSON,
-			})
+			}); err != nil {
+				log.Error().Err(err).Msg("Failed to log added schedule change")
+			}
+			addAffected(subgroup)
 			hasChanges = true
 			newLessonJSON := safeMarshalJSON(newL.Lesson)
 			webhookChanges = append(webhookChanges, webhook.Change{
@@ -244,13 +323,27 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 		_ = s.incidentRepo.LogIncident(ctx, "schedule_change", msg, "")
 		log.Info().Msg(msg)
 
-		// Send push notifications to subscribers
-		tokens, err := s.subscriptionRepo.GetTokensByEntity(ctx, entityType, entityID)
+		subgroups := make([]string, 0, len(affectedSubgroups))
+		for subgroup := range affectedSubgroups {
+			subgroups = append(subgroups, subgroup)
+		}
+		sort.Strings(subgroups)
+
+		// Send push notifications only to subscribers that enabled changes and
+		// match the affected subgroup. A global change (empty subgroup) goes to
+		// all subscribers of the entity.
+		tokens, err := s.subscriptionRepo.GetTokensForChange(ctx, entityType, entityID, subgroups, globalChange)
 		if err == nil && len(tokens) > 0 {
-			invalidTokens := s.fcm.SendToTokens(ctx, tokens, "Изменение в расписании! 🔄", "Замечены изменения в расписании, нажми чтобы посмотреть.", map[string]string{
+			data := map[string]string{
 				"type": entityType,
 				"id":   strconv.Itoa(entityID),
-			})
+				"kind": "change",
+			}
+			if len(webhookChanges) > 0 {
+				data["day"] = webhookChanges[0].Date
+				data["pair"] = strconv.Itoa(webhookChanges[0].Pair)
+			}
+			invalidTokens := s.fcm.SendToTokens(ctx, tokens, "Изменение в расписании! 🔄", "Замечены изменения в расписании, нажми чтобы посмотреть.", data)
 			if len(invalidTokens) > 0 {
 				if err := s.subscriptionRepo.DeleteTokens(ctx, invalidTokens); err != nil {
 					log.Warn().Err(err).Msg("Failed to cleanup invalid FCM tokens")
@@ -265,82 +358,48 @@ func (s *Syncer) compareAndLogChanges(ctx context.Context, entityType string, en
 }
 
 func lessonDiffToChanges(oldL, newL lessonWithDay) []webhook.Change {
-	var changes []webhook.Change
-
-	if oldL.Lesson.Lesson != newL.Lesson.Lesson {
-		changes = append(changes, webhook.Change{
-			Date:    convertDate(newL.Day),
-			Pair:    newL.Time,
-			Field:   "subject",
-			Old:     oldL.Lesson.Lesson,
-			New:     newL.Lesson.Lesson,
-			Subject: newL.Lesson.Lesson,
-		})
-	}
-	if oldL.Teacher != newL.Teacher {
-		changes = append(changes, webhook.Change{
-			Date:    convertDate(newL.Day),
-			Pair:    newL.Time,
-			Field:   "teacher",
-			Old:     oldL.Teacher,
-			New:     newL.Teacher,
-			Subject: newL.Lesson.Lesson,
-		})
-	}
-	if oldL.AuditCorps != newL.AuditCorps {
-		field := "building"
-		oldParts := strings.Split(oldL.AuditCorps, "-")
-		newParts := strings.Split(newL.AuditCorps, "-")
-		if len(oldParts) == 2 && len(newParts) == 2 {
-			oldB := strings.TrimSpace(oldParts[0])
-			newB := strings.TrimSpace(newParts[0])
-			oldR := strings.TrimSpace(oldParts[1])
-			newR := strings.TrimSpace(newParts[1])
-			if oldB == newB && oldR != newR {
-				field = "room"
-			}
+	changes := make([]webhook.Change, 0)
+	for _, change := range diff.Lessons(oldL.Lesson, newL.Lesson, convertDate(oldL.Day), convertDate(newL.Day)) {
+		field := change.Field
+		switch change.Field {
+		case "lesson":
+			field = "subject"
+		case "day":
+			field = "date"
+		case "type_work":
+			field = "type"
+		case "time":
+			field = "pair"
+		case "subgroupName":
+			field = "subgroup"
+		case "auditCorps":
+			field = auditChangeField(change.Old, change.New)
 		}
 		changes = append(changes, webhook.Change{
 			Date:    convertDate(newL.Day),
 			Pair:    newL.Time,
 			Field:   field,
-			Old:     oldL.AuditCorps,
-			New:     newL.AuditCorps,
+			Old:     change.Old,
+			New:     change.New,
 			Subject: newL.Lesson.Lesson,
 		})
 	}
-	if oldL.Time != newL.Time {
-		changes = append(changes, webhook.Change{
-			Date:    convertDate(newL.Day),
-			Pair:    newL.Time,
-			Field:   "pair",
-			Old:     strconv.Itoa(oldL.Time),
-			New:     strconv.Itoa(newL.Time),
-			Subject: newL.Lesson.Lesson,
-		})
-	}
-	if oldL.Day != newL.Day {
-		changes = append(changes, webhook.Change{
-			Date:    convertDate(newL.Day),
-			Pair:    newL.Time,
-			Field:   "date",
-			Old:     convertDate(oldL.Day),
-			New:     convertDate(newL.Day),
-			Subject: newL.Lesson.Lesson,
-		})
-	}
-	if oldL.SubgroupName != newL.SubgroupName {
-		changes = append(changes, webhook.Change{
-			Date:    convertDate(newL.Day),
-			Pair:    newL.Time,
-			Field:   "subgroup",
-			Old:     oldL.SubgroupName,
-			New:     newL.SubgroupName,
-			Subject: newL.Lesson.Lesson,
-		})
-	}
-
 	return changes
+}
+
+func auditChangeField(oldValue, newValue string) string {
+	oldParts := strings.Split(oldValue, "-")
+	newParts := strings.Split(newValue, "-")
+	if len(oldParts) == 2 && len(newParts) == 2 {
+		oldBuilding := strings.TrimSpace(oldParts[0])
+		newBuilding := strings.TrimSpace(newParts[0])
+		oldRoom := strings.TrimSpace(oldParts[1])
+		newRoom := strings.TrimSpace(newParts[1])
+		if oldBuilding == newBuilding && oldRoom != newRoom {
+			return "room"
+		}
+	}
+	return "building"
 }
 
 func convertDate(dayStr string) string {
@@ -352,9 +411,28 @@ func convertDate(dayStr string) string {
 }
 
 func (s *Syncer) isLessonEqual(l1, l2 models.Lesson) bool {
-	return l1.Time == l2.Time &&
-		l1.Lesson == l2.Lesson &&
-		l1.Teacher == l2.Teacher &&
-		l1.AuditCorps == l2.AuditCorps &&
-		l1.SubgroupName == l2.SubgroupName
+	return diff.Equal(l1, l2)
+}
+
+// SyncEntity fetches one schedule immediately. It is used after a subscription
+// or webhook registration so a cold schedule starts being tracked.
+func (s *Syncer) SyncEntity(ctx context.Context, entityType string, entityID int) error {
+	if entityType != "group" && entityType != "tutor" && entityType != "auditory" {
+		return nil
+	}
+	key := entityType + ":" + strconv.Itoa(entityID)
+	var schedule []models.Day
+	var err error
+	switch entityType {
+	case "group":
+		schedule, err = s.client.FetchGroupSchedule(ctx, entityID)
+	case "tutor":
+		schedule, err = s.client.FetchTutorSchedule(ctx, entityID)
+	case "auditory":
+		schedule, err = s.client.FetchAuditorySchedule(ctx, entityID)
+	}
+	if err != nil {
+		return err
+	}
+	return s.UpdateSchedule(ctx, key, entityType, entityID, schedule)
 }

@@ -70,11 +70,18 @@ func Migrate(db *sql.DB) error {
 			entity_id    INTEGER NOT NULL,
 			change_type  TEXT NOT NULL,
 			lesson_id    INTEGER NOT NULL,
+			lesson_day   TEXT,
+			lesson_time  INTEGER,
+			subgroup     TEXT,
+			subject      TEXT,
+			diff         TEXT,
 			old_data     TEXT,
 			new_data     TEXT,
 			created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_changes_entity ON schedule_changes(entity_type, entity_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_changes_created ON schedule_changes(created_at DESC);`,
+		`CREATE INDEX IF NOT EXISTS idx_changes_entity_id ON schedule_changes(entity_type, entity_id, id DESC);`,
 
 		`CREATE TABLE IF NOT EXISTS user_subscriptions (
 				fcm_token    TEXT NOT NULL,
@@ -163,7 +170,52 @@ func Migrate(db *sql.DB) error {
 		}
 	}
 
-	return setSchemaVersion(db, 1)
+	// schedule_changes gained normalized fields for the public changes feed.
+	changeCols := []struct {
+		name string
+		def  string
+	}{
+		{"lesson_day", "TEXT"},
+		{"lesson_time", "INTEGER"},
+		{"subgroup", "TEXT"},
+		{"subject", "TEXT"},
+		{"diff", "TEXT"},
+	}
+	existingChangeCols := make(map[string]bool)
+	changeRows, err := db.Query("PRAGMA table_info(schedule_changes)")
+	if err != nil {
+		return fmt.Errorf("failed to query schedule_changes table info: %w", err)
+	}
+	for changeRows.Next() {
+		var cid int
+		var name, dtype string
+		var notnull, pk int
+		var dfltValue interface{}
+		if err := changeRows.Scan(&cid, &name, &dtype, &notnull, &dfltValue, &pk); err != nil {
+			changeRows.Close()
+			return fmt.Errorf("failed to scan schedule_changes table info: %w", err)
+		}
+		existingChangeCols[name] = true
+	}
+	changeRows.Close()
+
+	for _, col := range changeCols {
+		if !existingChangeCols[col.name] {
+			log.Info().Msgf("Migration: adding column %s to schedule_changes", col.name)
+			query := fmt.Sprintf("ALTER TABLE schedule_changes ADD COLUMN %s %s", col.name, col.def)
+			if _, err := db.Exec(query); err != nil {
+				log.Error().Err(err).Msgf("Failed to add column %s", col.name)
+			}
+		}
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_changes_created ON schedule_changes(created_at DESC)`); err != nil {
+		return fmt.Errorf("failed to create changes created index: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_changes_entity_id ON schedule_changes(entity_type, entity_id, id DESC)`); err != nil {
+		return fmt.Errorf("failed to create changes entity index: %w", err)
+	}
+
+	return setSchemaVersion(db, 2)
 }
 
 func setSchemaVersion(db *sql.DB, version int) error {

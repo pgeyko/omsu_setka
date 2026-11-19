@@ -1,15 +1,18 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"omsu_mirror/internal/apperrors"
+	"omsu_mirror/internal/diff"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/storage"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 // @Summary Get group schedule
@@ -270,6 +273,95 @@ func (s *Server) handleGetScheduleDay(entityType string) fiber.Handler {
 	}
 }
 
+// @Summary Get schedule changes feed
+// @Description Returns a filterable, paginated feed of schedule changes. Omit entity filters for all entities.
+// @Tags Changes
+// @Produce json
+// @Param entity_type query string false "group, tutor, auditory"
+// @Param entity_id query int false "Entity ID"
+// @Param subgroup query string false "Subgroup number (1, 2)"
+// @Param limit query int false "1..100, default 20"
+// @Param before_id query int false "Cursor for pagination (last received id)"
+// @Param since query string false "RFC3339 or YYYY-MM-DD lower bound by created_at"
+// @Param scope query string false "all — ignore entity filters"
+// @Success 200 {object} models.BFFResponse
+// @Router /changes [get]
+func (s *Server) handleGetChangesFeed(c *fiber.Ctx) error {
+	entityType := c.Query("entity_type")
+	scope := c.Query("scope")
+	if scope == "all" {
+		entityType = ""
+	}
+	if entityType != "" && !isValidEntityType(entityType) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid entity type"})
+	}
+
+	entityID, err := strconv.Atoi(c.Query("entity_id", "0"))
+	if err != nil || entityID < 0 || entityID > 999999 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid entity id"})
+	}
+	if scope == "all" {
+		entityID = 0
+	}
+	if entityID > 0 && entityType == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "entity_type is required with entity_id"})
+	}
+
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	beforeID, _ := strconv.Atoi(c.Query("before_id", "0"))
+	if beforeID < 0 {
+		beforeID = 0
+	}
+
+	subgroup := diff.NormalizeSubgroup(c.Query("subgroup"))
+
+	var since *time.Time
+	if raw := c.Query("since"); raw != "" {
+		parsed, parseErr := time.Parse(time.RFC3339, raw)
+		if parseErr != nil {
+			parsed, parseErr = time.Parse("2006-01-02", raw)
+		}
+		if parseErr != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid since, expected RFC3339 or YYYY-MM-DD"})
+		}
+		since = &parsed
+	}
+
+	items, err := s.ChangeRepo.GetChangesFiltered(c.Context(), storage.ChangeFilter{
+		EntityType: entityType,
+		EntityID:   entityID,
+		Subgroup:   subgroup,
+		Limit:      limit,
+		BeforeID:   beforeID,
+		Since:      since,
+	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch changes"})
+	}
+
+	nextBeforeID := 0
+	if len(items) == limit && len(items) > 0 {
+		nextBeforeID = items[len(items)-1].ID
+	}
+
+	return c.JSON(models.BFFResponse{
+		Success: true,
+		Data: fiber.Map{
+			"items":          items,
+			"next_before_id": nextBeforeID,
+		},
+		CachedAt: time.Now(),
+		Source:   "cache",
+	})
+}
+
 // @Summary Get schedule changes
 // @Description Returns recent schedule changes for a group, tutor, or auditory.
 // @Tags Changes
@@ -326,9 +418,14 @@ func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 	if sub.FCMToken == "" || sub.EntityType == "" || sub.EntityID == 0 {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "missing required fields"})
 	}
+	if !isValidEntityType(sub.EntityType) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid entity type"})
+	}
 
-	// Set NotifyOnChange to true by default as requested
+	// Set NotifyOnChange to true by default as requested. The settings PATCH
+	// endpoint can turn it off explicitly.
 	sub.NotifyOnChange = true
+	sub.Subgroup = diff.NormalizeSubgroup(sub.Subgroup)
 
 	// 25.5 Add subscription limit check
 	count, err := s.SubscriptionRepo.GetSubscriptionCount(c.Context(), sub.FCMToken)
@@ -339,6 +436,16 @@ func (s *Server) handleSubscribe(c *fiber.Ctx) error {
 	if err := s.SubscriptionRepo.Subscribe(c.Context(), sub); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to subscribe"})
 	}
+
+	// Warm the schedule immediately so a newly subscribed entity starts being
+	// tracked before the next periodic sync.
+	go func(entityType string, entityID int) {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		if err := s.Syncer.SyncEntity(ctx, entityType, entityID); err != nil {
+			log.Warn().Err(err).Str("entity", entityType).Int("id", entityID).Msg("Failed to warm subscribed schedule")
+		}
+	}(sub.EntityType, sub.EntityID)
 
 	return c.JSON(fiber.Map{"success": true})
 }

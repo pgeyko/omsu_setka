@@ -1,6 +1,7 @@
 # План разработки нового фронтенда
 
 Основа: мокапы `redesign/` (ветка `develop/redesign`) и `DESIGN.md`.
+Статус API: P0 закрыт 19.11.2026, все экраны мокапов обеспечены контрактами.
 Стек проекта: React 19, TypeScript, Vite, Zustand, TanStack Query, Vanilla CSS,
 React Router. Никакого Tailwind и новых дизайн-систем.
 
@@ -228,7 +229,7 @@ URL — источник истины для group/day/week; состояние 
 
 | Этап | Содержание | Зависимость |
 |---|---|---|
-| 0 | API P0: changes, notifications, sync targets, PATCH | backend |
+| 0 | API P0: changes, notifications, sync targets, PATCH | ✅ сделано |
 | 1 | Scaffold, токены, шрифты, shell, тема, иконки | — |
 | 2 | API client, типы, запросы, поиск, группы | API чтения |
 | 3 | Сегодня/Неделя, слоты, подгруппы, DetailSheet | API расписания |
@@ -237,8 +238,8 @@ URL — источник истины для group/day/week; состояние 
 | 6 | PWA, offline, service worker | этап 3 |
 | 7 | QA, visual regression, perf, rollout | все |
 
-Ориентир: этапы 1–3 можно вести параллельно с P0; полный релиз — после P0.
-Без P0 экран изменений и push-уведомления не соответствуют мокапам.
+Ориентир: P0 уже закрыт, этапы 1–3 можно вести параллельно; «Изменения» и
+«Уведомления» больше не заблокированы API.
 
 ## 11. Риски
 

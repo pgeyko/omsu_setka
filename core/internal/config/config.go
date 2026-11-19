@@ -17,11 +17,11 @@ type Config struct {
 	ServerPrefork      bool          `env:"SERVER_PREFORK" envDefault:"false"`
 
 	// Upstream
-	UpstreamBaseURL    string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
-	UpstreamTimeout    time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
-	UpstreamRateLimit  int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
-	UpstreamUserAgent  string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
-	UpstreamMaxConns   int           `env:"UPSTREAM_MAX_CONNS" envDefault:"10"`
+	UpstreamBaseURL   string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
+	UpstreamTimeout   time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
+	UpstreamRateLimit int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
+	UpstreamUserAgent string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
+	UpstreamMaxConns  int           `env:"UPSTREAM_MAX_CONNS" envDefault:"10"`
 
 	// Synchronization
 	SyncDictInterval     time.Duration `env:"SYNC_DICT_INTERVAL" envDefault:"12h"`
@@ -33,6 +33,7 @@ type Config struct {
 	CacheScheduleTTL     time.Duration `env:"CACHE_SCHEDULE_TTL" envDefault:"15m"`
 	CacheDictTTL         time.Duration `env:"CACHE_DICT_TTL" envDefault:"12h"`
 	CacheActiveThreshold time.Duration `env:"CACHE_ACTIVE_THRESHOLD" envDefault:"24h"`
+	ChangeRetentionDays  int           `env:"CHANGE_RETENTION_DAYS" envDefault:"90"`
 
 	// SQLite
 	SQLitePath        string `env:"SQLITE_PATH" envDefault:"./data/mirror.db"`
