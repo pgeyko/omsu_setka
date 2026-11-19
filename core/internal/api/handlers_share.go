@@ -91,11 +91,12 @@ func publicBaseURL(c *fiber.Ctx) string {
 	if host == "" {
 		host = c.Hostname()
 	}
-	scheme := "https"
 	if host == "localhost" || strings.HasPrefix(host, "127.") || strings.HasPrefix(host, "192.168.") || strings.HasPrefix(host, "[::1]") {
-		scheme = "http"
+		return "http://" + host
 	}
-	return scheme + "://" + host
+	// The public entry point is the reverse proxy domain; the origin host (t1.*) is not
+	// used in shared links.
+	return "https://s.pgeyko.ru"
 }
 
 // @Summary Share page for a group
