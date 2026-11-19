@@ -149,6 +149,17 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   }, [settings]);
 
   useEffect(() => {
+    if (typeof Notification === 'undefined') return;
+    const refreshPermission = () => setPermission(Notification.permission);
+    window.addEventListener('focus', refreshPermission);
+    document.addEventListener('visibilitychange', refreshPermission);
+    return () => {
+      window.removeEventListener('focus', refreshPermission);
+      document.removeEventListener('visibilitychange', refreshPermission);
+    };
+  }, []);
+
+  useEffect(() => {
     const dialog = permissionRef.current;
     if (!dialog) return;
     if (permissionOpen && !dialog.open) dialog.showModal();
