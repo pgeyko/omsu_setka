@@ -32,6 +32,22 @@ const DEFAULTS: SettingsState = {
   timezone: 'Asia/Omsk',
 };
 
+function storedToken(groupId: number): string | null {
+  try {
+    const saved = localStorage.getItem('setka-fcm-token');
+    if (saved) return saved;
+    // Migration from the pre-redesign key: fcm_token_group_<id>.
+    const legacy = localStorage.getItem(`fcm_token_group_${groupId}`);
+    if (legacy) {
+      localStorage.setItem('setka-fcm-token', legacy);
+      return legacy;
+    }
+  } catch {
+    /* private mode */
+  }
+  return null;
+}
+
 function Toggle({
   checked,
   onChange,
@@ -56,9 +72,10 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   const setSubgroup = usePreferences((state) => state.setSubgroup);
   const theme = usePreferences((state) => state.theme);
   const setTheme = usePreferences((state) => state.setTheme);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('setka-fcm-token'));
+  const [token, setToken] = useState<string | null>(() => storedToken(groupId));
   const [status, setStatus] = useState('Изменения сохраняются автоматически');
   const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
+  const [digestDraft, setDigestDraft] = useState(DEFAULTS.digestTime);
   const [unsubscribeStep, setUnsubscribeStep] = useState(0);
   const week = useWeekSchedule('group', groupId, currentWeekStart());
   const savedGroup = usePreferences((state) => state.group);
@@ -77,6 +94,10 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
       timezone: remote.data.timezone || 'Asia/Omsk',
     });
   }, [remote.data]);
+
+  useEffect(() => {
+    setDigestDraft(settings.digestTime);
+  }, [settings.digestTime]);
 
   const subgroups = useMemo(() => {
     const values = new Set<string>();
@@ -114,7 +135,18 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   const update = (patch: Partial<SettingsState>) => {
     const next = { ...settings, ...patch };
     setSettings(next);
+    setUnsubscribeStep(0);
     void persist(next);
+  };
+
+  const commitDigestTime = () => {
+    const value = digestDraft.trim();
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+      setDigestDraft(settings.digestTime);
+      setStatus('Время дайджеста — в формате ЧЧ:ММ');
+      return;
+    }
+    if (value !== settings.digestTime) update({ digestTime: value });
   };
 
   const enablePush = async () => {
@@ -150,16 +182,18 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   };
 
   const handleUnsubscribe = async () => {
+    if (!token) {
+      setStatus('Уведомления не включены для этой группы.');
+      return;
+    }
     if (unsubscribeStep === 0) {
       setUnsubscribeStep(1);
       return;
     }
-    if (token) {
-      try {
-        await unsubscribe(token, 'group', groupId);
-      } catch {
-        /* keep UI honest; the server may already be empty */
-      }
+    try {
+      await unsubscribe(token, 'group', groupId);
+    } catch {
+      /* keep UI honest; the server may already be empty */
     }
     setUnsubscribeStep(2);
     setStatus('Вы отписаны от группы.');
@@ -250,9 +284,16 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
               autoComplete="off"
               pattern="[0-2][0-9]:[0-5][0-9]"
               maxLength={5}
-              value={settings.digestTime}
+              value={digestDraft}
               disabled={!settings.digest}
-              onChange={(event) => update({ digestTime: event.target.value })}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (/^[0-9:]*$/.test(value)) setDigestDraft(value);
+              }}
+              onBlur={commitDigestTime}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') event.currentTarget.blur();
+              }}
             />
           </div>
         </div>

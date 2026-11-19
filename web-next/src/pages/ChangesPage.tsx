@@ -5,12 +5,25 @@ import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
 import type { ScheduleChange } from '../api/types';
 import { dayHeading, relativeDate, weekStartForDate } from '../lib/date';
+import { plural } from '../lib/schedule';
 
-function ChangeItem({ change, groupId }: { change: ScheduleChange; groupId: number }) {
+function ChangeItem({
+  change,
+  groupId,
+  scope,
+}: {
+  change: ScheduleChange;
+  groupId: number;
+  scope: 'group' | 'all';
+}) {
   const day = change.day || change.created_at.slice(0, 10);
-  const link = change.day && change.pair
-    ? `/g/${groupId}/week?week_start=${weekStartForDate(change.day)}&day=${change.day}&slot=${change.pair}`
+  const targetGroup = scope === 'all' ? change.entity_id : groupId;
+  const link = change.day && change.pair && (scope === 'group' || change.entity_type === 'group')
+    ? `/g/${targetGroup}/week?week_start=${weekStartForDate(change.day)}&day=${change.day}&slot=${change.pair}`
     : null;
+  const subgroupLabel = change.subgroup
+    ? ` · ${change.subgroup} ${plural(Number(change.subgroup), 'подгруппа', 'подгруппы', 'подгруппы')}`
+    : '';
   return (
     <article className="change-item">
       <div className="change-pair">{change.pair || '—'}</div>
@@ -18,7 +31,7 @@ function ChangeItem({ change, groupId }: { change: ScheduleChange; groupId: numb
         <h2 className="change-subject">{change.subject || 'Изменение'}</h2>
         <span className="change-kind">
           {change.change_type === 'added' ? 'добавлено' : change.change_type === 'removed' ? 'удалено' : 'изменено'}
-          {change.subgroup ? ` · ${change.subgroup} подгруппа` : ''}
+          {subgroupLabel}
         </span>
         {change.changes?.length ? (
           change.changes.map((field) => (
@@ -28,7 +41,13 @@ function ChangeItem({ change, groupId }: { change: ScheduleChange; groupId: numb
             </p>
           ))
         ) : (
-          <p className="diff">{change.change_type === 'removed' ? 'пара отменена' : 'пара появилась в расписании'}</p>
+          <p className="diff">
+            {change.change_type === 'removed'
+              ? 'пара отменена'
+              : change.change_type === 'added'
+                ? 'пара появилась в расписании'
+                : 'пара изменилась'}
+          </p>
         )}
         {link ? (
           <Link className="link-btn change-open" to={link}>
@@ -87,7 +106,9 @@ function ChangesBody({ groupId }: { groupId: number }) {
       {grouped.map(([day, list]) => (
         <section className="change-day" key={day} aria-label={dayHeading(day)}>
           <div className="change-day-head">{dayHeading(day)}</div>
-          {list.map((change) => <ChangeItem key={change.id} change={change} groupId={groupId} />)}
+          {list.map((change) => (
+            <ChangeItem key={change.id} change={change} groupId={groupId} scope={scope} />
+          ))}
         </section>
       ))}
 

@@ -17,20 +17,21 @@ import {
 } from '../lib/schedule';
 import { currentWeekStart, weekStartForDate } from '../lib/date';
 
+function clockDate(override?: string | null): Date {
+  const date = new Date();
+  if (import.meta.env.DEV && override && /^\d{2}:\d{2}$/.test(override)) {
+    const [hours, minutes] = override.split(':').map(Number);
+    if (hours < 24 && minutes < 60) date.setHours(hours, minutes, 0, 0);
+  }
+  return date;
+}
+
 function useClock(override?: string | null) {
-  const [now, setNow] = useState(() => {
-    if (import.meta.env.DEV && override && /^\d{2}:\d{2}$/.test(override)) {
-      const date = new Date();
-      const [hours, minutes] = override.split(':').map(Number);
-      date.setHours(hours, minutes, 0, 0);
-      return date;
-    }
-    return new Date();
-  });
+  const [now, setNow] = useState(() => clockDate(override));
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    const timer = window.setInterval(() => setNow(clockDate(override)), 30_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [override]);
   return now;
 }
 
@@ -54,7 +55,7 @@ export function TodayPage({ groupId }: { groupId: number }) {
   const selectedParam = rawDay && /^\d{4}-\d{2}-\d{2}$/.test(rawDay) ? rawDay : null;
   const weekStart = selectedParam ? weekStartForDate(selectedParam) : currentWeekStart();
   const week = useWeekSchedule('group', groupId, weekStart);
-  const recent = useRecentChanges('group', groupId);
+  const recent = useRecentChanges('group', groupId, subgroup);
   const [detail, setDetail] = useState<{ iso: string; slot: Slot } | null>(null);
 
   const days = weekDays(weekStart);
@@ -93,6 +94,9 @@ export function TodayPage({ groupId }: { groupId: number }) {
     ? Math.round(((nowMinutes - slotMinutes(current).start) / (slotMinutes(current).end - slotMinutes(current).start)) * 100)
     : 0;
   const remaining = current ? slotMinutes(current).end - nowMinutes : 0;
+  const passedCount = isToday
+    ? slots.filter((slot) => !slot.window && slotMinutes(slot).end <= nowMinutes).length
+    : 0;
 
   const visible = isToday
     ? current
@@ -198,7 +202,7 @@ export function TodayPage({ groupId }: { groupId: number }) {
       </ul>
 
       <p className="footnote">
-        {isToday ? 'Прошедшие пары скрыты. ' : ''}Источник — расписание ОмГУ. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <button className="link-btn" type="button" onClick={() => navigate(`/g/${groupId}/changes`)}>Что изменилось</button>
+        {passedCount ? `${passedCount} ${plural(passedCount, 'пара', 'пары', 'пар')} уже прошли. ` : ''}Источник — расписание ОмГУ. Нажмите на пару, чтобы увидеть преподавателя и аудиторию. <button className="link-btn" type="button" onClick={() => navigate(`/g/${groupId}/changes`)}>Что изменилось</button>
       </p>
 
       <DetailSheet

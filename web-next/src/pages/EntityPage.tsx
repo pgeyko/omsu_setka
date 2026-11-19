@@ -6,6 +6,7 @@ import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
 import { DetailSheet } from '../components/DetailSheet';
 import {
+  lessonCountLabel,
   lessonDate,
   plural,
   shortDay,
@@ -76,21 +77,26 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
               <span className="wday-name">{shortDay(iso).weekday}</span>
               <span className="wday-date" />
             </div>
-            {slots.map((slot) => (
-              <button className="wrow wrow-btn" type="button" key={slot.pair} onClick={() => openSlot(iso, slot)} aria-haspopup="dialog">
-                <span className="wrow-time">{slot.start}</span>
-                <span className="wrow-subject">{slot.entries[0]?.subject}</span>
-                <span className="wrow-room">
-                  {type === 'tutor'
-                    ? slot.entries[0]?.lesson.group
-                    : slot.entries[0]?.teacher}
-                </span>
-                <span className="wrow-sub">
-                  {slot.entries[0]?.kind} · {slot.entries[0]?.room} · {slot.pair} пара
-                </span>
-                <span className="wrow-chevron" aria-hidden="true"><ChevronRight size={16} strokeWidth={1.6} /></span>
-              </button>
-            ))}
+            {slots.map((slot) => {
+              const multi = slot.entries.length > 1;
+              const rooms = Array.from(new Set(slot.entries.map((entry) => entry.room))).join(', ');
+              const right = Array.from(
+                new Set(
+                  slot.entries.map((entry) => (type === 'tutor' ? entry.lesson.group : entry.teacher)),
+                ),
+              ).join(', ');
+              return (
+                <button className="wrow wrow-btn" type="button" key={slot.pair} onClick={() => openSlot(iso, slot)} aria-haspopup="dialog">
+                  <span className="wrow-time">{slot.start}</span>
+                  <span className="wrow-subject">{multi ? lessonCountLabel(slot.entries.length) : slot.entries[0]?.subject}</span>
+                  <span className="wrow-room">{right}</span>
+                  <span className="wrow-sub">
+                    {multi ? `${rooms} · ${slot.pair} пара` : `${slot.entries[0]?.kind} · ${rooms} · ${slot.pair} пара`}
+                  </span>
+                  <span className="wrow-chevron" aria-hidden="true"><ChevronRight size={16} strokeWidth={1.6} /></span>
+                </button>
+              );
+            })}
           </section>
         );
       })}

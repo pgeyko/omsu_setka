@@ -30,10 +30,88 @@ interface PreferencesState {
   addRecentEntity: (entity: RecentEntity) => void;
 }
 
+interface LegacyEntity {
+  id?: number | string;
+  name?: string;
+  type?: string;
+  real_group_id?: number | string;
+}
+
+interface LegacyStore {
+  state?: {
+    favorites?: LegacyEntity[];
+    recent?: LegacyEntity[];
+    recentTutors?: LegacyEntity[];
+    recentAuditories?: LegacyEntity[];
+    subgroup?: string | null;
+    pinnedEntity?: LegacyEntity | null;
+  };
+}
+
+function readStore<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function legacyGroup(entity?: LegacyEntity | null): SavedGroup | null {
+  if (!entity) return null;
+  const type = entity.type || (entity.real_group_id ? 'group' : '');
+  if (type !== 'group') return null;
+  const id = Number(entity.real_group_id || entity.id);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return { id, name: entity.name || `Группа ${id}` };
+}
+
+function legacyEntity(entity?: LegacyEntity | null): RecentEntity | null {
+  if (!entity) return null;
+  const type = entity.type;
+  if (type !== 'group' && type !== 'tutor' && type !== 'auditory') return null;
+  const id = Number(type === 'group' ? entity.real_group_id || entity.id : entity.id);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return { type, id, name: entity.name || `${id}` };
+}
+
+function uniqueGroups(items: Array<SavedGroup | null>): SavedGroup[] {
+  const seen = new Set<number>();
+  return items.filter((item): item is SavedGroup => {
+    if (!item || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function uniqueEntities(items: Array<RecentEntity | null>): RecentEntity[] {
+  const seen = new Set<string>();
+  return items.filter((item): item is RecentEntity => {
+    if (!item) return false;
+    const key = `${item.type}-${item.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+const legacy = readStore<LegacyStore>('omsu-setka-favorites')?.state;
+const legacyPinned = legacyGroup(legacy?.pinnedEntity);
+const legacyFavorites = uniqueGroups((legacy?.favorites || []).map(legacyGroup)).slice(0, 6);
+const legacyRecent = uniqueGroups((legacy?.recent || []).map(legacyGroup)).slice(0, 5);
+const legacyEntities = uniqueEntities([
+  ...(legacy?.recentTutors || []).map((item) => ({ ...item, type: 'tutor' as const })),
+  ...(legacy?.recentAuditories || []).map((item) => ({ ...item, type: 'auditory' as const })),
+  ...(legacy?.recent || []),
+].map(legacyEntity)).slice(0, 5);
+
 const storedTheme = (() => {
   try {
     const value = localStorage.getItem('setka-theme');
-    return value === 'light' || value === 'dark' || value === 'system' ? value : 'system';
+    if (value === 'light' || value === 'dark' || value === 'system') return value;
+    const legacyTheme = readStore<{ state?: { theme?: string } }>('omsu-setka-settings')?.state?.theme;
+    if (legacyTheme === 'light' || legacyTheme === 'dark') return legacyTheme;
+    return 'system';
   } catch {
     return 'system';
   }
@@ -43,17 +121,18 @@ const storedGroup = (() => {
   try {
     const id = Number(localStorage.getItem('setka-group'));
     const name = localStorage.getItem('setka-group-name') || '';
-    return Number.isFinite(id) && id > 0 ? { id, name } : null;
+    if (Number.isFinite(id) && id > 0) return { id, name };
+    return legacyPinned;
   } catch {
-    return null;
+    return legacyPinned;
   }
 })();
 
 const storedSubgroup = (() => {
   try {
-    return localStorage.getItem('setka-subgroup') || '';
+    return localStorage.getItem('setka-subgroup') || legacy?.subgroup || '';
   } catch {
-    return '';
+    return legacy?.subgroup || '';
   }
 })();
 
@@ -63,9 +142,9 @@ export const usePreferences = create<PreferencesState>()(
       group: storedGroup,
       subgroup: storedSubgroup,
       theme: storedTheme,
-      favorites: storedGroup ? [storedGroup] : [],
-      recent: storedGroup ? [storedGroup] : [],
-      recentEntities: [],
+      favorites: uniqueGroups([storedGroup, ...legacyFavorites]),
+      recent: uniqueGroups([storedGroup, ...legacyRecent]).slice(0, 5),
+      recentEntities: legacyEntities,
       setGroup: (group) =>
         set(() => {
           try {

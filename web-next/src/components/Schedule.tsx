@@ -159,12 +159,14 @@ export function WeekList({
   subgroup,
   changedIds,
   onOpen,
+  onClearSubgroup,
 }: {
   days: string[];
   schedule: Map<string, import('../api/types').Day>;
   subgroup: string;
   changedIds: Set<number>;
   onOpen: (iso: string, slot: Slot) => void;
+  onClearSubgroup?: () => void;
 }) {
   return (
     <>
@@ -223,7 +225,18 @@ export function WeekList({
               <div className="wrow">
                 <span className="wrow-time">—</span>
                 <span className="wrow-subject" style={{ color: 'var(--muted)' }}>
-                  {subgroup ? `нет занятий для подгруппы ${subgroup}` : 'занятий нет'}
+                  {subgroup ? (
+                    <>
+                      нет занятий для подгруппы {subgroup}.{' '}
+                      {onClearSubgroup ? (
+                        <button className="link-btn" type="button" onClick={onClearSubgroup}>
+                          Показать все
+                        </button>
+                      ) : null}
+                    </>
+                  ) : (
+                    'занятий нет'
+                  )}
                 </span>
                 <span className="wrow-room" />
               </div>
@@ -292,15 +305,15 @@ export function WeekGrid({
                   >
                     <span className="s">
                       {slot.entries.length > 1 ? lessonCountLabel(slot.entries.length) : slot.entries[0]?.subject}
-                      {slot.entries.some((entry) => entry.changed) ? (
-                        <span className="m-change">замена</span>
-                      ) : null}
                     </span>
                     <span className="m">
                       {slot.entries.length > 1
                         ? Array.from(new Set(slot.entries.map((entry) => entry.room))).join(', ')
                         : `${slot.entries[0]?.room} · ${slot.entries[0]?.kind}`}
                     </span>
+                    {slot.entries.some((entry) => entry.changed) ? (
+                      <span className="f">замена</span>
+                    ) : null}
                   </button>
                 ) : null}
               </div>

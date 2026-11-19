@@ -105,6 +105,48 @@ export function MobileShell({
   );
 }
 
+export function PlainMobileShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="mobile-app">
+      <a className="skip skip-mobile" href="#content">
+        Перейти к расписанию
+      </a>
+      <header className="m-top">
+        <div className="m-top-row">
+          <Link className="brand" to="/search" aria-label="сетка — поиск">
+            <Brand />
+          </Link>
+          <Link className="icon-btn" to="/search" aria-label="Найти группу, преподавателя или аудиторию">
+            <Search size={22} strokeWidth={1.6} />
+          </Link>
+        </div>
+      </header>
+      <main id="content">{children}</main>
+    </div>
+  );
+}
+
+export function PlainDesktopShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="desktop-app">
+      <a className="skip skip-desktop" href="#d-content">
+        Перейти к расписанию
+      </a>
+      <aside className="side" aria-label="Навигация">
+        <Link className="brand" to="/search" aria-label="сетка — поиск">
+          <Brand />
+        </Link>
+        <Link className="side-search" to="/search" aria-label="Открыть поиск">
+          <Search size={16} strokeWidth={1.6} />
+          <span>Найти группу или преподавателя</span>
+        </Link>
+        <div className="side-foot">Расписание ОмГУ, зеркало на этом сервере.</div>
+      </aside>
+      <div className="desk-main" id="d-content">{children}</div>
+    </div>
+  );
+}
+
 export function DesktopShell({
   groupId,
   subgroup,
@@ -141,7 +183,16 @@ export function DesktopShell({
           <span>Найти группу или преподавателя</span>
         </Link>
         <nav className="side-nav" aria-label="Разделы">
-          <Link to={`/g/${groupId}/week`} aria-current={location.pathname.endsWith('/week') ? 'page' : undefined}>
+          <Link
+            to={`/g/${groupId}/week`}
+            aria-current={
+              location.pathname.endsWith('/week') ||
+              location.pathname.includes('/tutor') ||
+              location.pathname.includes('/auditory')
+                ? 'page'
+                : undefined
+            }
+          >
             <LayoutGrid size={17} strokeWidth={1.6} /> Неделя
           </Link>
           <Link to={`/g/${groupId}/changes`} aria-current={location.pathname.endsWith('/changes') ? 'page' : undefined}>
@@ -187,7 +238,6 @@ export function DesktopShell({
         {!online && <OfflineBar />}
         {children}
       </div>
-      {subgroup ? null : null}
     </div>
   );
 }

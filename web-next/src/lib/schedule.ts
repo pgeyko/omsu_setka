@@ -94,7 +94,7 @@ export function lessonDate(day: Day): string {
 export function dayLabel(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(date.getTime())) return iso;
-  return `${WEEKDAYS[date.getDay()][0].toUpperCase()}${WEEKDAYS[date.getDay()].slice(1)}, ${date.getDate()} ${date.toLocaleString('ru-RU', { month: 'long' })}`;
+  return `${weekdayTitle(iso)}, ${dayMonthLabel(iso)}`;
 }
 
 export function weekdayTitle(iso: string): string {
@@ -187,7 +187,7 @@ export function slotsOf(day: Day, subgroup: string, changedIds: Set<number>): Sl
     }
     const merged = new Map<string, SlotEntry>();
     lessons.forEach((lesson) => {
-      const key = [cleanSubject(lesson), typeLabel(lesson.type_work), lesson.teacher, lesson.auditCorps].join('|');
+      const key = [cleanSubject(lesson), typeLabel(lesson.type_work), lesson.teacher, lesson.auditCorps, lesson.group].join('|');
       const subgroupNumber = lessonSubgroup(lesson);
       const existing = merged.get(key);
       if (existing) {
@@ -201,7 +201,7 @@ export function slotsOf(day: Day, subgroup: string, changedIds: Set<number>): Sl
         subject: cleanSubject(lesson),
         kind: typeLabel(lesson.type_work),
         teacher: lesson.teacher,
-        room: lesson.auditCorps,
+        room: lesson.auditCorps || roomOf(lesson),
         building: buildingOf(lesson),
         subgroups: subgroupNumber ? [subgroupNumber] : [],
         changed: changedIds.has(lesson.id),

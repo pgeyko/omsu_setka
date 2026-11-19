@@ -1391,6 +1391,8 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
   .wk-item .m {
     margin-top: 2px;

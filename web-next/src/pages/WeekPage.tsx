@@ -23,12 +23,13 @@ export function WeekPage({ groupId }: { groupId: number }) {
   const isDesktop = useIsDesktop();
   const [params, setParams] = useSearchParams();
   const subgroup = usePreferences((state) => state.subgroup);
+  const setSubgroup = usePreferences((state) => state.setSubgroup);
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
   const rawWeekStart = params.get('week_start');
   const weekStart = rawWeekStart && /^\d{4}-\d{2}-\d{2}$/.test(rawWeekStart) ? rawWeekStart : currentWeekStart();
   const week = useWeekSchedule('group', groupId, weekStart);
-  const recent = useRecentChanges('group', groupId);
+  const recent = useRecentChanges('group', groupId, subgroup);
   const [detail, setDetail] = useState<{ iso: string; slot: Slot } | null>(null);
 
   const days = weekDays(weekStart);
@@ -51,6 +52,16 @@ export function WeekPage({ groupId }: { groupId: number }) {
     ? slotsOf(schedule.get(selectedDay)!, subgroup, changedIds).filter((slot) => slot.entries.length > 0)
     : [];
   const selectedChanges = recent.data?.filter((change) => change.day === selectedDay) || [];
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const isNowSlot = (slot: Slot) => {
+    if (selectedDay !== todayISO()) return false;
+    const [startHour, startMinute] = slot.start.split(':').map(Number);
+    const [endHour, endMinute] = slot.end.split(':').map(Number);
+    const start = startHour * 60 + startMinute;
+    const end = endHour * 60 + endMinute;
+    return nowMinutes >= start && nowMinutes < end;
+  };
   const totalPairs = days.reduce((count, iso) => {
     const day = schedule.get(iso);
     return count + (day ? slotsOf(day, subgroup, changedIds).filter((slot) => !slot.window).length : 0);
@@ -114,6 +125,7 @@ export function WeekPage({ groupId }: { groupId: number }) {
           subgroup={subgroup}
           changedIds={changedIds}
           onOpen={openSlot}
+          onClearSubgroup={() => setSubgroup('')}
         />
         <p className="footnote">
           Неделя начинается с понедельника. <Link to={`/g/${groupId}/settings`}>Настроить уведомления</Link>
@@ -175,7 +187,7 @@ export function WeekPage({ groupId }: { groupId: number }) {
                 {selectedSlots.length ? selectedSlots.map((slot) => (
                   <li key={slot.pair}>
                     <button
-                      className={`aside-item${slot.pair === selectedSlots[0].pair ? ' is-now' : ''}`}
+                      className={`aside-item${isNowSlot(slot) ? ' is-now' : ''}`}
                       type="button"
                       onClick={() => openSlot(selectedDay, slot)}
                     >

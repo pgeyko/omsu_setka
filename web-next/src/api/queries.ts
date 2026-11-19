@@ -26,7 +26,6 @@ export const queryKeys = {
   week: (type: string, id: number, weekStart: string) => ['week', type, id, weekStart] as const,
   search: (q: string) => ['search', q] as const,
   changes: (type: string, id: number, subgroup: string) => ['changes', type, id, subgroup] as const,
-  changed: (type: string, id: number) => ['changed', type, id] as const,
   health: ['health'] as const,
   settings: (token: string, type: string, id: number) => ['settings', token, type, id] as const,
 };
@@ -92,7 +91,7 @@ export function useChangesInfinite(
       fetchChanges({
         entity_type: scope === 'all' ? undefined : type,
         entity_id: scope === 'all' ? undefined : id || undefined,
-        subgroup: subgroup || undefined,
+        subgroup: scope === 'all' ? undefined : subgroup || undefined,
         limit: 20,
         before_id: pageParam as number | undefined,
         scope: scope === 'all' ? 'all' : undefined,
@@ -107,9 +106,10 @@ export function useChangesInfinite(
 export function useRecentChanges(
   type: 'group' | 'tutor' | 'auditory',
   id: number | null,
+  subgroup = '',
 ) {
   return useQuery<ScheduleChange[]>({
-    queryKey: ['recent-changes', type, id || 0],
+    queryKey: ['recent-changes', type, id || 0, subgroup],
     queryFn: async () => {
       const page = await fetchChanges({
         entity_type: type,
@@ -117,27 +117,7 @@ export function useRecentChanges(
         limit: 50,
         since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       });
-      return page.items;
-    },
-    enabled: Boolean(id),
-    staleTime: 60 * 1000,
-  });
-}
-
-export function useChangedLessonIds(
-  type: 'group' | 'tutor' | 'auditory',
-  id: number | null,
-) {
-  return useQuery<Set<number>>({
-    queryKey: queryKeys.changed(type, id || 0),
-    queryFn: async () => {
-      const page = await fetchChanges({
-        entity_type: type,
-        entity_id: id || undefined,
-        limit: 50,
-        since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-      return new Set(page.items.map((item) => item.lesson_id));
+      return page.items.filter((item) => !subgroup || !item.subgroup || item.subgroup === subgroup);
     },
     enabled: Boolean(id),
     staleTime: 60 * 1000,

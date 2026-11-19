@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { usePreferences } from './store/preferences';
 import { useIsDesktop } from './lib/useMediaQuery';
-import { DesktopShell, MobileShell } from './components/AppShell';
+import { DesktopShell, MobileShell, PlainDesktopShell, PlainMobileShell } from './components/AppShell';
 import { TodayPage } from './pages/TodayPage';
 import { WeekPage } from './pages/WeekPage';
 import { SearchPage } from './pages/SearchPage';
@@ -13,7 +13,7 @@ import { EntityPage } from './pages/EntityPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import './styles/app.css';
 
-const client = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
@@ -116,7 +116,17 @@ function EntityRoute({ type }: { type: 'tutor' | 'auditory' }) {
   const subgroup = usePreferences((state) => state.subgroup);
   const isDesktop = useIsDesktop();
   if (!id) return <Navigate to="/search" replace />;
-  if (!groupId) return <Navigate to="/search" replace />;
+  if (!groupId) {
+    return isDesktop ? (
+      <PlainDesktopShell>
+        <EntityPage type={type} id={id} />
+      </PlainDesktopShell>
+    ) : (
+      <PlainMobileShell>
+        <EntityPage type={type} id={id} />
+      </PlainMobileShell>
+    );
+  }
   return isDesktop ? (
     <DesktopShell groupId={groupId} subgroup={subgroup}>
       <EntityPage type={type} id={id} />
@@ -130,7 +140,7 @@ function EntityRoute({ type }: { type: 'tutor' | 'auditory' }) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={queryClient}>
       <ThemeSync />
       <Routes>
         <Route path="/" element={<HomeRedirect />} />

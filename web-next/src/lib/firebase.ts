@@ -18,7 +18,17 @@ if (!isFirebaseConfigured) {
 }
 
 const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
-const messaging = isFirebaseConfigured ? getMessaging(app!) : null;
+
+const messaging = (() => {
+  if (!app) return null;
+  try {
+    // getMessaging throws in unsupported browsers (old Safari, some private modes).
+    return getMessaging(app);
+  } catch (error) {
+    console.warn('Firebase Messaging is not supported in this browser.', error);
+    return null;
+  }
+})();
 
 export const requestForToken = async () => {
   if (!messaging) return null;
@@ -41,8 +51,13 @@ export const requestForToken = async () => {
 
 export const onForegroundMessage = (callback: (payload: MessagePayload) => void) => {
   if (!messaging) return () => {};
-  return onMessage(messaging, (payload) => {
-    console.log('Foreground message received: ', payload);
-    callback(payload);
-  });
+  try {
+    return onMessage(messaging, (payload) => {
+      console.log('Foreground message received: ', payload);
+      callback(payload);
+    });
+  } catch (error) {
+    console.warn('Failed to subscribe to foreground messages.', error);
+    return () => {};
+  }
 };
