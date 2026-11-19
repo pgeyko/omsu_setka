@@ -150,12 +150,31 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
 
   useEffect(() => {
     if (typeof Notification === 'undefined') return;
-    const refreshPermission = () => setPermission(Notification.permission);
+    const applyPermission = (value: PermissionState | NotificationPermission) => {
+      setPermission(value === 'prompt' ? 'default' : (value as NotificationPermission));
+    };
+    const refreshPermission = () => applyPermission(Notification.permission);
     window.addEventListener('focus', refreshPermission);
     document.addEventListener('visibilitychange', refreshPermission);
+
+    let status: PermissionStatus | undefined;
+    if (navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: 'notifications' as PermissionName })
+        .then((result) => {
+          status = result;
+          applyPermission(result.state);
+          result.onchange = () => applyPermission(result.state);
+        })
+        .catch(() => {
+          /* Permission API is optional */
+        });
+    }
+
     return () => {
       window.removeEventListener('focus', refreshPermission);
       document.removeEventListener('visibilitychange', refreshPermission);
+      if (status) status.onchange = null;
     };
   }, []);
 
