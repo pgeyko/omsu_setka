@@ -1325,13 +1325,16 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
     color: var(--ink);
     font-variant-numeric: tabular-nums;
   }
+  .wk-head { position: relative; }
   .wk-head.is-today { background: var(--ink); }
   .wk-head.is-today .dn { color: var(--on-ink-muted); }
   .wk-head.is-today .dd { color: var(--on-ink); }
   .wk-head.is-today::after {
     content: "сейчас";
-    align-self: flex-start;
-   margin-top: 3px;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    margin: 0;
     font-size: 9.5px;
     line-height: 1;
     color: var(--red-bright);
