@@ -134,6 +134,8 @@ CI для `web/` остаётся прежним: `npm ci --legacy-peer-deps && 
   `npm run test:build`; `frontend-e2e` прогоняет браузерные сценарии.
 - `web/Dockerfile` собирает это приложение на Node 20, подставляет Firebase в
   `dist/firebase-messaging-sw.js` и отдаёт статику через `web/nginx.conf`.
+  Build-args берутся из repository secrets `VITE_FIREBASE_*`; без реальных
+  значений (не `-`) push-уведомления работать не будут.
 - CI деплоит образы с фиксированными именами контейнеров
   `omsu_setka_backend` / `omsu_setka_frontend`, очищает старые контейнеры и
   проверяет health перед успехом.
