@@ -16,7 +16,7 @@ import {
   weekdayTitle,
   type Slot,
 } from '../lib/schedule';
-import { currentWeekStart, weekStartForDate } from '../lib/date';
+import { currentWeekStart, nextSchoolDay, weekStartForDate } from '../lib/date';
 
 function clockDate(override?: string | null): Date {
   const date = new Date();
@@ -51,34 +51,62 @@ export function TodayPage({ groupId }: { groupId: number }) {
   const setSubgroup = usePreferences((state) => state.setSubgroup);
   const savedGroup = usePreferences((state) => state.group);
   const groupName = useGroupName(groupId, savedGroup?.id === groupId ? savedGroup.name : undefined);
-  usePageMeta(`${groupName} — сегодня — сетка`, `Расписание ${groupName} на сегодня: пары, аудитории и замены.`);
   const now = useClock(params.get('now'));
   const rawDay = params.get('day');
   const selectedParam = rawDay && /^\d{4}-\d{2}-\d{2}$/.test(rawDay) ? rawDay : null;
-  const weekStart = selectedParam ? weekStartForDate(selectedParam) : currentWeekStart();
-  const week = useWeekSchedule('group', groupId, weekStart);
+  const baseWeekStart = selectedParam ? weekStartForDate(selectedParam) : currentWeekStart();
+  const baseWeek = useWeekSchedule('group', groupId, baseWeekStart);
   const recent = useRecentChanges('group', groupId, subgroup);
   const [detail, setDetail] = useState<{ iso: string; slot: Slot } | null>(null);
 
-  const days = weekDays(weekStart);
-  const schedule = useMemo(() => {
-    const map = new Map<string, Day>();
-    week.data?.forEach((day) => map.set(lessonDate(day), day));
-    return map;
-  }, [week.data]);
-
+  const today = todayISO();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const changedIds = useMemo(() => new Set(recent.data?.map((item) => item.lesson_id) || []), [recent.data]);
   const changedByLesson = useMemo(
     () => new Map(recent.data?.map((item) => [item.lesson_id, item]) || []),
     [recent.data],
   );
 
-  const today = todayISO();
-  const selected = selectedParam && days.includes(selectedParam) ? selectedParam : days.includes(today) ? today : days[0];
+  const baseSchedule = useMemo(() => {
+    const map = new Map<string, Day>();
+    baseWeek.data?.forEach((item) => map.set(lessonDate(item), item));
+    return map;
+  }, [baseWeek.data]);
+  const baseTodaySlots = baseSchedule.get(today)
+    ? slotsOf(baseSchedule.get(today)!, subgroup, changedIds).filter((slot) => !slot.window)
+    : [];
+  const todayFinished =
+    baseTodaySlots.length > 0 && baseTodaySlots.every((slot) => slotMinutes(slot).end <= nowMinutes);
+  const after18 = nowMinutes >= 18 * 60;
+  const todayIsSunday = new Date(`${today}T00:00:00`).getDay() === 0;
+  const autoMode = !selectedParam;
+  const nextDay = todayIsSunday || todayFinished || after18 ? nextSchoolDay(today) : null;
+  const autoTarget = autoMode ? nextDay : null;
+  const targetWeekStart = autoTarget ? weekStartForDate(autoTarget) : baseWeekStart;
+  const targetWeek = useWeekSchedule('group', groupId, targetWeekStart, targetWeekStart !== baseWeekStart);
+  const activeWeek = targetWeekStart === baseWeekStart ? baseWeek : targetWeek;
+  const days = weekDays(targetWeekStart);
+  const schedule = useMemo(() => {
+    const map = new Map<string, Day>();
+    activeWeek.data?.forEach((dayData) => map.set(lessonDate(dayData), dayData));
+    return map;
+  }, [activeWeek.data]);
+
+  const selected =
+    selectedParam && days.includes(selectedParam)
+      ? selectedParam
+      : autoTarget && days.includes(autoTarget)
+        ? autoTarget
+        : days.includes(today)
+          ? today
+          : days[0];
   const day = schedule.get(selected);
   const slots = day ? slotsOf(day, subgroup, changedIds) : [];
   const isToday = selected === today;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  usePageMeta(
+    `${groupName} — ${isToday ? 'сегодня' : weekdayTitle(selected).toLowerCase()} — сетка`,
+    `Расписание ${groupName}${isToday ? ' на сегодня' : ''}: пары, аудитории и замены.`,
+  );
   const current = isToday
     ? slots.find((slot) => {
         if (slot.window) return false;
@@ -123,7 +151,13 @@ export function TodayPage({ groupId }: { groupId: number }) {
     setParams(nextParams, { replace: true });
   };
 
-  if (week.isLoading) {
+  const useAutoDay = () => {
+    const nextParams = new URLSearchParams(params);
+    nextParams.delete('day');
+    setParams(nextParams, { replace: true });
+  };
+
+  if (activeWeek.isLoading) {
     return (
       <div className="skeleton-list" aria-label="Загрузка расписания">
         {Array.from({ length: 5 }, (_, index) => (
@@ -133,11 +167,11 @@ export function TodayPage({ groupId }: { groupId: number }) {
     );
   }
 
-  if (week.isError) {
+  if (activeWeek.isError) {
     return (
       <div className="retry-wrap">
         <p>Не удалось загрузить расписание. Проверьте сеть и попробуйте ещё раз.</p>
-        <button className="retry-btn" type="button" onClick={() => week.refetch()}>
+        <button className="retry-btn" type="button" onClick={() => activeWeek.refetch()}>
           Повторить
         </button>
       </div>
@@ -147,6 +181,28 @@ export function TodayPage({ groupId }: { groupId: number }) {
   return (
     <>
       <DayStrip days={days} selected={selected} onSelect={selectDay} />
+      {autoTarget ? (
+        <div className="next-day-note" role="status">
+          <span>
+            {todayIsSunday
+              ? 'Сегодня воскресенье.'
+              : todayFinished
+                ? 'Занятия на сегодня закончились.'
+                : 'Уже после 18:00.'}{' '}
+            Показано расписание на {dayMonthLabel(autoTarget)}.
+          </span>
+          <button className="link-btn" type="button" onClick={() => selectDay(today)}>
+            Показать сегодня
+          </button>
+        </div>
+      ) : nextDay && selected === today ? (
+        <div className="next-day-note" role="status">
+          <span>Показано расписание на сегодня.</span>
+          <button className="link-btn" type="button" onClick={useAutoDay}>
+            Показать {dayMonthLabel(nextDay)}
+          </button>
+        </div>
+      ) : null}
       {current ? (
         <NowBand
           slot={current}

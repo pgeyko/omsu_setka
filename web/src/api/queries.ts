@@ -69,11 +69,12 @@ export function useWeekSchedule(
   type: 'group' | 'tutor' | 'auditory',
   id: number | null,
   weekStart: string,
+  enabled = true,
 ) {
   return useQuery<Day[]>({
     queryKey: queryKeys.week(type, id || 0, weekStart),
     queryFn: () => fetchWeek(type, id!, weekStart),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && enabled,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

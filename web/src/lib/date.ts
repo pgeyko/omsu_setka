@@ -22,6 +22,12 @@ export function addDaysISO(iso: string, days: number): string {
   return isoDate(date);
 }
 
+export function nextSchoolDay(iso: string): string {
+  let next = addDaysISO(iso, 1);
+  if (new Date(`${next}T00:00:00`).getDay() === 0) next = addDaysISO(next, 1);
+  return next;
+}
+
 export function weekStartForDate(iso: string): string {
   return isoDate(startOfWeek(new Date(`${iso}T00:00:00`)));
 }

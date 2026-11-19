@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   addDaysISO,
+  nextSchoolDay,
   currentWeekStart,
   dayHeading,
   relativeDate,
@@ -27,6 +28,14 @@ describe('addDaysISO', () => {
     expect(addDaysISO('2026-11-30', 1)).toBe('2026-12-01');
     expect(addDaysISO('2026-03-01', -1)).toBe('2026-02-28');
     expect(addDaysISO('2026-11-16', 6)).toBe('2026-11-22');
+  });
+});
+
+describe('nextSchoolDay', () => {
+  it('moves to tomorrow and skips Sunday', () => {
+    expect(nextSchoolDay('2026-11-19')).toBe('2026-11-20');
+    expect(nextSchoolDay('2026-11-21')).toBe('2026-11-23');
+    expect(nextSchoolDay('2026-11-22')).toBe('2026-11-23');
   });
 });
 

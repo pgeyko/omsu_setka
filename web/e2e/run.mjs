@@ -238,6 +238,22 @@ async function main() {
       assert.match(await text('.now-subject'), /Программирование/);
     });
 
+    await scenario('today: automatically shows the next day in the evening', async () => {
+      await goto('/g/472/today?now=19:00');
+      await page.waitForSelector('.next-day-note');
+      assert.match(await text('.next-day-note'), /Показано расписание на 20 ноября/);
+      assert.equal(await text('.now-subject'), 'Пятница');
+      assert.equal(
+        await page.locator('.day-cell[aria-pressed="true"] .day-num').textContent(),
+        '20',
+      );
+      await page.getByRole('button', { name: 'Показать сегодня' }).click();
+      await waitForText('.next-day-note', /Показано расписание на сегодня/);
+      assert.equal(await text('.now-subject'), 'Четверг');
+      await page.getByRole('button', { name: /Показать 20 ноября/ }).click();
+      await waitForText('.now-subject', 'Пятница');
+    });
+
     await scenario('week: list, ranges and empty week', async () => {
       await goto('/g/472/week?week_start=2026-11-16');
       assert.equal(await text('.week-range'), '16–21 ноября');

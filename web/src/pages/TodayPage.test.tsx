@@ -87,6 +87,37 @@ describe('TodayPage', () => {
     expect(screen.getByText('Четверг, 19 ноября · 1 занятие')).toBeInTheDocument();
   });
 
+  it('shows the next school day after 18:00', async () => {
+    vi.setSystemTime(new Date('2026-11-19T19:00:00'));
+    const heading = await renderToday('/g/472/today');
+    expect(heading).toHaveTextContent('Пятница');
+    expect(screen.getByText(/Показано расписание на 20 ноября/)).toBeInTheDocument();
+    expect(screen.getByText(/Показано расписание на 20 ноября/)).toBeInTheDocument();
+    expect(screen.getByText('Все пары')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Показать сегодня' })).toBeInTheDocument();
+  });
+
+  it('lets the user return to today and then back to the next day', async () => {
+    vi.setSystemTime(new Date('2026-11-19T19:00:00'));
+    await renderToday('/g/472/today');
+    fireEvent.click(screen.getByRole('button', { name: 'Показать сегодня' }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Четверг'));
+    fireEvent.click(screen.getByRole('button', { name: /Показать 20 ноября/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Пятница'));
+  });
+
+  it('shows the next school day when all lessons have ended before 18:00', async () => {
+    vi.setSystemTime(new Date('2026-11-19T15:00:00'));
+    api.fetchWeek.mockResolvedValue(
+      sampleWeek().map((item) =>
+        item.date === '2026-11-19' ? { ...item, lessons: item.lessons.slice(0, 1) } : item,
+      ),
+    );
+    const heading = await renderToday('/g/472/today');
+    expect(heading).toHaveTextContent('Пятница');
+    expect(screen.getByText(/Занятия на сегодня закончились/)).toBeInTheDocument();
+  });
+
   it('switches days through the day strip', async () => {
     await renderToday();
     fireEvent.click(screen.getByRole('button', { name: /18/ }));

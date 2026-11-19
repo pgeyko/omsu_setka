@@ -1891,3 +1891,18 @@ body.sheet-open { overflow: hidden; }
   line-height: 1.45;
 }
 .change-meta b { color: var(--ink); font-weight: 500; }
+
+.next-day-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.next-day-note .link-btn { flex: none; }
