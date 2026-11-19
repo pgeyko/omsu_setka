@@ -371,6 +371,14 @@ async function main() {
       assert.ok(await page.locator('.aside').isVisible());
       await page.locator('.wk-item').first().click();
       await page.waitForSelector('dialog.sheet[open]');
+      const dialogBox = await page.locator('dialog.sheet').evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom, width: rect.width, viewport: window.innerHeight };
+      });
+      assert.ok(dialogBox.top > 32, `modal top is ${dialogBox.top}`);
+      assert.ok(dialogBox.bottom < dialogBox.viewport - 32, `modal bottom is ${dialogBox.bottom}`);
+      assert.ok(Math.abs((dialogBox.top + dialogBox.bottom) / 2 - dialogBox.viewport / 2) < 60);
+      assert.ok(dialogBox.width <= 560);
       await page.locator('.sheet-close').click();
       await screenshot('07-desktop-week');
 

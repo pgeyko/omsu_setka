@@ -1645,6 +1645,24 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 
 body.sheet-open { overflow: hidden; }
 
+@media (min-width: 980px) {
+  .sheet {
+    margin: auto;
+    max-height: min(760px, calc(100dvh - 48px));
+    border: 1px solid var(--rule-strong);
+    border-radius: 12px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  }
+  .sheet[open] { animation: modal-in 180ms var(--ease); }
+  .sheet-head { padding: 20px 22px 14px; }
+  .sheet-scroll { padding: 0 22px 18px; }
+  .sheet-close { margin: -8px -10px 0 0; }
+  @keyframes modal-in {
+    from { transform: translateY(8px) scale(0.98); opacity: 0.7; }
+    to { transform: none; opacity: 1; }
+  }
+}
+
 @media (max-width: 1200px) and (min-width: 980px) {
   .desk-body { grid-template-columns: minmax(0, 1fr) 300px; }
   .week-wrap { padding: 16px 18px 24px; }
