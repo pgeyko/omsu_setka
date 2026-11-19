@@ -33,6 +33,39 @@ const DEFAULTS: SettingsState = {
   timezone: 'Asia/Omsk',
 };
 
+const settingsCacheKey = (groupId: number) => `setka-notification-settings-${groupId}`;
+
+function readCachedSettings(groupId: number): SettingsState | null {
+  try {
+    const raw = localStorage.getItem(settingsCacheKey(groupId));
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<SettingsState> | null;
+    if (!value || typeof value !== 'object') return null;
+    const digestTime =
+      typeof value.digestTime === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value.digestTime)
+        ? value.digestTime
+        : DEFAULTS.digestTime;
+    return {
+      changes: Boolean(value.changes),
+      digest: Boolean(value.digest),
+      digestTime,
+      reminder: Boolean(value.reminder),
+      minutes: ['15', '30', '60'].includes(String(value.minutes)) ? String(value.minutes) : DEFAULTS.minutes,
+      timezone: typeof value.timezone === 'string' && value.timezone ? value.timezone : DEFAULTS.timezone,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedSettings(groupId: number, value: SettingsState) {
+  try {
+    localStorage.setItem(settingsCacheKey(groupId), JSON.stringify(value));
+  } catch {
+    /* private mode */
+  }
+}
+
 const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
 const PERMISSION_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -83,7 +116,7 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
   );
   const [status, setStatus] = useState('Изменения сохраняются автоматически');
   const [settings, setSettings] = useState<SettingsState>(() =>
-    token ? DEFAULTS : { ...DEFAULTS, changes: false, digest: false, reminder: false },
+    readCachedSettings(groupId) ?? (token ? DEFAULTS : { ...DEFAULTS, changes: false, digest: false, reminder: false }),
   );
   const settingsRef = useRef(settings);
   const [unsubscribeStep, setUnsubscribeStep] = useState(0);
@@ -99,15 +132,17 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
 
   useEffect(() => {
     if (!remote.data) return;
-    setSettings({
+    const next: SettingsState = {
       changes: remote.data.notify_on_change,
       digest: remote.data.notify_daily_digest,
       digestTime: remote.data.digest_time || '19:00',
       reminder: remote.data.notify_before_lesson,
       minutes: String(remote.data.before_minutes || 30),
       timezone: remote.data.timezone || 'Asia/Omsk',
-    });
-  }, [remote.data]);
+    };
+    setSettings(next);
+    writeCachedSettings(groupId, next);
+  }, [remote.data, groupId]);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -185,6 +220,7 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
     const next = { ...settingsRef.current, ...patch };
     settingsRef.current = next;
     setSettings(next);
+    writeCachedSettings(groupId, next);
     setUnsubscribeStep(0);
     if ((patch.changes === true || patch.digest === true || patch.reminder === true) && !token) {
       schedulePermissionPrompt();
@@ -274,6 +310,10 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
     } catch {
       /* keep UI honest; the server may already be empty */
     }
+    const next = { ...settingsRef.current, changes: false, digest: false, reminder: false };
+    settingsRef.current = next;
+    setSettings(next);
+    writeCachedSettings(groupId, next);
     setUnsubscribeStep(2);
     setStatus('Вы отписаны от группы.');
   };
@@ -349,7 +389,9 @@ function SettingsBody({ groupId, desktop = false }: { groupId: number; desktop?:
               ? 'Уведомления заблокированы в настройках браузера.'
               : permission === 'unsupported'
                 ? 'Браузер не поддерживает уведомления.'
-                : 'Разрешение на уведомления не выдано. '}
+                : permission === 'granted'
+                  ? 'Разрешение уже выдано, но уведомления ещё не подключены. '
+                  : 'Разрешение на уведомления не выдано. '}
             {permission === 'default' ? (
               <button className="link-btn" type="button" onClick={() => void enablePush()}>
                 Разрешить в браузере
@@ -510,12 +552,12 @@ export function SettingsPage({ groupId }: { groupId: number }) {
         </header>
         <div className="desk-body is-single">
           <div className="desk-page">
-            <SettingsBody groupId={groupId} desktop />
+            <SettingsBody key={groupId} groupId={groupId} desktop />
           </div>
         </div>
       </>
     );
   }
 
-  return <SettingsBody groupId={groupId} />;
+  return <SettingsBody key={groupId} groupId={groupId} />;
 }

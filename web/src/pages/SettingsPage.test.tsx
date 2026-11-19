@@ -193,6 +193,31 @@ describe('SettingsPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
   });
 
+  it('shows a connect action when browser permission is granted but there is no token', async () => {
+    const notification = window.Notification as unknown as { permission: string };
+    const original = notification.permission;
+    notification.permission = 'granted';
+    try {
+      await renderSettings(undefined, false);
+      expect(screen.getByText(/Разрешение уже выдано/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Подключить уведомления' })).toBeInTheDocument();
+    } finally {
+      notification.permission = original;
+    }
+  });
+
+  it('keeps local notification preferences after a remount', async () => {
+    localStorage.removeItem('setka-fcm-token');
+    const first = renderRoute(<SettingsPage groupId={472} />, { route: '/g/472/settings', width: 390 });
+    const reminder = screen.getByRole('checkbox', { name: 'Напоминание перед парой' });
+    fireEvent.click(reminder);
+    await waitFor(() => expect(reminder).toBeChecked());
+    first.unmount();
+
+    renderRoute(<SettingsPage groupId={472} />, { route: '/g/472/settings', width: 390 });
+    expect(await screen.findByRole('checkbox', { name: 'Напоминание перед парой' })).toBeChecked();
+  });
+
   it('explains that notifications are off when there is no token', async () => {
     localStorage.removeItem('setka-fcm-token');
     renderRoute(<SettingsPage groupId={472} />, { route: '/g/472/settings', width: 390 });
