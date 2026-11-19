@@ -1,115 +1,47 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'inline',
-      includeAssets: [
-        'favicon.ico',
-        'apple-touch-icon.png',
-        'favicon-96x96.png',
-        'web-app-manifest-192x192.png',
-        'web-app-manifest-512x512.png',
-        'logo.svg',
-        'mask-icon.svg',
-        'notification-badge-96x96.png',
-        'icons.svg'
-      ],
-      manifest: {
-        name: 'Setka — Расписание',
-        short_name: 'Setka',
-        description: 'Легкое и быстрое расписание ОмГУ',
-        theme_color: '#0c101a',
-        background_color: '#0c101a',
-        display: 'standalone',
-        orientation: 'portrait',
-        icons: [
-          {
-            src: 'web-app-manifest-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'web-app-manifest-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: 'web-app-manifest-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
-        ],
-        shortcuts: [
-          {
-            name: 'Избранное',
-            short_name: 'Избранное',
-            description: 'Ваши сохраненные расписания',
-            url: '/',
-            icons: [{ src: 'favicon-96x96.png', sizes: '96x96' }]
-          },
-          {
-            name: 'Преподаватели',
-            short_name: 'Преп.',
-            description: 'Поиск преподавателей и их предметов',
-            url: '/tutors',
-            icons: [{ src: 'favicon-96x96.png', sizes: '96x96' }]
-          }
-        ]
-      },
+      injectRegister: null,
+      includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       workbox: {
+        globIgnores: ['firebase-messaging-sw.js'],
         runtimeCaching: [
           {
             urlPattern: /\/api\/v1\/schedule\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-schedule-cache',
+              cacheName: 'schedule',
               networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+              expiration: { maxEntries: 50, maxAgeSeconds: 604800 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
           },
           {
             urlPattern: /\/api\/v1\/(groups|tutors|auditories|search).*/i,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-meta-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
-      }
-    })
+              cacheName: 'dictionaries',
+              expiration: { maxEntries: 100, maxAgeSeconds: 604800 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
   ],
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-  envDir: '../',
   server: {
+    port: 5174,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080',
         changeOrigin: true,
-      }
-    }
-  }
-})
+      },
+    },
+  },
+});

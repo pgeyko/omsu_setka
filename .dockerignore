@@ -12,3 +12,6 @@ docs/
 .github/
 tools/
 web/node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+web/e2e/artifacts/

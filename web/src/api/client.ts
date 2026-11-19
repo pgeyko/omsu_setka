@@ -1,214 +1,179 @@
 import axios from 'axios';
+import type {
+  BFFResponse,
+  ChangesPage,
+  Day,
+  Group,
+  GroupedSearchResult,
+  HealthStatus,
+  ScheduleChange,
+  SearchResult,
+  Subscription,
+  Auditory,
+  Tutor,
+} from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
-const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || API_BASE;
+export const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
+export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || API_BASE;
 
-export const apiClient = axios.create({
-  baseURL: API_BASE,
-  timeout: 10000,
-});
+export const readClient = axios.create({ baseURL: API_BASE, timeout: 10_000 });
+export const writeClient = axios.create({ baseURL: API_ORIGIN, timeout: 10_000 });
 
-// Read requests stay on the reverse proxy; state-changing requests use the direct origin.
-export const originApiClient = axios.create({
-  baseURL: API_ORIGIN,
-  timeout: 10000,
-});
-
-export interface BFFResponse<T> {
-  success: boolean;
-  data: T;
-  cached_at: string;
-  source: 'cache' | 'upstream' | 'stale';
-  week_start?: string;
-  week_end?: string;
-  has_prev: boolean;
-  has_next: boolean;
+function errorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const payload = error.response?.data as { error?: string; message?: string } | undefined;
+    return payload?.error || payload?.message || error.message;
+  }
+  return 'Не удалось выполнить запрос';
 }
 
-export interface Group {
-  id: number;
-  real_group_id: string;
-  faculty_id: number;
-  label: string;
+export { errorMessage };
+
+const unwrap = <T,>(response: { data: BFFResponse<T> }): T => response.data.data;
+
+export async function search(query: string, type: string): Promise<SearchResult[] | GroupedSearchResult> {
+  const response = await readClient.get<BFFResponse<SearchResult[] | GroupedSearchResult>>('/search', {
+    params: { q: query, type, limit: 20 },
+  });
+  return unwrap(response);
 }
 
-export interface Tutor {
-  id: number;
-  name: string;
+export async function fetchGroups(): Promise<Group[]> {
+  return unwrap(await readClient.get<BFFResponse<Group[]>>('/groups'));
 }
 
-export interface Auditory {
-  id: number;
-  name: string;
+export async function fetchTutors(): Promise<Tutor[]> {
+  return unwrap(await readClient.get<BFFResponse<Tutor[]>>('/tutors'));
 }
 
-export interface Lesson {
-  id: number;
-  time: number;
-  faculty: string;
-  lesson: string;
-  type_work: string;
-  teacher: string;
-  group: string;
-  auditCorps: string;
-  publishDate: string;
-  subgroupName?: string;
+export async function fetchAuditories(): Promise<Auditory[]> {
+  return unwrap(await readClient.get<BFFResponse<Auditory[]>>('/auditories'));
 }
 
-export interface Day {
-  day: string;
-  lessons: Lesson[];
+export async function fetchTutor(id: number): Promise<Tutor> {
+  return unwrap(await readClient.get<BFFResponse<Tutor>>(`/tutors/${id}`));
 }
 
-export const TIME_SLOTS: Record<number, { start: string; end: string }> = {
-  1: { start: '08.45', end: '10.20' },
-  2: { start: '10.30', end: '12.05' },
-  3: { start: '12.45', end: '14.20' },
-  4: { start: '14.30', end: '16.05' },
-  5: { start: '16.15', end: '17.50' },
-  6: { start: '18.00', end: '19.35' },
-  7: { start: '19.45', end: '21.20' },
-  8: { start: '21.30', end: '23.05' },
-};
-
-export interface SearchResult {
-  id: number;
-  name: string;
-  type: 'group' | 'tutor' | 'auditory';
-  real_group_id?: number;
-  building?: string;
+export async function fetchAuditory(id: number): Promise<Auditory> {
+  return unwrap(await readClient.get<BFFResponse<Auditory>>(`/auditories/${id}`));
 }
 
-export interface GroupedSearchResult {
-  groups: SearchResult[];
-  tutors: SearchResult[];
-  auditories: SearchResult[];
+export async function fetchWeek(
+  type: 'group' | 'tutor' | 'auditory',
+  id: number,
+  weekStart: string,
+): Promise<Day[]> {
+  const response = await readClient.get<BFFResponse<Day[]>>(`/schedule/${type}/${id}`, {
+    params: { week_start: weekStart },
+  });
+  return unwrap(response);
 }
 
-export const fetchSearch = async (query: string, type: string = 'all'): Promise<SearchResult[] | GroupedSearchResult> => {
-  const { data } = await apiClient.get<BFFResponse<SearchResult[] | GroupedSearchResult>>(`/search?q=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}`);
-  return data.data;
-};
-
-export const fetchSchedule = async (type: string, id: number, weekStart?: string): Promise<BFFResponse<Day[]>> => {
-  const url = `/schedule/${type}/${id}${weekStart ? `?week_start=${weekStart}` : ''}`;
-  const { data } = await apiClient.get<BFFResponse<Day[]>>(url);
-  return data;
-};
-
-export const fetchScheduleDay = async (type: string, id: number, date: string): Promise<BFFResponse<Day[]>> => {
-  const { data } = await apiClient.get<BFFResponse<Day[]>>(`/schedule/${type}/${id}/day?date=${date}`);
-  return data;
-};
-
-
-export const fetchTutors = async (): Promise<Tutor[]> => {
-  const { data } = await apiClient.get<BFFResponse<Tutor[]>>('/tutors');
-  return data.data;
-};
-
-export const fetchHealth = async (): Promise<HealthData> => {
-  const { data } = await apiClient.get<BFFResponse<HealthData>>('/health');
-  return data.data;
-};
-
-export const onRateLimit = (callback: (retryAfter: string) => void) => {
-  const handleError = (error: unknown) => {
-    if (axios.isAxiosError(error) && error.response?.status === 429) {
-      const retryAfter = error.response.data?.retry_after || '1m';
-      callback(retryAfter);
-    }
-    return Promise.reject(error);
-  };
-
-  apiClient.interceptors.response.use(response => response, handleError);
-  originApiClient.interceptors.response.use(response => response, handleError);
-};
-
-export interface UpstreamStatus {
-  healthy: boolean;
-  last_success?: string;
-  last_fail?: string;
-  last_error?: string;
-  consecutive_failures: number;
-  total_failures: number;
+export async function fetchScheduleDay(
+  type: 'group' | 'tutor' | 'auditory',
+  id: number,
+  date: string,
+): Promise<Day[]> {
+  return unwrap(
+    await readClient.get<BFFResponse<Day[]>>(`/schedule/${type}/${id}/day`, { params: { date } }),
+  );
 }
 
-export interface HealthData {
-  status: string;
-  uptime: string;
-  upstream: UpstreamStatus;
-  last_sync: {
-    dictionaries: string;
-    schedules: string;
-  };
-  cache: {
-    hits: number;
-    misses: number;
-    item_count: number;
-  };
-}
-
-export interface Incident {
-  id: number;
-  event_type: 'down' | 'up' | 'error' | 'slow';
-  message: string;
-  error_text?: string;
-  created_at: string;
-}
-
-export interface NotificationSettings {
-  notify_on_change: boolean;
-  notify_daily_digest: boolean;
-  digest_time: string;
-  timezone?: string;
-  fcm_token?: string | null;
-  entity_type?: string;
+export interface ChangesParams {
+  entity_type?: 'group' | 'tutor' | 'auditory';
   entity_id?: number;
   subgroup?: string;
-  notify_before_lesson?: boolean;
-  before_minutes?: number;
+  limit?: number;
+  before_id?: number;
+  since?: string;
+  scope?: 'all';
 }
 
-export const fetchIncidents = async (limit: number = 50, offset: number = 0): Promise<Incident[]> => {
-  const { data } = await apiClient.get<BFFResponse<Incident[]>>(`/incidents?limit=${limit}&offset=${offset}`);
-  return data.data;
-};
+export async function fetchChanges(params: ChangesParams): Promise<ChangesPage> {
+  return unwrap(await readClient.get<BFFResponse<ChangesPage>>('/changes', { params }));
+}
 
-export const fetchChanges = async (type: string, id: number): Promise<unknown[]> => {
-  const { data } = await apiClient.get<BFFResponse<unknown[]>>(`/changes/${type}/${id}`);
-  return data.data;
-};
+export async function fetchLegacyChanges(
+  type: 'group' | 'tutor' | 'auditory',
+  id: number,
+): Promise<ScheduleChange[]> {
+  return unwrap(await readClient.get<BFFResponse<ScheduleChange[]>>(`/changes/${type}/${id}`));
+}
 
-export const subscribeToNotifications = async (token: string, type: string, id: number, subgroup?: string) => {
-  const { data } = await originApiClient.post('/subscribe', {
+export async function fetchNotificationSettings(
+  token: string,
+  type: 'group' | 'tutor' | 'auditory',
+  id: number,
+): Promise<Subscription | null> {
+  try {
+    const response = await readClient.get<Subscription>(`/notifications/settings/${type}/${id}`, {
+      headers: { 'X-FCM-Token': token },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function patchNotificationSettings(
+  token: string,
+  type: 'group' | 'tutor' | 'auditory',
+  id: number,
+  patch: Partial<Omit<Subscription, 'fcm_token' | 'entity_type' | 'entity_id'>>,
+): Promise<void> {
+  await writeClient.patch('/notifications/settings', {
     fcm_token: token,
     entity_type: type,
     entity_id: id,
+    ...patch,
+  });
+}
+
+export interface SubscribeOptions {
+  notify_on_change?: boolean;
+  notify_daily_digest?: boolean;
+  digest_time?: string;
+  notify_before_lesson?: boolean;
+  before_minutes?: number;
+  timezone?: string;
+}
+
+export async function subscribe(
+  token: string,
+  type: 'group' | 'tutor' | 'auditory',
+  id: number,
+  subgroup: string,
+  options: SubscribeOptions = {},
+): Promise<void> {
+  await writeClient.post('/subscribe', {
+    fcm_token: token,
+    entity_type: type,
+    entity_id: id,
+    subgroup,
     notify_on_change: true,
-    subgroup: subgroup || ""
+    notify_daily_digest: true,
+    digest_time: '19:00',
+    ...options,
   });
-  return data;
-};
+}
 
-export const unsubscribeFromNotifications = async (token: string, type: string, id: number) => {
-  const { data } = await originApiClient.post('/unsubscribe', {
+export async function unsubscribe(token: string, type: 'group' | 'tutor' | 'auditory', id: number): Promise<void> {
+  await writeClient.post('/unsubscribe', {
     fcm_token: token,
     entity_type: type,
     entity_id: id,
   });
-  return data;
-};
-export const getNotificationSettings = async (token: string, type: string, id: number): Promise<NotificationSettings> => {
-  const { data } = await apiClient.get<NotificationSettings>(`/notifications/settings/${type}/${id}`, {
-    headers: {
-      'X-FCM-Token': token,
-    },
-  });
-  return data;
-};
+}
 
-export const updateNotificationSettings = async (settings: NotificationSettings) => {
-  const { data } = await originApiClient.patch('/notifications/settings', settings);
-  return data;
-};
+export async function fetchSubscriptions(token: string): Promise<Subscription[]> {
+  return unwrap(
+    await readClient.get<BFFResponse<Subscription[]>>('/subscriptions', {
+      headers: { 'X-FCM-Token': token },
+    }),
+  );
+}
+
+export async function fetchHealth(): Promise<HealthStatus> {
+  return unwrap(await readClient.get<BFFResponse<HealthStatus>>('/health'));
+}

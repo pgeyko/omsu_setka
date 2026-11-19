@@ -1662,7 +1662,7 @@ body.sheet-open { overflow: hidden; }
   .subject { font-size: 15px; }
 }
 
-/* ============ runtime states (web-next) ============ */
+/* ============ runtime states (web) ============ */
 
 .screen-loading {
   min-height: 100dvh;

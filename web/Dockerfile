@@ -4,8 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Копируем конфиги npm из папки web
-COPY web/package.json web/package-lock.json* ./
-RUN npm install --legacy-peer-deps
+COPY web/package.json web/package-lock.json ./
+RUN npm ci --legacy-peer-deps
 
 # Передаем переменные окружения через build-args вместо копирования .env
 # Это предотвращает попадание секретов в слои образа
@@ -41,8 +41,8 @@ ENV VITE_FIREBASE_VAPID_KEY=$VITE_FIREBASE_VAPID_KEY
 # Копируем исходники фронтенда из папки web
 COPY web/ .
 
-# Запускаем сборку. npm run build включает eslint, tests и production build.
-RUN npm run build
+# Production-сборка и проверка PWA-артефактов (тесты гоняет CI).
+RUN npm run build && npm run test:build
 
 # Инъекция секретов в Service Worker (который лежит в public и копируется в dist без обработки Vite)
 RUN sed -i "s/VITE_FIREBASE_API_KEY/$VITE_FIREBASE_API_KEY/g" dist/firebase-messaging-sw.js && \

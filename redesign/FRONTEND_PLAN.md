@@ -378,13 +378,13 @@ URL — источник истины для group/day/week; Zustand — для 
 
 ## 15. Миграция и выкатка
 
-1. Новый фронтенд разрабатывается в `web-next/`, `web/` остаётся рабочим и
-   откатным.
+1. Новый фронтенд разработан в `web-next/` и перенесён в `web/` (выполнено);
+   до мерджа откат — предыдущий коммит `main`.
 2. На staging `new.s.pgeyko.ru`; CORS добавить домен.
 3. Проверить PWA/старый SW: новый scope, очистка старых кэшей.
-4. **Перед мерджем в `main` заменить содержимое `web/` на новый фронтенд.**
-   CI и Dockerfile не меняются: workflow собирает `web/`, Dockerfile делает
-   `COPY web/` и подставляет Firebase-ключи в `dist/firebase-messaging-sw.js`.
+4. **Выполнено:** содержимое `web/` заменено новым фронтендом. Workflow
+   собирает `web/`, Dockerfile делает `COPY web/` и подставляет
+   Firebase-ключи в `dist/firebase-messaging-sw.js`.
 5. Сохранить `web/public/firebase-messaging-sw.js` и
    `web/src/utils/firebase.ts` — worker уже рабочий, путь и имя менять нельзя.
 6. Редиректы старых URL и миграция localStorage при первом запуске.
@@ -431,9 +431,9 @@ P1 API. Буфер на визуальную полировку — 20%.
 - Настройки сохраняются частичным PATCH; push учитывает подгруппу/пояс.
 - Offline показывает кэш и баннер; нет горизонтального скролла.
 - Visual/a11y/e2e/perf-прогоны зелёные; старые URL редиректят.
-- `web-next` заменяет **содержимое `web/`** перед мерджем в `main`; Dockerfile и CI не меняются.
-- В новом `web/package.json` сохранить контракт `npm run build`:
-  lint → test → tsc → vite build. Dockerfile и CI вызывают именно его.
+- `web-next` перенесён в **`web/`**; Dockerfile собирает production-образ из `web/`.
+- `web/package.json`: `npm run build` = `tsc -b && vite build`; тесты
+  (`npm test`) и проверка PWA (`npm run test:build`) — отдельные шаги CI.
 - Node в CI/Docker — 20; не использовать API, которых нет в Node 20.
 
 ## 19. Спринты

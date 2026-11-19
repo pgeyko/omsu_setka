@@ -19,7 +19,7 @@ const APP_PORT = Number(process.env.E2E_REAL_APP_PORT || 15175);
 const BASE = `http://127.0.0.1:${APP_PORT}`;
 
 function findChromium() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
   for (const name of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']) {
     const probe = spawnSync('which', [name], { encoding: 'utf8' });
     if (probe.status === 0 && probe.stdout.trim()) return probe.stdout.trim();

@@ -1,4 +1,4 @@
-// Browser smoke tests for web-next.
+// Browser smoke tests for the frontend.
 // Starts the deterministic mock API and the Vite dev server, freezes the page
 // clock to 2026-11-19T09:00 and walks through the main user flows.
 import assert from 'node:assert/strict';
@@ -17,7 +17,7 @@ const BASE = `http://127.0.0.1:${APP_PORT}`;
 const ARTIFACTS = join(ROOT, 'e2e', 'artifacts');
 
 function findChromium() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
   for (const name of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']) {
     const probe = spawnSync('which', [name], { encoding: 'utf8' });
     if (probe.status === 0 && probe.stdout.trim()) return probe.stdout.trim();
@@ -145,7 +145,7 @@ async function screenshot(name) {
 }
 
 async function main() {
-  console.log(`\nweb-next e2e → ${BASE}`);
+  console.log(`\nfrontend e2e → ${BASE}`);
   const mock = start(['e2e/mock-server.mjs', String(MOCK_PORT)]);
   const vite = start(
     ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(APP_PORT), '--strictPort'],
