@@ -1,61 +1,161 @@
-# omsu_setka (Setka)
+# сетка — расписание ОмГУ
 
-🌐 https://s.pgeyko.ru
+Зеркало расписания ОмГУ им. Ф. М. Достоевского с мгновенной отдачей из кэша,
+историей замен, push-уведомлениями и устанавливаемым PWA-интерфейсом.
 
-Высокопроизводительное зеркало-кэш расписания ОмГУ им. Ф.М. Достоевского. Проект обеспечивает мгновенный доступ к расписанию даже при нестабильной работе или недоступности оригинального сервера университета.
+**Публичный инстанс:** <https://s.pgeyko.ru> · **Короткая ссылка:**
+`https://s.pgeyko.ru/g/15103`
 
-## Зачем это нужно?
+[![Расписание на неделю, десктоп](docs/screenshots/week-desktop.png)](docs/screenshots/week-desktop.png)
 
-Оригинальный сервер расписания часто испытывает высокие нагрузки, имеет задержки в ответах и не всегда удобен для использования с мобильных устройств. `omsu_setka` решает эти проблемы за счет:
-- **Скорости**: Ответы из кэша отдаются за доли миллисекунды.
-- **Доступности**: Система работает в режиме PWA, позволяя просматривать кэшированное расписание без интернета.
-- **Удобства**: Современный интерфейс в стиле Glassmorphism, адаптированный под любые экраны.
-- **Интеллекта**: Умная фоновая синхронизация обновляет только «горячие» расписания, не создавая лишней нагрузки на сервер вуза.
+| Сегодня | Неделя | Тёмная тема |
+|---|---|---|
+| <img src="docs/screenshots/today-mobile.png" width="260" alt="Экран «Сегодня»"> | <img src="docs/screenshots/week-mobile.png" width="260" alt="Экран «Неделя»"> | <img src="docs/screenshots/today-mobile-dark.png" width="260" alt="Тёмная тема"> |
 
-## Ключевые возможности
+_Скриншоты сняты с production-инстанса; данные — реальное расписание группы
+МБС-501-О-01._
 
-- 🚀 **Субмиллисекундная задержка**: Трехуровневое кэширование (Память -> SQLite -> Upstream).
-- 🔍 **Мгновенный поиск**: Автодополнение по группам, преподавателям и аудиториям через In-memory Trie.
-- 📱 **PWA Ready**: Установка на телефон как нативное приложение с поддержкой офлайн-режима.
-- 🌓 **Темная и светлая темы**: Адаптивный дизайн с мягкими эффектами стекла.
-- 📅 **Умное расписание**: Поддержка подгрупп, выделение типов занятий цветом и автоматические заглушки для «окон».
-- 🛠 **Мониторинг**: Встроенная система отслеживания инцидентов и здоровья оригинального сервера.
+## Зачем это нужно
 
-## Технологический стек
+Официальный сервер расписания периодически перегружен и медленно отвечает,
+особенно с мобильного. «Сетка» скачивает расписание в фоне, хранит его в
+SQLite и отдаёт из памяти за доли миллисекунды — даже если источник недоступен.
+Интерфейс оптимизирован под сценарий «стою в коридоре, надо за пару секунд
+понять, что сейчас и где».
 
-- **Backend**: Go 1.22, Fiber v2, SQLite (pure Go), fasthttp, zerolog.
-- **Frontend**: React 19, TypeScript, Vite, Zustand, React Query, Framer Motion.
-- **DevOps**: Docker, Docker Compose, Multi-stage builds.
+## Возможности
 
-## Экосистема
+- **Сегодня и неделя** — блок «сейчас» с прогрессом пары, следующие и уже
+  прошедшие занятия; на десктопе — сетка недели с панелью дня.
+- **Умный день** — после 18:00 или когда все пары закончились, экран сам
+  показывает следующий учебный день (в воскресенье — понедельник); можно
+  вернуться к сегодняшнему одним нажатием.
+- **Замены** — история `added/removed/modified` с diff'ом по полям, лента
+  «моя группа / все группы», пометки на парах.
+- **Поиск** — группы, преподаватели и аудитории по префиксу, с недавними
+  запросами и избранным.
+- **Подгруппы** — фильтр расписания и уведомлений, запоминается локально.
+- **Уведомления** — push об изменениях, вечерний дайджест на следующий день и
+  напоминание перед парой (FCM; настраивается в приложении).
+- **PWA и офлайн** — установка на телефон, кэш расписания, офлайн-баннер с
+  временем последних данных, тёмная и светлая темы.
+- **Короткие ссылки** — `/g/<id>` сам открывает `today` на телефоне и `week`
+  на десктопе, а Telegram получает превью с названием группы и картинкой.
+- **Экспорт** — iCal для группы, преподавателя и аудитории.
+- **Интеграция с omsu_bot** — HMAC-подписанные вебхуки об изменениях.
 
-`omsu_setka` интегрирован с **omsu_bot (GroupBot)** — Telegram-ботом для студенческих групп. При обнаружении изменений в расписании `omsu_setka` отправляет вебхук с HMAC-подписью в `omsu_bot`, который анонсирует изменения в соответствующих чатах.
+## Как это устроено
 
-Интеграция работает в одну сторону через HTTP:
-- `omsu_setka` → `omsu_bot`: уведомления об изменениях расписания (POST).
-- `omsu_bot` → `omsu_setka`: регистрация вебхука при старте (POST/PUT через Admin API).
+```text
+PWA (React) ──HTTPS──▶ reverse proxy ──▶ frontend (nginx) ──/api──▶ backend (Go)
+                                                             │
+                                         L1 sync.Map + JSON  │
+                                         L2 SQLite (WAL)     │
+                                         L3 upstream ────────┘
+```
 
-Для reverse proxy-размещения GET/HEAD-запросы frontend направляет на reverse proxy-домен, а
-OPTIONS и изменяющие запросы (POST/PUT/PATCH/DELETE) — на отдельный origin-домен
-без reverse proxy.
+- Backend синхронизирует только «горячие» расписания (запрошенные за последние
+  24 часа); остальные подгружаются лениво.
+- Ответы кэшируются на трёх уровнях: память → SQLite → upstream.
+- Справочники индексируются в памяти (trie), поиск не ходит в БД.
+- Деплой — два контейнера: nginx со статикой и Go-сервис во внутренней сети.
 
-Управление вебхуками — через Admin API (`/api/v1/admin/webhooks`). Подробнее в [docs/ADMIN_GUIDE.md](./docs/ADMIN_GUIDE.md).
+Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Быстрый запуск
+## Стек
 
-Для сборки и запуска всего проекта (фронтенд + бэкенд) одной командой используйте:
+| Слой | Технологии |
+|---|---|
+| Backend | Go 1.23, Fiber v2, SQLite (`modernc.org/sqlite`, WAL), zerolog, Swagger |
+| Frontend | React 19, TypeScript, Vite 8, React Router 7, TanStack Query 5, Zustand 5, vanilla CSS, lucide-react |
+| PWA | vite-plugin-pwa / Workbox, Firebase Messaging |
+| Анимации | нативные View Transitions API + CSS (без animation-библиотек) |
+| Инфраструктура | Docker, GitHub Actions, GHCR, nginx, Cloudflare reverse proxy |
+
+## Быстрый старт
+
+### Всё одной командой
 
 ```bash
-./run.sh
+git clone https://github.com/pgeyko/omsu_setka.git
+cd setka
+./run.sh          # тесты → сборка web → сборка backend → запуск на :8080
 ```
+
+### Раздельно (hot-reload)
+
+```bash
+# backend
+cd core
+go run ./cmd/server/main.go
+
+# frontend (в другом терминале)
+cd web
+npm ci --legacy-peer-deps
+npm run dev       # http://127.0.0.1:5174, /api проксируется на :8080
+```
+
+### Docker
+
+```bash
+cp .env.example .env    # заполните ADMIN_KEY и CORS_ALLOWED_ORIGINS
+
+docker compose up --build                                # только backend
+docker compose -f docker-compose.local.yml up --build    # backend + frontend
+```
+
+Production на server: `docker compose -f docker-compose.deploy.yml up -d`
+(используется CI, наружу смотрит только frontend).
+
+## Тесты
+
+```bash
+cd core && go vet ./... && go test ./...   # backend
+cd web  && npm test                        # 146 unit/component
+cd web  && npm run build && npm run test:build
+cd web  && npm run test:e2e                # 18 браузерных сценариев
+```
+
+CI дополнительно запускает `go test -race`, gitleaks и E2E с мок-API.
+
+## Конфигурация
+
+Все настройки — переменные окружения, шаблон с комментариями:
+[`.env.example`](.env.example). В production обязательны `ADMIN_KEY` и
+`CORS_ALLOWED_ORIGINS` без `*`.
+
+Для реальных push-уведомлений нужны `VITE_FIREBASE_*` (build-args фронтенда) и
+`FIREBASE_SERVICE_ACCOUNT` (backend). Без них интерфейс настроек работает, но
+FCM-токен не выдаётся.
 
 ## Документация
 
-Подробные инструкции по разработке, настройке и поддержке компонентов проекта находятся в директории `docs`:
+- [docs/README.md](docs/README.md) — карта документации и быстрые факты.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — архитектура, кэш, БД, API,
+  синхронизация, уведомления, вебхуки.
+- [docs/core/DEVELOPMENT.md](docs/core/DEVELOPMENT.md) — backend.
+- [docs/web/DEVELOPMENT.md](docs/web/DEVELOPMENT.md) — frontend.
+- [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) — Admin CLI и мониторинг.
+- [docs/COOLIFY.md](docs/COOLIFY.md) — деплой в Coolify.
+- [docs/UPSTREAM_API.md](docs/UPSTREAM_API.md) — API ОмГУ, который парсит backend.
+- [docs/DESIGN.md](docs/DESIGN.md) — визуальная система.
 
-- 📖 **[Общая документация по проекту](./docs/README.md)**
-- ⚙️ **[Разработка и поддержка ядра (Backend)](./docs/core/DEVELOPMENT.md)**
-- 🎨 **[Разработка и поддержка интерфейса (Web)](./docs/web/DEVELOPMENT.md)**
+## Структура репозитория
 
----
-Проект разработан с фокусом на минимальное потребление ресурсов: RAM < 50MB, CPU ~0% в режиме ожидания.
+```text
+core/          Go-сервис: API, кэш, SQLite, sync, уведомления, вебхуки
+web/           React-PWA: экраны, стили, service worker, E2E
+docs/          документация и скриншоты
+.github/       CI/CD (тесты, сборка, деплой)
+admin.sh       Admin CLI (health, sync, incidents, logs, restart)
+run.sh         локальные тесты и сборка
+tools/         нагрузочный тест API
+```
+
+## Экосистема
+
+Изменения расписания уходят в **omsu_bot (GroupBot)** по HTTP с
+HMAC-SHA256-подписью (`X-Webhook-Signature`, `X-Webhook-Timestamp`,
+`X-Webhook-Event-ID`). Бот регистрирует себя через
+`/api/v1/admin/webhooks`. Контракт описан в
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#вебхуки).

@@ -1,8 +1,7 @@
 # web — фронтенд «сетки»
 
-Реализация редизайна из `../redesign/` на реальном API. Это production-папка
-фронтенда: её собирает `web/Dockerfile`, CI проверяет тесты и PWA, а nginx
-проксирует `/api` на backend.
+Production-фронтенд «сетки» на реальном API. Его собирает `web/Dockerfile`,
+CI проверяет тесты и PWA, а nginx проксирует `/api` на backend.
 
 ## Стек
 
@@ -11,7 +10,7 @@
 - TanStack Query 5 — кэш и повторные запросы
 - Zustand 5 + `persist` — группа, подгруппа, тема, избранное, недавние
 - Axios — клиент BFF (`/api/v1`)
-- Vanilla CSS — `src/styles/app.css` (копия `redesign/style.css`)
+- Vanilla CSS — `src/styles/app.css` (токены и компоненты)
 - Firebase Messaging — существующий воркер `public/firebase-messaging-sw.js`
 - `vite-plugin-pwa` — манифест и офлайн-кэш расписания
 

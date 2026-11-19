@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Configuration
-CONTAINER_NAME="omsu_mirror_backend"
+CONTAINER_NAME="${CONTAINER_NAME:-omsu_setka_backend}"
 ENV_FILE=".env"
 
 # Colors
@@ -30,6 +30,14 @@ fi
 
 if [ -z "$ADMIN_KEY" ]; then
     echo -e "${YELLOW}Warning: ADMIN_KEY not found. Actions requiring auth may fail.${NC}"
+fi
+
+# Outside Docker: support both the current production container name and the
+# legacy one used by older compose projects.
+if [ "$INSIDE_DOCKER" -eq 0 ] && ! docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+    if docker container inspect omsu_mirror_backend >/dev/null 2>&1; then
+        CONTAINER_NAME="omsu_mirror_backend"
+    fi
 fi
 
 # Helper: Curl
@@ -81,7 +89,12 @@ case "$1" in
             exit 1
         fi
         echo -e "${YELLOW}Restarting all services...${NC}"
-        docker compose restart
+        project=$(docker container inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$CONTAINER_NAME" 2>/dev/null || true)
+        if [ -f docker-compose.deploy.yml ] && [ "$project" = "setka" ]; then
+            docker compose -f docker-compose.deploy.yml -p setka restart
+        else
+            docker compose restart
+        fi
         ;;
     help|*)
         echo -e "${GREEN}omsu_setka Admin CLI${NC}"

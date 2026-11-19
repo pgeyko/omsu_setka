@@ -1,221 +1,136 @@
 # Agent Instructions: omsu_setka
 
-This file is the canonical project instruction entrypoint for coding agents.
-Codex reads `AGENTS.md` directly. Claude and Gemini should read their root
-entrypoints (`CLAUDE.md` and `GEMINI.md`), which delegate back to this file and
-the shared `.agents/` registry.
+Canonical project instructions for coding agents working in this repository.
+If a tool-specific instruction conflicts with this file, this file wins for
+project conventions; system and user instructions always come first.
 
 ## Project Overview
 
-`omsu_setka` is a high-performance BFF (Backend-for-Frontend) that mirrors and
-caches the Omsu University schedule. The main targets are low resource usage
-(RAM below 50 MB, near-idle CPU), sub-millisecond cached responses, and
-background synchronization that reduces load on the upstream Omsu server.
+`omsu_setka` («сетка») is a high-performance BFF that mirrors the Omsu
+University schedule. It keeps a multi-level cache (pre-rendered JSON in memory,
+SQLite, upstream), syncs only hot schedules in the background, and serves a
+React PWA with a week grid, changes feed, push notifications and iCal export.
+Public instance: <https://s.pgeyko.ru>.
 
-## Instruction Precedence
+## Layout
 
-When instructions conflict, use this order:
+- `core/` — Go 1.23 backend: `cmd/server`, `internal/{api,cache,storage,sync,
+  upstream,notifications,webhook,diff,models,config}`.
+- `web/` — React 19 + TypeScript + Vite 8 PWA; vanilla CSS, no Tailwind.
+- `docs/` — architecture, component guides, admin/deploy docs, screenshots.
+- `.github/workflows/ci.yml` — tests, image build, deploy to server.
+- `admin.sh`, `run.sh`, `tools/` — operations and local helpers.
 
-1. System and tool/runtime instructions from the active agent.
-2. Task-specific user instructions.
-3. This `AGENTS.md` file.
-4. `.agents/README.md` and `.agents/manifest.json`.
-5. Relevant files in `.agents/skills/`.
-
-If a skill mentions tooling or style that conflicts with this repository, follow
-the repository rule. For example, frontend styling uses Vanilla CSS, not
-Tailwind, even if a generic frontend skill mentions Tailwind.
-
-## Shared Agent Structure
-
-- `AGENTS.md` - canonical instructions for Codex and model-neutral behavior.
-- `CLAUDE.md` - Claude-compatible entrypoint; delegates to this file.
-- `GEMINI.md` - Gemini-compatible entrypoint; delegates to this file.
-- `.agents/README.md` - shared registry and usage rules for all agents.
-- `.agents/manifest.json` - machine-readable skill registry.
-- `.agents/skills/*.md` - reusable skills grouped by backend, frontend,
-  infrastructure, and standards.
-
-Do not duplicate skill bodies into model-specific directories. Keep shared
-instructions in `.agents/` and make model-specific files thin adapters.
-
-## Mandatory Skills
-
-Before development work, load and follow the relevant skills from
-`.agents/skills/`. For broad feature work, load all skills in the applicable
-category plus `lint-and-validate`.
-
-Backend and API:
-
-- `golang-pro`
-- `sql-pro`
-- `api-endpoint-builder`
-- `api-documentation`
-- `performance-optimizer`
-
-Frontend:
-
-- `senior-frontend`
-- `typescript-expert`
-- `zustand-store-ts`
-- `tanstack-query-expert`
-- `ui-ux-pro-max`
-- `frontend-design`
-- `progressive-web-app`
-
-Infrastructure:
-
-- `firebase-basics` for FCM or Firebase work
-- `docker-expert`
-- `bash-pro`
-
-Standards:
-
-- `lint-and-validate` after every code change
-- `writing-plans` for multi-step implementation plans
-- `blueprint` for multi-session or multi-PR work
-- `commit` for any git commit
-
-## Ecosystem Integration
-
-`omsu_setka` integrates with **omsu_bot** (Telegram бот GroupBot) через вебхук-систему:
-
-- **omsu_setka → omsu_bot**: `POST` на URL подписчика с HMAC-подписанным payload при изменениях расписания.
-- **omsu_bot → omsu_setka**: `POST /api/v1/admin/webhooks` (или `PUT /api/v1/admin/webhooks/by-url`) для регистрации/обновления подписки.
-
-Оба проекта находятся в отдельных репозиториях. Интеграция — только через HTTP.
-
-### Webhook Contract
-
-| Аспект | Детали |
-|---|---|
-| Метод | `POST` (на URL подписчика) |
-| Content-Type | `application/json` |
-| Подпись | HMAC-SHA256, заголовок `X-Webhook-Signature` |
-| Защита от повторов | `X-Webhook-Timestamp` + `X-Webhook-Event-ID` |
-| Retry | 3 попытки с задержкой 5с (настраивается) |
-| Payload | `{"type":"change","group_id":<int>,"entity_type":"group","entity_id":<int>,"event_id":"<hex>","occurred_at":"<RFC3339>","changes":[...]}` |
-
-При изменении контракта синхронизируйте изменения в обоих проектах (`omsu_setka/core/internal/webhook/notifier.go` ↔ `omsu_bot/internal/handler/handler_webhook.go`).
-
-## Architecture
-
-The project follows a tiered architecture:
-
-- Frontend: React, TypeScript, Vite, PWA support, Vanilla CSS.
-- Backend: Go with Fiber v2 providing a REST API.
-- Storage:
-  - L1 memory cache using `sync.Map` and pre-rendered JSON blobs.
-  - L2 persistent SQLite in WAL mode using a pure-Go driver.
-  - L3 upstream Omsu API accessed through background sync.
-- Search: in-memory prefix tree (Trie) for autocomplete of groups, tutors, and
-  auditories.
-- Notifications:
-  - Firebase Cloud Messaging for push notifications to users.
-  - Webhook notifier for external integrations (omsu_bot Telegram bot).
+Read `docs/ARCHITECTURE.md` before changing caching, sync, diff or webhooks.
+Component guides: `docs/core/DEVELOPMENT.md`, `docs/web/DEVELOPMENT.md`.
+Frontend details: `web/README.md`.
 
 ## Development Commands
 
-Prerequisites:
-
-- Go 1.22 or newer.
-- Node.js 24 or newer with npm.
-- Docker and Docker Compose for container workflows.
-
-One-step run:
-
 ```bash
+# backend
+cd core
+go vet ./...
+go test ./...
+
+# frontend
+cd web
+npm test
+npm run build
+npm run test:build     # dist/PWA artifact check
+npm run test:e2e       # Playwright + mock API
+
+# everything (tests, build, run server on :8080)
 ./run.sh
 ```
 
-Backend development:
+Run the narrowest relevant check after every change. If a command cannot run,
+report the exact blocker instead of skipping silently.
 
-```bash
-cd core
-go run ./cmd/server/main.go
-```
+## Ecosystem Integration
 
-Frontend development:
+`omsu_setka` integrates with **omsu_bot** (Telegram GroupBot) through HTTP
+webhooks.
 
-```bash
-cd web
-npm install
-npm run dev
-```
+- `omsu_setka → omsu_bot`: `POST` to a subscriber URL with an HMAC-signed
+  payload when the schedule changes.
+- `omsu_bot → omsu_setka`: `POST /api/v1/admin/webhooks` (or
+  `PUT /api/v1/admin/webhooks/by-url`) to register a subscription.
 
-Docker:
+Contract:
 
-```bash
-docker-compose up --build
-```
+| Aspect | Detail |
+|---|---|
+| Method | `POST`, `application/json` |
+| Signature | HMAC-SHA256, `X-Webhook-Signature` over `timestamp.body` |
+| Replay protection | `X-Webhook-Timestamp` + `X-Webhook-Event-ID` |
+| Retries | 3 attempts, 5s delay (configurable) |
+| Payload | `{"type":"change","group_id":…,"entity_type":"group","entity_id":…,"event_id":"…","occurred_at":"…","changes":[…]}` |
 
-## Validation
-
-Run the narrowest relevant validation after every code change.
-
-Backend:
-
-```bash
-cd core
-go test ./...
-```
-
-Frontend:
-
-```bash
-cd web
-npm run lint
-npm run build
-```
-
-If a command cannot run because dependencies or tools are unavailable, report
-the exact blocker and the command attempted.
+When changing the contract, update both sides:
+`core/internal/webhook/notifier.go` ↔ `omsu_bot/internal/handler/handler_webhook.go`.
 
 ## Backend Conventions
 
-- Keep hot paths allocation-conscious.
-- Prefer pre-rendered JSON blobs (`[]byte`) for cached schedule responses.
-- Store and serve gzipped content directly when the client supports it.
-- Use structured `zerolog` logging.
-- Use environment variables for configuration.
-- Preserve the schedule diff engine and `schedule_changes` history semantics.
-- Webhook payloads use HMAC-SHA256 with timestamp-signed body for replay protection.
-- Webhook subscribers are idempotent (upsert by URL) to prevent duplicates on restart.
-- Use parameterized SQL and validate schema/index changes against SQLite.
+- Keep hot paths allocation-conscious: cached GETs must not re-serialize.
+- Prefer pre-rendered JSON blobs and gzip for cached schedule responses.
+- Use `zerolog` structured logging; never log FCM tokens, `ADMIN_KEY` or
+  service-account contents.
+- All upstream calls go through `internal/upstream` (timeouts, rate limit,
+  incident logging).
+- Preserve diff semantics and `schedule_changes` history: notifications, the
+  changes feed and webhooks depend on it.
+- Webhook subscribers are idempotent by URL.
+- Use parameterized SQL. Migrations are idempotent and run at startup; add new
+  columns through `newColumnsList`.
+- New endpoints need Swagger annotations and a test in `internal/api`.
 
 ## Frontend Conventions
 
-- Use React with TypeScript and Vite.
-- Use Vanilla CSS with CSS variables. Do not introduce Tailwind or another
-  utility-first framework.
-- Keep the current glassmorphism direction unless the task explicitly changes
-  the design system.
-- Use Zustand for lightweight client state such as favorites and recent search.
-- Use `@tanstack/react-query` for server data fetching and cache behavior.
-- Use `lucide-react` for icons.
-- Preserve PWA behavior and Firebase service worker integration.
-- Do not leak Firebase secrets into Git; service worker configuration is
-  injected by build/deploy tooling.
+- React + TypeScript + Vite. Vanilla CSS with CSS variables; do not introduce
+  Tailwind or CSS-in-JS.
+- The design is a printed timetable board: paper surfaces, 1px rules, small
+  radii, signal red for state only. Keep it; avoid cards/glassmorphism.
+- Zustand for local persisted state, TanStack Query for server data,
+  `lucide-react` for icons.
+- Keep PWA and Firebase service worker integration intact; Firebase secrets
+  arrive through build args, never commit them.
+- Page transitions use native View Transitions (`src/lib/viewTransition.ts`,
+  `AppLink`), in-page motion uses CSS. Do not add a heavy animation library
+  without a concrete need.
+- Preserve `prefers-reduced-motion` support and the mobile-first layout
+  (desktop breakpoint 980px).
 
-## Current Product Behavior To Preserve
+## Product Behavior To Preserve
 
-- Desktop content width is limited to about 1100 px for readability.
-- Lesson type labels use distinct colors.
-- Smart day switching moves to tomorrow after 18:00 and Monday on Sundays.
-- Schedule change tracking detects added, removed, and modified lessons.
-- Home and Tutors share centered search behavior and unified recent history
-  limited to 5 items.
+- Smart Today: without an explicit `?day`, show the next school day when all
+  lessons have ended or it is past 18:00; Sundays go to Monday. An explicit
+  `?day` always wins.
+- `/g/:id` redirects mobile to `today` and desktop to `week`, with OG metadata
+  for link previews in production (nginx → backend share handler).
+- Short, cached responses are the point of the project; avoid per-request
+  upstream calls on read paths.
+- Schedule changes are detected as added/removed/modified with field-level diff.
+- Lesson type labels keep their colors; subgroups and windows are first-class.
+- Desktop content width stays around 1100px.
+
+## Security and Secrets
+
+- Production refuses to start without `ADMIN_KEY` and explicit
+  `CORS_ALLOWED_ORIGINS` (no `*`).
+- Admin endpoints require `X-Admin-Key`.
+- Do not commit `.env`, Firebase config, service accounts, tokens or database
+  files. CI runs gitleaks.
+- Keep rate limits enabled for API and search.
 
 ## Key Files
 
-- `dev/SPEC.md` - detailed technical specification and architecture.
-- `dev/TASKS.md` - implementation status and checklist.
-- `dev/BACKEND_PLAN.md` - backend plan and roadmap.
-- `dev/FRONTEND_PLAN.md` - frontend plan and roadmap.
-- `dev/API_DATA.md` - upstream API documentation.
-- `core/` - backend source code.
-- `core/internal/webhook/notifier.go` - webhook dispatcher (sends schedule change notifications to omsu_bot).
-- `core/internal/api/handlers_webhook.go` - webhook subscriber CRUD endpoints.
-- `core/internal/storage/webhook_repo.go` - webhook subscriber storage layer.
-- `web/` - frontend source code.
-- `docker-compose.dev.yml` and `docker-compose.prod.yml` - orchestration.
+- `docs/ARCHITECTURE.md` — system design, cache, DB, API, notifications.
+- `docs/UPSTREAM_API.md` — upstream Omsu API contract.
+- `core/internal/api/router.go` — all routes and middleware.
+- `core/internal/storage/migrations/migrate.go` — schema.
+- `core/internal/sync/` — background sync and diff.
+- `core/internal/webhook/notifier.go` — webhook delivery.
+- `web/src/pages/` — Today, Week, Changes, Settings, Search, Entity.
+- `web/src/styles/app.css` — design tokens and layout.
+- `.github/workflows/ci.yml` — validation and deploy pipeline.

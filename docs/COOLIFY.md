@@ -4,8 +4,10 @@
 который использует **магические переменные Coolify** (`SERVICE_FQDN_*`,
 `SERVICE_PASSWORD_*`) для автоматической генерации домена и секретов.
 
-> Обычный деплой (GHCR-образы + SSH) продолжает работать как раньше —
-> `docker-compose.prod.yml` не затронут.
+> Это альтернативный вариант. Основной production-деплой — GitHub Actions →
+> GHCR → server через `docker-compose.deploy.yml` (health gate + rollback), см.
+> [docs/README.md](./README.md#cicd). `docker-compose.prod.yml` остаётся
+> простым двухконтейнерным вариантом для ручного развёртывания.
 
 ## Архитектура
 
@@ -14,6 +16,8 @@
    │  https://<domain> (HTTPS, прокси Coolify)
    ▼
 frontend (nginx, порт 80)  ── /api ──▶  backend (порт 8080, внутренний)
+   ├─ статика web/dist
+   └─ /g/<id> ──▶ backend (OG-страница и редирект на today/week)
 ```
 
 - Публичен только `frontend`. GET/HEAD-запросы идут на reverse proxy-домен и через
@@ -22,6 +26,8 @@ frontend (nginx, порт 80)  ── /api ──▶  backend (порт 8080, в
   без reverse proxy. Он также проксируется в frontend nginx, но не кэшируется.
 - `backend` наружу не выставляется вовсе.
 - SQLite хранится в volume `backend_data` (`/app/data/mirror.db`).
+- Короткие ссылки `/g/<id>` проксируются в backend, чтобы Telegram получал
+  Open Graph-превью, а браузер — редирект на `/today` или `/week`.
 
 ## Быстрый старт
 

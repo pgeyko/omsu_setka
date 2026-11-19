@@ -15,7 +15,7 @@
 ### Способ 2: Использование внутри контейнера
 Команда интегрирована в образ бэкенда.
 ```bash
-docker exec -it omsu_mirror_backend admin status
+docker exec -it omsu_setka_backend admin status
 ```
 
 ---
@@ -24,11 +24,11 @@ docker exec -it omsu_mirror_backend admin status
 
 | Команда | Описание |
 | :--- | :--- |
-| `status` | Проверка здоровья (health) и детального статуса синхронизации. |
+| `status` | Проверка `/health` и `/sync/status`. |
 | `sync` | Принудительный запуск фоновой синхронизации (справочники + расписания). |
 | `incidents` | Просмотр последних проблем с доступностью оригинального сервера ОмГУ. |
 | `logs` | Просмотр логов бэкенда в реальном времени (только снаружи). |
-| `restart` | Быстрый перезапуск всех сервисов проекта (только снаружи). |
+| `restart` | Перезапуск стека: `docker-compose.deploy.yml` для проекта `setka`, иначе текущий compose (только снаружи). |
 
 ---
 
@@ -43,9 +43,12 @@ curl -X POST http://localhost:8080/api/v1/sync/trigger \
 ```
 
 ### Эндпоинты:
-- `GET /api/v1/health` — Общее состояние.
-- `GET /api/v1/sync/status` — Статистика синхронизации.
-- `GET /api/v1/incidents` — История инцидентов.
+- `GET /live` — процесс жив (без БД).
+- `GET /ready` — БД доступна, upstream не в серии ошибок.
+- `GET /api/v1/health` — uptime, статус upstream, статистика L1-кэша.
+- `GET /api/v1/sync/status` — время последних синхронизаций.
+- `GET /api/v1/incidents?limit=50&offset=0` — история инцидентов upstream.
+- `POST /api/v1/sync/trigger` — ручной запуск синхронизации.
 
 ---
 
@@ -103,7 +106,8 @@ curl -X POST https://your-domain.ru/api/v1/admin/webhooks \
   "event_id": "a1b2c3d4e5f6...",
   "occurred_at": "2025-05-24T12:00:00Z",
   "changes": [
-    {"date": "2025-05-25", "pair": 1, "field": "subject", "old": "Лекция", "new": "Семинар"}
+    {"date": "2026-11-20", "pair": 1, "subject": "Физика",
+     "field": "auditCorps", "old": "4-210", "new": "4-308"}
   ]
 }
 ```
@@ -204,9 +208,18 @@ RATE_LIMIT_WINDOW=1m
 
 ---
 
+## Очередь уведомлений и недоставленные вебхуки
+
+- Push-уведомления складываются в `notification_outbox` и повторяются с
+  backoff; статус виден в БД, мёртвые FCM-токены отключаются.
+- Неудачные вебхуки сохраняются в `webhook_failed_deliveries` и доступны через
+  `GET /api/v1/admin/webhooks/failed` (admin).
+
+---
+
 ## Автоматический деплой (CI/CD)
 
-Проект настроен на автоматический деплой через **GitHub Actions**. При каждом пуше в ветку `main` или `master` происходит тестирование, сборка Docker-образов и обновление кода на сервере через SSH.
+Проект настроен на автоматический деплой через **GitHub Actions**. При каждом пуше в `main` и на pull request выполняются тесты, сборка Docker-образов и (для `main`) деплой на сервер через SSH с health gate и rollback на предыдущие образы.
 
 ### Настройка GitHub Secrets
 
@@ -215,6 +228,7 @@ RATE_LIMIT_WINDOW=1m
 | Секрет | Описание |
 | :--- | :--- |
 | `SERVER_HOST` | IP-адрес или домен вашего сервера. |
+| `SERVER_PORT` | SSH-порт. |
 | `SERVER_USER` | Имя пользователя для SSH (например, `root`). |
 | `SSH_PRIVATE_KEY` | Приватный SSH-ключ для доступа к серверу. |
 | `DEPLOY_PATH` | Путь к папке проекта на сервере (например, `/home/user/omsu_mirror`). |

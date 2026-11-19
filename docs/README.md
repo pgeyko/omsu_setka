@@ -1,42 +1,75 @@
 # Документация omsu_setka
 
-Добро пожаловать в документацию проекта `omsu_setka`. Это высокопроизводительный BFF (Backend-for-Frontend), предназначенный для зеркалирования и кэширования расписания ОмГУ. Проект обеспечивает субмиллисекундное время ответа и современный веб-интерфейс.
+`omsu_setka` («сетка») — зеркало расписания ОмГУ с мгновенной отдачей из кэша,
+историей замен, push-уведомлениями и PWA-интерфейсом.
+Публичный инстанс: <https://s.pgeyko.ru>.
 
-## Структура документации
+## С чего начать
 
-Документация разделена на два основных компонента:
+- [README](../README.md) — что это, возможности, скриншоты, быстрый старт.
+- [Архитектура](./ARCHITECTURE.md) — кэш L1/L2/L3, синхронизация, БД, API,
+  уведомления, вебхуки.
+- [Backend](./core/DEVELOPMENT.md) — Go-сервис, конфигурация, тесты, Swagger.
+- [Web](./web/DEVELOPMENT.md) — React-PWA, маршруты, стили, PWA, тесты.
+- [Администрирование](./ADMIN_GUIDE.md) — Admin CLI, health/incidents, вебхуки.
+- [Деплой в Coolify](./COOLIFY.md) — альтернативный способ развёртывания.
+- [Upstream API](./UPSTREAM_API.md) — контракт `eservice.omsu.ru`, который
+  парсит backend.
+- [Дизайн](./DESIGN.md) — визуальная система и токены.
+- [Скриншоты](./screenshots/) — мобильный и десктопный интерфейс.
 
-- **[Ядро (Backend)](./core/DEVELOPMENT.md):** Сервис на Go, обеспечивающий REST API, многоуровневое кэширование и фоновую синхронизацию.
-- **[Веб-интерфейс (Frontend)](./web/DEVELOPMENT.md):** Приложение на React (TypeScript) с поддержкой PWA, дизайном Glassmorphism и адаптивностью под мобильные устройства.
-- **[Администрирование](./ADMIN_GUIDE.md):** Управление проектом через Admin CLI, мониторинг, ручная синхронизация и нагрузочное тестирование API.
-- **[Деплой на Coolify](./COOLIFY.md):** Развёртывание через отдельный compose-файл с магическими переменными Coolify (`SERVICE_FQDN_*`, `SERVICE_PASSWORD_*`).
+## Быстрые факты
 
-## Общие принципы разработки
+| | |
+|---|---|
+| Backend | Go 1.23, Fiber v2, SQLite (pure Go, WAL), zerolog, Swagger |
+| Frontend | React 19, TypeScript, Vite 8, React Router 7, TanStack Query 5, Zustand 5, vanilla CSS |
+| PWA | Workbox precache + офлайн-расписание, Firebase Messaging |
+| База | `data/mirror.db` (по умолчанию), том `backend_data` в Docker |
+| Деплой | GitHub Actions → GHCR → server (`docker-compose.deploy.yml`), health gate + rollback |
+| Тесты | Go `go test ./...`; web 146 unit/component, 18 E2E, build-check |
 
-### Требования
-- **Go 1.22+**: Для серверной части.
-- **Node.js 24+ и npm**: Для фронтенда.
-- **Docker и Docker Compose**: Для контейнеризации и оркестрации.
+## Требования
 
-### Рабочий процесс
-1. **Локальная разработка**: Запускайте бэкенд и фронтенд раздельно для использования hot-reload.
-2. **Сборка**: Используйте скрипт `run.sh` в корне проекта для сборки в один шаг (сборка фронтенда, затем компиляция бэкенда).
-3. **Развертывание**: Используйте `Dockerfile` и `docker-compose.prod.yml` для подготовки сред, готовых к эксплуатации.
+- Go 1.23+.
+- Node.js 20+ и npm (CI использует Node 20).
+- Docker и Docker Compose — для контейнерного запуска и деплоя.
 
-## Поддержка и эксплуатация
+## Три способа запуска
 
-### Мониторинг
-- Используйте эндпоинты `/health` и `/incidents` для отслеживания состояния системы и доступности оригинального сервера ОмГУ.
-- Логи бэкенда выводятся в формате JSON (через `zerolog`), что упрощает их агрегацию.
+1. **Всё одной командой**: `./run.sh` (тесты, сборка фронтенда и бинарника,
+   запуск backend на `:8080`).
+2. **Раздельно с hot-reload**: backend `cd core && go run ./cmd/server/main.go`,
+   frontend `cd web && npm run dev`.
+3. **Docker**:
+   - `docker compose up --build` — только backend (ручная проверка);
+   - `docker compose -f docker-compose.local.yml up` — backend + frontend;
+   - `docker compose -f docker-compose.deploy.yml up -d` — production-стек server.
 
-### Целостность данных
-- Трехуровневый кэш (Память -> SQLite -> Upstream) гарантирует доступность данных даже при временных сбоях источника.
-- Механизм фоновой синхронизации обновляет только «горячие» расписания, экономя ресурсы.
+## Конфигурация и секреты
 
----
+Полный список переменных — в [`.env.example`](../.env.example). В production
+обязательны `ADMIN_KEY` и `CORS_ALLOWED_ORIGINS` (без `*`). Для push нужны
+`VITE_FIREBASE_*` на сборке фронтенда и `FIREBASE_SERVICE_ACCOUNT` на backend;
+без них приложение работает, но FCM-токен не выдаётся.
 
-Для получения подробной информации перейдите к документации конкретных компонентов:
-- [Разработка и поддержка бэкенда](./core/DEVELOPMENT.md)
-- [Разработка и поддержка фронтенда](./web/DEVELOPMENT.md)
-- [Руководство администратора](./ADMIN_GUIDE.md)
-- [Деплой на Coolify](./COOLIFY.md)
+## CI/CD
+
+`.github/workflows/ci.yml` на каждый push в `main` и PR:
+
+1. gitleaks + `go vet` + `go test -race`;
+2. `npm run build`, `npm test`, `npm run test:build`;
+3. `npm run test:e2e` (18 сценариев, артефакты при падении);
+4. сборка и пуш образов в GHCR;
+5. деплой по SSH: `git pull`, `docker compose -f docker-compose.deploy.yml`,
+   ожидание healthy backend, очистка старых контейнеров, rollback на `:prev`
+   при неудаче.
+
+## Мониторинг
+
+- `GET /live` — процесс жив.
+- `GET /ready` — БД и upstream в норме.
+- `GET /api/v1/health` — uptime, кэш, время синхронизаций.
+- `GET /api/v1/incidents` — ошибки upstream.
+- `GET /api/v1/sync/status` — статус фоновой синхронизации.
+- Admin CLI: `./admin.sh status|sync|incidents|logs|restart`.
