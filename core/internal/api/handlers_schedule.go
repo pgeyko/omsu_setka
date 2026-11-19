@@ -354,6 +354,7 @@ func (s *Server) handleGetChangesFeed(c *fiber.Ctx) error {
 	for i := range items {
 		enrichScheduleChange(&items[i])
 	}
+	s.enrichChangeDays(c.Context(), items)
 
 	return c.JSON(models.BFFResponse{
 		Success: true,
@@ -400,6 +401,25 @@ func enrichScheduleChange(item *storage.ScheduleChange) {
 			item.Subgroup = diff.NormalizeSubgroup(lesson.SubgroupName)
 		}
 	}
+}
+
+func scheduleDayMap(days []models.Day) map[int]string {
+	result := make(map[int]string)
+	for _, day := range days {
+		date := day.Date
+		if date == "" {
+			if parsed, err := time.Parse("02.01.2006", day.Day); err == nil {
+				date = parsed.Format("2006-01-02")
+			}
+		}
+		if date == "" {
+			continue
+		}
+		for _, lesson := range day.Lessons {
+			result[lesson.ID] = date
+		}
+	}
+	return result
 }
 
 func collectSubgroups(days []models.Day) []string {
@@ -469,6 +489,51 @@ func (s *Server) handleGroupSubgroups(c *fiber.Ctx) error {
 	})
 }
 
+func (s *Server) enrichChangeDays(ctx context.Context, items []storage.ScheduleChange) {
+	targets := make([]int, 0, 5)
+	seen := make(map[int]struct{})
+	for _, item := range items {
+		if item.EntityType != "group" || item.EntityID <= 0 || item.Day != "" || item.LessonID == 0 {
+			continue
+		}
+		if _, ok := seen[item.EntityID]; ok {
+			continue
+		}
+		seen[item.EntityID] = struct{}{}
+		targets = append(targets, item.EntityID)
+		if len(targets) >= 5 {
+			break
+		}
+	}
+	if len(targets) == 0 {
+		return
+	}
+	for _, entityID := range targets {
+		result, err := s.ScheduleService.GetSchedule(ctx, "group", entityID)
+		if err != nil {
+			continue
+		}
+		var wrapper struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(result.Data, &wrapper); err != nil {
+			continue
+		}
+		var days []models.Day
+		if err := json.Unmarshal(wrapper.Data, &days); err != nil {
+			continue
+		}
+		dates := scheduleDayMap(days)
+		for i := range items {
+			if items[i].EntityType == "group" && items[i].EntityID == entityID && items[i].Day == "" {
+				if date, ok := dates[items[i].LessonID]; ok {
+					items[i].Day = date
+				}
+			}
+		}
+	}
+}
+
 func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	entityType := c.Params("type")
 	if !isValidEntityType(entityType) {
@@ -488,6 +553,7 @@ func (s *Server) handleGetChanges(c *fiber.Ctx) error {
 	for i := range changes {
 		enrichScheduleChange(&changes[i])
 	}
+	s.enrichChangeDays(c.Context(), changes)
 
 	return c.JSON(models.BFFResponse{
 		Success:  true,

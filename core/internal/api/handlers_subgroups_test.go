@@ -59,3 +59,14 @@ func TestEnrichScheduleChangeKeepsNormalizedFields(t *testing.T) {
 		t.Fatalf("normalized fields must win: %#v", item)
 	}
 }
+
+func TestScheduleDayMap(t *testing.T) {
+	days := []models.Day{
+		{Day: "18.11.2026", Date: "2026-11-18", Lessons: []models.Lesson{{ID: 10}}},
+		{Day: "19.11.2026", Lessons: []models.Lesson{{ID: 20}}},
+	}
+	got := scheduleDayMap(days)
+	if got[10] != "2026-11-18" || got[20] != "2026-11-19" {
+		t.Fatalf("unexpected day map: %#v", got)
+	}
+}
