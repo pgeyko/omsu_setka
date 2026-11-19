@@ -84,8 +84,8 @@ describe('ChangesPage', () => {
   it('renders grouped changes, diffs and a pair link', async () => {
     renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     expect(screen.getByRole('heading', { name: 'Изменения' })).toBeInTheDocument();
-    expect(await screen.findByText('Вчера, 18 ноября')).toBeInTheDocument();
-    expect(screen.getAllByText('17 ноября').length).toBeGreaterThan(0);
+    expect(await screen.findByText('Изменения на 18 ноября')).toBeInTheDocument();
+    expect(screen.getByText('Изменения на 17 ноября')).toBeInTheDocument();
     expect(screen.getByText('Математический анализ')).toBeInTheDocument();
     expect(screen.getByText(/Сидоров А. В./)).toBeInTheDocument();
     expect(screen.getByText(/Иванов И. И./)).toBeInTheDocument();
@@ -167,11 +167,12 @@ describe('ChangesPage', () => {
     ]);
     renderRoute(<ChangesPage groupId={472} />, { route: '/g/472/changes', width: 390 });
     expect(await screen.findByText('Иностранный язык')).toBeInTheDocument();
-    expect(screen.getByText('4')).toHaveClass('change-pair');
+    expect(document.querySelector('.change-pair')).toHaveTextContent('4пара');
     expect(screen.getByText(/Невежина Светлана Борисовна/)).toBeInTheDocument();
     expect(screen.getByText(/ауд\./)).toHaveTextContent('4-101');
     expect(screen.getByText(/корпус 4/)).toBeInTheDocument();
-    expect(screen.getByText('Изменения от 18 ноября')).toBeInTheDocument();
+    expect(screen.getByText('Обнаружено 18 ноября')).toBeInTheDocument();
+    expect(screen.getByText('Дата занятия в старой записи не сохранилась')).toBeInTheDocument();
     expect(screen.queryByText('Изменение')).toBeNull();
   });
 

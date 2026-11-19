@@ -899,6 +899,10 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   border-bottom: 1px solid var(--rule);
 }
 .change-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 22px;
@@ -906,6 +910,21 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   color: var(--ink);
   padding-top: 1px;
   font-variant-numeric: tabular-nums;
+}
+.change-pair-label {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.change-unknown-date {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--muted-2);
+  line-height: 1.4;
 }
 .change-subject { font-size: 14.5px; font-weight: 600; line-height: 1.35; }
 .change-kind {

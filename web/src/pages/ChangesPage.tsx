@@ -4,7 +4,7 @@ import { useChangesInfinite, useGroupName } from '../api/queries';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
 import type { FieldChange, Lesson, ScheduleChange } from '../api/types';
-import { dayHeading, weekStartForDate } from '../lib/date';
+import { weekStartForDate } from '../lib/date';
 import { buildingOf, cleanSubject, dayMonthLabel, normalizeSubgroup, roomOf } from '../lib/schedule';
 
 function parseLesson(raw?: string): Lesson | null {
@@ -73,13 +73,23 @@ function ChangeItem({
   const diff = deriveDiff(change);
   return (
     <article className="change-item">
-      <div className="change-pair">{pair || '—'}</div>
+      <div className="change-pair">
+        {pair ? (
+          <>
+            <span>{pair}</span>
+            <span className="change-pair-label">пара</span>
+          </>
+        ) : '—'}
+      </div>
       <div>
         <h2 className="change-subject">{subject}</h2>
         <span className="change-kind">
           {change.change_type === 'added' ? 'добавлено' : change.change_type === 'removed' ? 'удалено' : 'изменено'}
           {subgroup ? ` · ${subgroup}-я подгруппа` : ''}
         </span>
+        {!change.day ? (
+          <p className="change-unknown-date">Дата занятия в старой записи не сохранилась</p>
+        ) : null}
         {teacher || room ? (
           <p className="change-meta">
             {teacher}
@@ -163,7 +173,9 @@ function ChangesBody({ groupId }: { groupId: number }) {
 
       {grouped.map(([day, list]) => {
         const hasLessonDay = list.some((change) => change.day === day);
-        const heading = hasLessonDay ? dayHeading(day) : `Изменения от ${dayMonthLabel(day)}`;
+        const heading = hasLessonDay
+          ? `Изменения на ${dayMonthLabel(day)}`
+          : `Обнаружено ${dayMonthLabel(day)}`;
         return (
         <section className="change-day" key={day} aria-label={heading}>
           <div className="change-day-head">{heading}</div>

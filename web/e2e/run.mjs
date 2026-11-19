@@ -283,7 +283,7 @@ async function main() {
 
     await scenario('changes: own group, all groups and deep links', async () => {
       await goto('/g/472/changes');
-      assert.equal(await text('.change-day-head'), 'Вчера, 18 ноября');
+      assert.equal(await text('.change-day-head'), 'Изменения на 18 ноября');
       const ownArticle = page.locator('.change-item').filter({ hasText: 'Математический анализ' });
       assert.equal(
         await ownArticle.locator('.change-open').getAttribute('href'),
