@@ -80,7 +80,7 @@ npm run preview
 ## Тесты
 
 ```bash
-npm test          # Vitest + jsdom + Testing Library, 148 тестов
+npm test          # Vitest + jsdom + Testing Library, 149 тестов
 npm run test:watch
 ```
 

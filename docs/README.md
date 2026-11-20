@@ -25,7 +25,7 @@
 | Frontend | React 19, TypeScript, Vite 8, React Router 7, TanStack Query 5, Zustand 5, vanilla CSS |
 | PWA | Workbox precache + офлайн-расписание, Firebase Messaging |
 | База | `data/mirror.db` (по умолчанию), том `backend_data` в Docker |
-| Тесты | Go `go test ./...`; web 148 unit/component, 19 E2E, build-check |
+| Тесты | Go `go test ./...`; web 149 unit/component, 19 E2E, build-check |
 
 ## Требования
 

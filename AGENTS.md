@@ -112,6 +112,9 @@ When changing the contract, update both sides:
   upstream calls on read paths.
 - Schedule changes are detected as added/removed/modified with field-level diff.
 - Lesson type labels keep their colors; subgroups and windows are first-class.
+- Search matches names by token/substring and understands room queries
+  (`4-112`, `112`, `4 корпус 112`, `корпус 4`); keep this behavior when touching
+  `internal/cache/search.go`.
 - Desktop content width stays around 1100px.
 
 ## Security and Secrets

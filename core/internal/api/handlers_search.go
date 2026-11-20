@@ -10,12 +10,12 @@ import (
 )
 
 // @Summary Search groups, tutors, or auditories
-// @Description Prefix search with autocomplete.
+// @Description Token and substring search across groups, tutors and rooms. Understands "4-112", "112", "4 корпус 112" and "корпус 4".
 // @Tags Search
 // @Produce json
 // @Param q query string true "Query string (min 2 chars)"
 // @Param type query string false "Filter type: group, tutor, auditory, all" default(all)
-// @Param limit query int false "Limit results" default(20)
+// @Param limit query int false "Limit results per type" default(20)
 // @Success 200 {object} models.BFFResponse
 // @Router /search [get]
 func (s *Server) handleSearch(c *fiber.Ctx) error {

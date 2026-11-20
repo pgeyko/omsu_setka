@@ -103,6 +103,13 @@ describe('SearchPage', () => {
     });
   });
 
+  it('labels a room result with its building', async () => {
+    renderRoute(<SearchPage />, { route: '/search' });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '112' } });
+    expect(await screen.findByText('4-308')).toBeInTheDocument();
+    expect(screen.getByText('аудитория · корпус 4')).toBeInTheDocument();
+  });
+
   it('opens a tutor and remembers it', async () => {
     renderRoute(<SearchPage />, { route: '/search' });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'иван' } });

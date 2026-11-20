@@ -1100,7 +1100,8 @@ paths:
       - Schedules
   /search:
     get:
-      description: Prefix search with autocomplete.
+      description: Token and substring search across groups, tutors and rooms. Understands
+        "4-112", "112", "4 корпус 112" and "корпус 4".
       parameters:
       - description: Query string (min 2 chars)
         in: query
@@ -1113,7 +1114,7 @@ paths:
         name: type
         type: string
       - default: 20
-        description: Limit results
+        description: Limit results per type
         in: query
         name: limit
         type: integer

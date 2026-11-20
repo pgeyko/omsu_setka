@@ -1357,7 +1357,7 @@ const docTemplate = `{
         },
         "/search": {
             "get": {
-                "description": "Prefix search with autocomplete.",
+                "description": "Token and substring search across groups, tutors and rooms. Understands \"4-112\", \"112\", \"4 корпус 112\" and \"корпус 4\".",
                 "produces": [
                     "application/json"
                 ],
@@ -1383,7 +1383,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 20,
-                        "description": "Limit results",
+                        "description": "Limit results per type",
                         "name": "limit",
                         "in": "query"
                     }

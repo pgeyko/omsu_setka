@@ -75,6 +75,12 @@ function SearchBody({
   const recentLabel = (type: 'group' | 'tutor' | 'auditory') =>
     type === 'group' ? 'группа' : type === 'tutor' ? 'преподаватель' : 'аудитория';
 
+  const resultLabel = (item: SearchResult, type: 'group' | 'tutor' | 'auditory') => {
+    if (type === 'group') return 'группа';
+    if (type === 'tutor') return 'преподаватель';
+    return item.building ? `аудитория · корпус ${item.building}` : 'аудитория';
+  };
+
   const renderGroup = (title: string, items: SearchResult[], type: 'group' | 'tutor' | 'auditory') => {
     if (!items.length) return null;
     return (
@@ -102,9 +108,7 @@ function SearchBody({
                     }}
                   >
                     <span className="result-name">{item.name}</span>
-                    <span className="result-type">
-                      {type === 'group' ? 'группа' : type === 'tutor' ? 'преподаватель' : 'аудитория'}
-                    </span>
+                    <span className="result-type">{resultLabel(item, type)}</span>
                   </a>
                 ) : (
                   <span className="result-row is-disabled" aria-disabled="true">
@@ -136,7 +140,7 @@ function SearchBody({
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Группа, преподаватель, аудитория"
+                placeholder="Группа, преподаватель, 4-112"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -147,7 +151,7 @@ function SearchBody({
               ) : null}
             </div>
           </div>
-          <p className="search-hint">Достаточно двух символов. Поиск идёт по началу названия.</p>
+          <p className="search-hint">Достаточно двух символов. Можно ввести 4-112, 112 или «корпус 4».</p>
         </div>
       ) : (
         <div className="desk-search-row">
@@ -158,7 +162,7 @@ function SearchBody({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Группа, преподаватель, аудитория"
+            placeholder="Группа, преподаватель, 4-112"
             autoComplete="off"
             spellCheck={false}
           />
@@ -192,7 +196,7 @@ function SearchBody({
         {search.isFetching ? <p className="search-hint">Ищем…</p> : null}
         {search.isError ? <p className="empty-search">Поиск временно недоступен. Попробуйте ещё раз.</p> : null}
         {!search.isFetching && !search.isError && debounced.length >= 2 && !total ? (
-          <p className="empty-search" role="status">Ничего не нашлось. Проверьте написание.</p>
+          <p className="empty-search" role="status">Ничего не нашлось. Попробуйте номер аудитории, например 4-112, или корпус.</p>
         ) : null}
         {grouped ? (
           <>

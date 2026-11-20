@@ -84,8 +84,9 @@ SQLite-файл (`SQLITE_PATH`, по умолчанию `./data/mirror.db`) в W
 - **Расписание**: `GET /api/v1/schedule/{group|tutor|auditory}/:id`,
   `.../day`, `.../subgroups` (группы), `.../ical`.
 - **Изменения**: `GET /api/v1/changes` (лента), `GET /api/v1/changes/:type/:id`.
-- **Поиск**: `GET /api/v1/search?q=…` — in-memory trie, нормализация регистра,
-  дефисов, точек и пробелов.
+- **Поиск**: `GET /api/v1/search?q=…` — in-memory поиск по токенам и подстрокам;
+  понимает `4-112`, `112`, `4 корпус 112`, `корпус 4`; нормализует регистр,
+  ё/е, дефисы, точки и пробелы.
 - **Уведомления**: `POST /subscribe`, `POST /unsubscribe`,
   `PATCH /notifications/settings`, `GET /notifications/settings/:type/:id`,
   `GET /subscriptions`.
