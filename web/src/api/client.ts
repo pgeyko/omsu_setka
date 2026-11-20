@@ -33,7 +33,7 @@ const unwrap = <T,>(response: { data: BFFResponse<T> }): T => response.data.data
 
 export async function search(query: string, type: string): Promise<SearchResult[] | GroupedSearchResult> {
   const response = await readClient.get<BFFResponse<SearchResult[] | GroupedSearchResult>>('/search', {
-    params: { q: query, type, limit: 20 },
+    params: { q: query, type, limit: 50 },
   });
   return unwrap(response);
 }
