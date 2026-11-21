@@ -169,10 +169,15 @@ func (s *Server) handleAuditoryBuildings(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to load auditories"})
 	}
+	// Only buildings that have a synced occupancy map are useful in the UI.
+	// Other dictionary buildings are off-campus/virtual or not mirrored.
+	supported := map[string]struct{}{
+		"1": {}, "2": {}, "4": {}, "5": {}, "6": {}, "7": {}, "11": {}, "Г": {},
+	}
 	counts := make(map[string]int)
 	for _, room := range auditories {
 		building := buildingForAuditory(room)
-		if building != "" && building != "0" {
+		if _, ok := supported[building]; ok {
 			counts[building]++
 		}
 	}
