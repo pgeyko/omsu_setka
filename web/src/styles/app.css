@@ -1617,6 +1617,10 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 
 .status-line { padding-left: 0; padding-right: 0; }
   .desk-page .entity-head { border-top: 1px solid var(--rule-strong); margin-top: 8px; }
+  /* The page header already shows the entity name and meta. */
+  .desk-page .entity-title,
+  .desk-page .entity-meta { display: none; }
+  .desk-page .back-link { margin-top: 0; }
 }
 
 /* ============================== detail sheet ============================== */
