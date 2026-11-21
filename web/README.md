@@ -80,7 +80,7 @@ npm run preview
 ## Тесты
 
 ```bash
-npm test          # Vitest + jsdom + Testing Library, 149 тестов
+npm test          # Vitest + jsdom + Testing Library, 150 тестов
 npm run test:watch
 ```
 
@@ -156,6 +156,7 @@ CI для `web/` остаётся прежним: `npm ci --legacy-peer-deps && 
 | --- | --- |
 | `/` | редирект на сохранённую группу или `/search` |
 | `/search` | поиск групп, преподавателей и аудиторий |
+| `/map` | карта занятости аудиторий: корпус, день, пара |
 | `/g/:groupId/today` | «Сегодня» (на десктопе редирект на неделю) |
 | `/g/:groupId/week` | неделя: список на мобильном, сетка + день на десктопе |
 | `/g/:groupId/changes` | изменения, фильтр «моя группа / все группы» |

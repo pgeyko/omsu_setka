@@ -107,7 +107,7 @@ Dev-параметры:
 ## Тесты и проверки
 
 ```bash
-npm test           # Vitest + Testing Library, 149 тестов
+npm test           # Vitest + Testing Library, 150 тестов
 npm run build      # tsc -b && vite build
 npm run test:build # проверка dist: manifest, precache, sw, og.png, share-redirect
 npm run test:e2e   # 20 браузерных сценариев (Playwright + мок API)
