@@ -21,6 +21,12 @@ check(nonEmpty(join(DIST, 'manifest.webmanifest')), 'dist/manifest.webmanifest i
 check(nonEmpty(join(DIST, 'og.png')), 'dist/og.png is missing — link previews will be blank');
 check(nonEmpty(join(DIST, 'share-redirect.js')), 'dist/share-redirect.js is missing — /g/:id cannot redirect');
 check(nonEmpty(join(DIST, 'notification-badge.png')), 'dist/notification-badge.png is missing — Android shows an empty tray icon');
+if (existsSync(join(DIST, 'notification-badge.png'))) {
+  const badge = readFileSync(join(DIST, 'notification-badge.png'));
+  check(badge.length > 24 && badge.toString('ascii', 1, 4) === 'PNG', 'notification-badge.png is not a PNG');
+  check(badge.readUInt32BE(16) === 96 && badge.readUInt32BE(20) === 96, 'notification-badge.png must be 96x96');
+  check(badge[25] === 6, 'notification-badge.png must be RGBA with a transparent background');
+}
 check(
   nonEmpty(join(DIST, 'firebase-messaging-sw.js')),
   'dist/firebase-messaging-sw.js is missing (Docker injects Firebase secrets into it)',
