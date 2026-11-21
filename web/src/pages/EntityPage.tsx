@@ -89,7 +89,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
                 ),
               ).join(', ');
               return (
-                <button className="wrow wrow-btn" type="button" key={slot.pair} onClick={() => openSlot(iso, slot)} aria-haspopup="dialog">
+                <button className="wrow wrow-btn wrow-entity" type="button" key={slot.pair} onClick={() => openSlot(iso, slot)} aria-haspopup="dialog">
                   <span className="wrow-time">{slot.start}</span>
                   <span className="wrow-subject">{multi ? lessonCountLabel(slot.entries.length) : slot.entries[0]?.subject}</span>
                   <span className="wrow-room">{right}</span>

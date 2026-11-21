@@ -339,6 +339,7 @@ async function main() {
       await waitForText('.entity-title', 'Иванов Иван Иванович');
       await waitForText('.entity-meta', /преподаватель · 4 пары на этой неделе/);
       assert.ok((await count('.wday')) >= 1);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
       assert.equal(await text('.back-link'), 'К расписанию группы');
       await screenshot('04-tutor');
     });
@@ -419,6 +420,7 @@ async function main() {
       await resetStorage();
       await goto('/tutor/15');
       await waitForText('.entity-title', 'Иванов Иван Иванович');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
       assert.equal(await count('.bottom-nav'), 0);
       assert.match(await text('.back-link'), /К расписанию группы/);
       assert.ok(await page.locator('.m-top a.brand').isVisible());

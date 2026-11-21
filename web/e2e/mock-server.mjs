@@ -201,7 +201,16 @@ function tutorWeek() {
   return days
     .map((day) => ({
       ...day,
-      lessons: day.lessons.filter((item) => item.teacher?.includes('Иванов')),
+      lessons: day.lessons
+        .filter((item) => item.teacher?.includes('Иванов'))
+        .map((item, index) =>
+          index === 0
+            ? {
+                ...item,
+                group: 'МБС-601-О-01, МБС-602-О-01, МИБ-601-О-02, МПБ-601-О-03',
+              }
+            : item,
+        ),
     }))
     .filter((day) => day.lessons.length);
 }

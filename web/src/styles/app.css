@@ -834,6 +834,37 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .wrow-chevron { grid-row: 1; grid-column: 4; width: 16px; height: 16px; color: var(--muted-2); align-self: center; }
 .wrow-chevron svg { width: 16px; height: 16px; }
 
+/* Tutor/auditory rows can have a long comma-separated list of groups or
+   teachers. Put it on its own wrapping line instead of an auto-width column. */
+.wrow-entity {
+  grid-template-columns: 52px minmax(0, 1fr) 16px;
+  row-gap: 2px;
+}
+.wrow-entity .wrow-room {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.wrow-entity .wrow-sub {
+  grid-column: 2;
+  grid-row: 3;
+  margin-top: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wrow-entity .wrow-chevron {
+  grid-column: 3;
+  grid-row: 1 / span 3;
+  align-self: center;
+}
+.wrow-entity .wrow-subject,
+.wrow-entity .wrow-room,
+.wrow-entity .wrow-sub {
+  min-width: 0;
+}
+
 .wrow-btn {
   width: 100%;
   border: 0;
