@@ -31,8 +31,8 @@ self.addEventListener('push', function(event) {
         const notificationTitle = d.title || "Setka — Расписание";
         const notificationOptions = {
             body: d.body || "Обновление в расписании",
-            icon: '/web-app-manifest-192x192.png',
-            badge: '/notification-badge-96x96.png',
+            icon: '/icon-192.png',
+            badge: '/favicon-32.png',
             tag: d.tag || 'schedule_event',
             renotify: true, // Allow replacing previous notifications with the same tag
             data: {
@@ -48,40 +48,52 @@ self.addEventListener('push', function(event) {
     }
 });
 
-// Robust notification click handler with window focusing
+// Notification click handler. The FCM worker is registered with the
+// /firebase-cloud-messaging-push-scope scope, so it cannot reliably navigate
+// app windows outside that scope. Prefer an existing app window and ask the
+// page to route; fall back to opening the target URL directly.
 self.addEventListener('notificationclick', function(event) {
     console.log('[sw.js] Notification click received');
     event.notification.close();
 
-    // Get the target URL from the notification data
     let targetUrl = event.notification.data?.url || '/';
-    
-    // Resolve relative URLs to absolute
     if (!targetUrl.startsWith('http')) {
         targetUrl = new URL(targetUrl, self.location.origin).href;
     }
-
     console.log('[sw.js] Target URL:', targetUrl);
 
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            // Check if any existing tab belongs to our domain
-            for (let i = 0; i < clientList.length; i++) {
-                let client = clientList[i];
-                
-                if (client.url.includes(self.location.host) && 'focus' in client) {
-                    console.log('[sw.js] Matching tab found. Focusing and navigating...');
-                    return client.focus().then((focusedClient) => {
-                        return focusedClient.navigate(targetUrl);
-                    });
+    event.waitUntil((async function() {
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        const existing = clientList.find(function(client) {
+            try {
+                return new URL(client.url).origin === self.location.origin;
+            } catch (error) {
+                return false;
+            }
+        });
+
+        if (existing) {
+            if ('focus' in existing) {
+                try { await existing.focus(); } catch (error) {}
+            }
+            if (existing.url === targetUrl) return;
+            if (existing.navigate) {
+                try {
+                    const navigated = await existing.navigate(targetUrl);
+                    if (navigated) return;
+                } catch (error) {
+                    console.warn('[sw.js] navigate() failed, asking the app to route', error);
                 }
             }
-
-            // If no tab is found, open a new window
-            if (clients.openWindow) {
-                console.log('[sw.js] No matching tab found. Opening new window.');
-                return clients.openWindow(targetUrl);
+            if (existing.postMessage) {
+                existing.postMessage({ type: 'notification-navigate', url: targetUrl });
+                return;
             }
-        })
-    );
+        }
+
+        if (clients.openWindow) {
+            console.log('[sw.js] No app window found. Opening target URL.');
+            await clients.openWindow(targetUrl);
+        }
+    })());
 });
