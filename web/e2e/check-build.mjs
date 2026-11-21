@@ -20,6 +20,7 @@ check(nonEmpty(join(DIST, 'sw.js')), 'dist/sw.js is missing — run npm run buil
 check(nonEmpty(join(DIST, 'manifest.webmanifest')), 'dist/manifest.webmanifest is missing');
 check(nonEmpty(join(DIST, 'og.png')), 'dist/og.png is missing — link previews will be blank');
 check(nonEmpty(join(DIST, 'share-redirect.js')), 'dist/share-redirect.js is missing — /g/:id cannot redirect');
+check(nonEmpty(join(DIST, 'notification-badge.png')), 'dist/notification-badge.png is missing — Android shows an empty tray icon');
 check(
   nonEmpty(join(DIST, 'firebase-messaging-sw.js')),
   'dist/firebase-messaging-sw.js is missing (Docker injects Firebase secrets into it)',
