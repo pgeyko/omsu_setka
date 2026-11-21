@@ -2,6 +2,8 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   fetchChanges,
   fetchGroups,
+  fetchBuildings,
+  fetchAuditoryMap,
   fetchGroupSubgroups,
   fetchHealth,
   fetchNotificationSettings,
@@ -12,6 +14,8 @@ import {
 } from './client';
 import type {
   BFFResponse,
+  AuditoryMap,
+  BuildingInfo,
   ChangesPage,
   Day,
   Group,
@@ -87,6 +91,25 @@ export function useSearch(query: string) {
     enabled: query.trim().length >= 2,
     staleTime: 30 * 1000,
     retry: 0,
+  });
+}
+
+export function useBuildings() {
+  return useQuery<{ buildings: BuildingInfo[] }>({
+    queryKey: ['buildings'],
+    queryFn: fetchBuildings,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useAuditoryMap(building: string, date: string) {
+  return useQuery<AuditoryMap>({
+    queryKey: ['auditory-map', building, date],
+    queryFn: () => fetchAuditoryMap(building, date),
+    enabled: Boolean(building && date),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 

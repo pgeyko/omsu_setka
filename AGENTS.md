@@ -115,6 +115,9 @@ When changing the contract, update both sides:
 - Search matches names by token/substring and understands room queries
   (`4-112`, `112`, `4 корпус 112`, `корпус 4`); keep this behavior when touching
   `internal/cache/search.go`.
+- The auditory map is built from the slow upstream `schedule/map/{building}`
+  endpoint. It must stay a background snapshot (`room_occupancy`), never a
+  per-request upstream call.
 - Desktop content width stays around 1100px.
 
 ## Security and Secrets

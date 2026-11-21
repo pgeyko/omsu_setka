@@ -25,6 +25,8 @@ func setupTestServer() *Server {
 		RateLimitWindow:    time.Minute,
 		CORSAllowedOrigins: "*",
 		UpstreamRateLimit:  2,
+		SyncMapInterval:    time.Hour,
+		MapRetentionDays:   14,
 	}
 
 	db, _ := storage.NewSQLite(cfg)
@@ -33,6 +35,7 @@ func setupTestServer() *Server {
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
+	roomOccupancyRepo := storage.NewRoomOccupancyRepo(db)
 	webhookRepo := storage.NewWebhookRepo(db)
 	fcm := notifications.NewFCMClient(cfg)
 
@@ -41,31 +44,33 @@ func setupTestServer() *Server {
 	searchIndex := cache.NewSearchIndex()
 	webhookNotifier := webhook.NewNotifier(webhookRepo, nil, 10*time.Second, 3, 5*time.Second)
 	syncer := sync.NewSyncer(cfg, &sync.Deps{
-		Client:           client,
-		DictRepo:         dictRepo,
-		ScheduleRepo:     scheduleRepo,
-		MemoryCache:      memoryCache,
-		SearchIndex:      searchIndex,
-		IncidentRepo:     incidentRepo,
-		ChangeRepo:       changeRepo,
-		SubscriptionRepo: subscriptionRepo,
-		WebhookRepo:      webhookRepo,
-		WebhookNotifier:  webhookNotifier,
-		FCM:              fcm,
+		Client:            client,
+		DictRepo:          dictRepo,
+		ScheduleRepo:      scheduleRepo,
+		MemoryCache:       memoryCache,
+		SearchIndex:       searchIndex,
+		IncidentRepo:      incidentRepo,
+		ChangeRepo:        changeRepo,
+		SubscriptionRepo:  subscriptionRepo,
+		RoomOccupancyRepo: roomOccupancyRepo,
+		WebhookRepo:       webhookRepo,
+		WebhookNotifier:   webhookNotifier,
+		FCM:               fcm,
 	})
 
 	return NewServer(cfg, &ServerDeps{
-		Client:           client,
-		DictRepo:         dictRepo,
-		ScheduleRepo:     scheduleRepo,
-		MemoryCache:      memoryCache,
-		SearchIndex:      searchIndex,
-		Syncer:           syncer,
-		IncidentRepo:     incidentRepo,
-		ChangeRepo:       changeRepo,
-		SubscriptionRepo: subscriptionRepo,
-		WebhookRepo:      webhookRepo,
-		FCM:              fcm,
+		Client:            client,
+		DictRepo:          dictRepo,
+		ScheduleRepo:      scheduleRepo,
+		MemoryCache:       memoryCache,
+		SearchIndex:       searchIndex,
+		Syncer:            syncer,
+		IncidentRepo:      incidentRepo,
+		ChangeRepo:        changeRepo,
+		SubscriptionRepo:  subscriptionRepo,
+		RoomOccupancyRepo: roomOccupancyRepo,
+		WebhookRepo:       webhookRepo,
+		FCM:               fcm,
 	})
 }
 

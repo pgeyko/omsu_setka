@@ -67,6 +67,9 @@ curl -s localhost:8080/api/v1/health | jq
 | `UPSTREAM_BASE_URL` | `https://eservice.omsu.ru/schedule/backend` | источник |
 | `SYNC_DICT_INTERVAL` | `12h` | период справочников |
 | `SYNC_SCHEDULE_INTERVAL` | `15m` | период «горячих» расписаний |
+| `SYNC_MAP_INTERVAL` | `12h` | период карты занятости аудиторий |
+| `UPSTREAM_MAP_TIMEOUT` | `90s` | таймаут тяжёлого `schedule/map` |
+| `MAP_RETENTION_DAYS` | `14` | окно хранения карты |
 | `CACHE_ACTIVE_THRESHOLD` | `24h` | окно «горячести» |
 | `RATE_LIMIT_GENERAL` / `RATE_LIMIT_SEARCH` | `120` / `30` в минуту | лимиты API |
 | `SWAGGER_ENABLED` | `false` | отдавать `/swagger` |

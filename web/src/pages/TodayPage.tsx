@@ -11,6 +11,7 @@ import {
   dayMonthLabel,
   lessonDate,
   plural,
+  slotMinutes,
   slotsOf,
   todayISO,
   weekDays,
@@ -35,14 +36,6 @@ function useClock(override?: string | null) {
     return () => window.clearInterval(timer);
   }, [override]);
   return now;
-}
-
-function slotMinutes(slot: Slot): { start: number; end: number } {
-  const parse = (value: string) => {
-    const [h, m] = value.split(':').map(Number);
-    return h * 60 + m;
-  };
-  return { start: parse(slot.start), end: parse(slot.end) };
 }
 
 export function TodayPage({ groupId }: { groupId: number }) {

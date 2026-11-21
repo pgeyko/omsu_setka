@@ -153,16 +153,30 @@ export function DetailSheet({ dayISO, slot, groupName, changesByLesson, onClose 
                   </p>
                 ) : null}
                 <div className="sheet-actions">
-                  {entry.variants.length === 1 && entry.teacher ? (
-                    <AppLink to={`/search?q=${encodeURIComponent(entry.teacher)}`} onClick={openLink(`/search?q=${encodeURIComponent(entry.teacher)}`)}>
-                      Расписание преподавателя
-                    </AppLink>
-                  ) : null}
-                  {entry.variants.length === 1 && entry.room ? (
-                    <AppLink to={`/search?q=${encodeURIComponent(entry.room)}`} onClick={openLink(`/search?q=${encodeURIComponent(entry.room)}`)}>
-                      Аудитория {entry.room}
-                    </AppLink>
-                  ) : null}
+                  {entry.variants.length === 1 && entry.teacher
+                    ? (() => {
+                        const href = entry.lesson.teacher_id
+                          ? `/tutor/${entry.lesson.teacher_id}`
+                          : `/search?q=${encodeURIComponent(entry.teacher)}`;
+                        return (
+                          <AppLink to={href} onClick={openLink(href)}>
+                            Расписание преподавателя
+                          </AppLink>
+                        );
+                      })()
+                    : null}
+                  {entry.variants.length === 1 && entry.room
+                    ? (() => {
+                        const href = entry.lesson.auditory_id
+                          ? `/auditory/${entry.lesson.auditory_id}`
+                          : `/search?q=${encodeURIComponent(entry.room)}`;
+                        return (
+                          <AppLink to={href} onClick={openLink(href)}>
+                            Аудитория {entry.room}
+                          </AppLink>
+                        );
+                      })()
+                    : null}
                 </div>
               </article>
             );

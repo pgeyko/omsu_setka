@@ -139,3 +139,38 @@ func TestRetryOnFailure(t *testing.T) {
 		t.Errorf("expected 2 requests (1 fail + 1 success), got %d", callCount)
 	}
 }
+
+func TestFetchAuditoryMap(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/schedule/map/Г" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		resp := models.UpstreamResponse{
+			Success: true,
+			Data:    json.RawMessage(`[{"day":"21.11.2026","entries":[{"day":"21.11.2026","times":[1,3],"building":"Г","auditory_id":7001,"auditory_name":"Г-715","publishDate":"21.11.2026"}]}]`),
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer ts.Close()
+
+	cfg := &config.Config{
+		UpstreamBaseURL:    ts.URL,
+		UpstreamTimeout:    5 * time.Second,
+		UpstreamMapTimeout: 5 * time.Second,
+		UpstreamRateLimit:  100,
+		UpstreamMaxConns:   10,
+		UpstreamUserAgent:  "test/1.0",
+	}
+	client := NewClient(cfg)
+	days, err := client.FetchAuditoryMap(context.Background(), "Г")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(days) != 1 || len(days[0].Entries) != 1 {
+		t.Fatalf("unexpected map response: %+v", days)
+	}
+	if days[0].Entries[0].AuditoryName != "Г-715" || len(days[0].Entries[0].Times) != 2 {
+		t.Errorf("unexpected entry: %+v", days[0].Entries[0])
+	}
+}

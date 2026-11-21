@@ -25,7 +25,7 @@
 | Frontend | React 19, TypeScript, Vite 8, React Router 7, TanStack Query 5, Zustand 5, vanilla CSS |
 | PWA | Workbox precache + офлайн-расписание, Firebase Messaging |
 | База | `data/mirror.db` (по умолчанию), том `backend_data` в Docker |
-| Тесты | Go `go test ./...`; web 149 unit/component, 19 E2E, build-check |
+| Тесты | Go `go test ./...`; web 149 unit/component, 20 E2E, build-check |
 
 ## Требования
 
@@ -56,7 +56,7 @@
 
 1. gitleaks + `go vet` + `go test -race`;
 2. `npm run build`, `npm test`, `npm run test:build`;
-3. `npm run test:e2e` (19 сценариев, артефакты при падении);
+3. `npm run test:e2e` (20 сценариев, артефакты при падении);
 4. сборка Docker-образов.
 
 ## Мониторинг

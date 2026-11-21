@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AppLink } from '../components/AppLink';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { DetailSheet } from '../components/DetailSheet';
 import { WeekGrid, WeekList } from '../components/Schedule';
 import { useGroupName, useRecentChanges, useWeekSchedule } from '../api/queries';
@@ -112,7 +112,12 @@ export function WeekPage({ groupId }: { groupId: number }) {
     return (
       <>
         <div className="week-head">
-          <h1 className="week-range">{weekRangeLabel(weekStart)}</h1>
+          <div>
+            <h1 className="week-range">{weekRangeLabel(weekStart)}</h1>
+            <AppLink className="week-map-link" to="/map">
+              <MapPin size={14} strokeWidth={1.6} aria-hidden /> Аудитории
+            </AppLink>
+          </div>
           <div className="week-arrows">
             <button className="arrow-btn" type="button" aria-label="Предыдущая неделя" onClick={() => shiftWeek(-1)}>
               <ChevronLeft size={18} strokeWidth={1.6} />
@@ -166,6 +171,9 @@ export function WeekPage({ groupId }: { groupId: number }) {
               <ChevronRight size={18} strokeWidth={1.6} />
             </button>
           </div>
+          <AppLink className="week-map-link" to="/map">
+            <MapPin size={14} strokeWidth={1.6} aria-hidden /> Аудитории
+          </AppLink>
           <span className="desk-updated"><i className="dot" />обновлено недавно</span>
         </div>
       </header>

@@ -10,6 +10,7 @@ import { SearchPage } from './pages/SearchPage';
 import { ChangesPage } from './pages/ChangesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { EntityPage } from './pages/EntityPage';
+import { AuditoryMapPage } from './pages/AuditoryMapPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import './styles/app.css';
 
@@ -117,6 +118,27 @@ function SettingsRoute() {
   );
 }
 
+function MapRoute() {
+  const group = usePreferences((state) => state.group);
+  const subgroup = usePreferences((state) => state.subgroup);
+  const isDesktop = useIsDesktop();
+  const content = isDesktop ? (
+    <div className="desk-page">
+      <AuditoryMapPage />
+    </div>
+  ) : (
+    <AuditoryMapPage />
+  );
+  if (!group) {
+    return isDesktop ? <PlainDesktopShell>{content}</PlainDesktopShell> : <PlainMobileShell>{content}</PlainMobileShell>;
+  }
+  return isDesktop ? (
+    <DesktopShell groupId={group.id} subgroup={subgroup}>{content}</DesktopShell>
+  ) : (
+    <MobileShell groupId={group.id} subgroup={subgroup}>{content}</MobileShell>
+  );
+}
+
 function EntityRoute({ type }: { type: 'tutor' | 'auditory' }) {
   const params = useParams();
   const id = Number(params.id) || 0;
@@ -153,6 +175,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/map" element={<MapRoute />} />
         <Route path="/g/:groupId" element={<GroupLandingRoute />} />
         <Route path="/g/:groupId/today" element={<TodayRoute />} />
         <Route path="/g/:groupId/week" element={<WeekRoute />} />

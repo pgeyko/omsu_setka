@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"omsu_mirror/internal/config"
 	"omsu_mirror/internal/models"
 	"omsu_mirror/internal/scheduleutil"
@@ -36,7 +37,11 @@ func NewClient(cfg *config.Config) *Client {
 	}
 }
 
-func (c *Client) doRequest(ctx context.Context, url string, result interface{}) error {
+func (c *Client) doRequest(ctx context.Context, requestURL string, result interface{}) error {
+	return c.doRequestWithTimeout(ctx, requestURL, result, c.cfg.UpstreamTimeout, 3)
+}
+
+func (c *Client) doRequestWithTimeout(ctx context.Context, requestURL string, result interface{}, timeout time.Duration, retries int) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -48,12 +53,12 @@ func (c *Client) doRequest(ctx context.Context, url string, result interface{}) 
 	defer fasthttp.ReleaseRequest(req)
 	defer fasthttp.ReleaseResponse(resp)
 
-	req.SetRequestURI(url)
+	req.SetRequestURI(requestURL)
 	req.Header.SetMethod(http.MethodGet)
 	req.Header.Set("User-Agent", c.cfg.UpstreamUserAgent)
 
 	var err error
-	maxRetries := 3
+	maxRetries := retries
 	baseDelay := 500 * time.Millisecond
 	for i := 0; i < maxRetries; i++ {
 		if i > 0 {
@@ -62,14 +67,14 @@ func (c *Client) doRequest(ctx context.Context, url string, result interface{}) 
 			time.Sleep(delay + jitter)
 		}
 
-		if err = c.client.DoTimeout(req, resp, c.cfg.UpstreamTimeout); err != nil {
-			log.Warn().Err(err).Msgf("Upstream request failed (try %d/%d): %s", i+1, maxRetries, url)
+		if err = c.client.DoTimeout(req, resp, timeout); err != nil {
+			log.Warn().Err(err).Msgf("Upstream request failed (try %d/%d): %s", i+1, maxRetries, requestURL)
 			continue
 		}
 
 		if resp.StatusCode() != http.StatusOK {
 			err = fmt.Errorf("upstream returned status %d", resp.StatusCode())
-			log.Warn().Err(err).Msgf("Upstream error (try %d/%d): %s", i+1, maxRetries, url)
+			log.Warn().Err(err).Msgf("Upstream error (try %d/%d): %s", i+1, maxRetries, requestURL)
 			continue
 		}
 
@@ -115,6 +120,15 @@ func (c *Client) FetchAuditories(ctx context.Context) ([]models.Auditory, error)
 		return nil, err
 	}
 	return auds, nil
+}
+
+func (c *Client) FetchAuditoryMap(ctx context.Context, building string) ([]models.AuditoryMapDay, error) {
+	var days []models.AuditoryMapDay
+	requestURL := fmt.Sprintf("%s/schedule/map/%s", c.cfg.UpstreamBaseURL, url.PathEscape(building))
+	if err := c.doRequestWithTimeout(ctx, requestURL, &days, c.cfg.UpstreamMapTimeout, 2); err != nil {
+		return nil, err
+	}
+	return days, nil
 }
 
 func (c *Client) FetchTutors(ctx context.Context) ([]models.Tutor, error) {

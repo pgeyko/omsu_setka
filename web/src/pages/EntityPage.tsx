@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AppLink } from '../components/AppLink';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight, MapPin } from 'lucide-react';
 import { useEntityInfo, useRecentChanges, useWeekSchedule } from '../api/queries';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
@@ -10,6 +10,7 @@ import {
   lessonDate,
   plural,
   shortDay,
+  slotMinutes,
   slotsOf,
   todayISO,
   weekDays,
@@ -17,6 +18,7 @@ import {
 } from '../lib/schedule';
 import { currentWeekStart, weekRangeLabel } from '../lib/date';
 import { usePageMeta } from '../lib/usePageMeta';
+import { useNow } from '../lib/useNow';
 import type { Day } from '../api/types';
 
 export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: number }) {
@@ -46,6 +48,25 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
     return count + (day ? slotsOf(day, '', changedIds).filter((slot) => !slot.window).length : 0);
   }, 0);
   const pairLabel = week.data ? ` · ${pairCount} ${plural(pairCount, 'пара', 'пары', 'пар')} на этой неделе` : '';
+  const now = useNow();
+  const todaySlots = useMemo(() => {
+    if (type !== 'auditory') return [];
+    const day = schedule.get(todayISO());
+    return day ? slotsOf(day, '', changedIds).filter((slot) => !slot.window && slot.entries.length > 0) : [];
+  }, [type, schedule, changedIds]);
+  const status = useMemo(() => {
+    if (type !== 'auditory' || !week.data) return null;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const current = todaySlots.find((slot) => {
+      const minutes = slotMinutes(slot);
+      return minutes.start <= nowMinutes && nowMinutes < minutes.end;
+    });
+    if (current) return { busy: true, text: `Занята до ${current.end}` };
+    const next = todaySlots.find((slot) => slotMinutes(slot).start > nowMinutes);
+    if (next) return { busy: false, text: `Свободна до ${next.start}` };
+    if (todaySlots.length) return { busy: false, text: 'На сегодня пар больше нет' };
+    return { busy: false, text: 'Сегодня занятий нет' };
+  }, [type, week.data, todaySlots, now]);
   const building = type === 'auditory' && info.data && 'building' in info.data
     ? (info.data as { building?: string }).building
     : '';
@@ -64,6 +85,14 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
         </AppLink>
         <h1 className="entity-title">{title}</h1>
         <p className="entity-meta">{meta}</p>
+        {status ? (
+          <p className={`entity-status${status.busy ? ' is-busy' : ''}`}>{status.text}</p>
+        ) : null}
+        {type === 'auditory' && building && building !== '0' ? (
+          <AppLink className="entity-map-link" to={`/map?building=${encodeURIComponent(building)}`}>
+            <MapPin size={14} strokeWidth={1.6} aria-hidden /> Свободные аудитории корпуса
+          </AppLink>
+        ) : null}
       </div>
       <div className="section-head">
         <h2 className="section-title">Эта неделя</h2>

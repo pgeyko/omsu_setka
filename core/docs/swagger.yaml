@@ -133,16 +133,22 @@ definitions:
     properties:
       auditCorps:
         type: string
+      auditory_id:
+        type: integer
       building:
         type: string
       faculty:
         type: string
       group:
         type: string
+      group_id:
+        type: integer
       id:
         type: integer
       lesson:
         type: string
+      lesson_id:
+        type: integer
       publishDate:
         type: string
       room:
@@ -153,6 +159,8 @@ definitions:
         type: string
       teacher:
         type: string
+      teacher_id:
+        type: integer
       time:
         type: integer
       type_work:
@@ -503,6 +511,84 @@ paths:
       summary: Get auditory by ID
       tags:
       - Dictionaries
+  /auditories/buildings:
+    get:
+      description: Returns buildings and the number of known rooms.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+      summary: List buildings that have an auditory map
+      tags:
+      - Auditories
+  /auditories/free:
+    get:
+      description: Returns free and busy rooms for one pair based on the cached occupancy
+        snapshot.
+      parameters:
+      - description: Building
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Date in YYYY-MM-DD (default today)
+        in: query
+        name: date
+        type: string
+      - description: Pair number 1-8
+        in: query
+        name: pair
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get free rooms for a building and pair
+      tags:
+      - Auditories
+  /auditories/map:
+    get:
+      description: Returns all known rooms with occupied pairs. Data is a cached snapshot,
+        not live.
+      parameters:
+      - description: Building (1, 2, 4, 6, ... or Г)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Date in YYYY-MM-DD (default today)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BFFResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get room occupancy for a building and day
+      tags:
+      - Auditories
   /changes:
     get:
       description: Returns a filterable, paginated feed of schedule changes. Omit

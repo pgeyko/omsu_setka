@@ -25,6 +25,7 @@ type Server struct {
 	ScheduleRepo       *storage.ScheduleRepo
 	ChangeRepo         *storage.ChangeRepo
 	SubscriptionRepo   *storage.SubscriptionRepo
+	RoomOccupancyRepo  *storage.RoomOccupancyRepo
 	WebhookRepo        *storage.WebhookRepo
 	FailedDeliveryRepo *storage.FailedDeliveryRepo
 	FCM                *notifications.FCMClient
@@ -45,6 +46,7 @@ type ServerDeps struct {
 	IncidentRepo       *storage.IncidentRepo
 	ChangeRepo         *storage.ChangeRepo
 	SubscriptionRepo   *storage.SubscriptionRepo
+	RoomOccupancyRepo  *storage.RoomOccupancyRepo
 	WebhookRepo        *storage.WebhookRepo
 	FailedDeliveryRepo *storage.FailedDeliveryRepo
 	FCM                *notifications.FCMClient
@@ -84,6 +86,7 @@ func NewServer(cfg *config.Config, deps *ServerDeps) *Server {
 		ScheduleRepo:       deps.ScheduleRepo,
 		ChangeRepo:         deps.ChangeRepo,
 		SubscriptionRepo:   deps.SubscriptionRepo,
+		RoomOccupancyRepo:  deps.RoomOccupancyRepo,
 		WebhookRepo:        deps.WebhookRepo,
 		FailedDeliveryRepo: deps.FailedDeliveryRepo,
 		FCM:                deps.FCM,
@@ -118,6 +121,9 @@ func (s *Server) setupRoutes() {
 	v1.Get("/groups", s.handleGetGroups)
 	v1.Get("/groups/:id", s.handleGetGroupByID)
 	v1.Get("/auditories", s.handleGetAuditories)
+	v1.Get("/auditories/buildings", s.handleAuditoryBuildings)
+	v1.Get("/auditories/map", s.handleAuditoryMap)
+	v1.Get("/auditories/free", s.handleFreeAuditories)
 	v1.Get("/auditories/:id", s.handleGetAuditoryByID)
 	v1.Get("/tutors", s.handleGetTutors)
 	v1.Get("/tutors/:id", s.handleGetTutorByID)

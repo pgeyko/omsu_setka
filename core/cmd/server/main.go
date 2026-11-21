@@ -61,6 +61,7 @@ func main() {
 	incidentRepo := storage.NewIncidentRepo(db)
 	changeRepo := storage.NewChangeRepo(db)
 	subscriptionRepo := storage.NewSubscriptionRepo(db)
+	roomOccupancyRepo := storage.NewRoomOccupancyRepo(db)
 	outboxRepo := storage.NewOutboxRepo(db)
 	webhookRepo := storage.NewWebhookRepo(db)
 	failedDeliveryRepo := storage.NewFailedDeliveryRepo(db)
@@ -80,18 +81,19 @@ func main() {
 
 	// 7. Initialize Syncer
 	syncer := sync.NewSyncer(cfg, &sync.Deps{
-		Client:           client,
-		DictRepo:         dictRepo,
-		ScheduleRepo:     scheduleRepo,
-		MemoryCache:      memoryCache,
-		SearchIndex:      searchIndex,
-		IncidentRepo:     incidentRepo,
-		ChangeRepo:       changeRepo,
-		SubscriptionRepo: subscriptionRepo,
-		OutboxRepo:       outboxRepo,
-		WebhookRepo:      webhookRepo,
-		WebhookNotifier:  webhookNotifier,
-		FCM:              fcm,
+		Client:            client,
+		DictRepo:          dictRepo,
+		ScheduleRepo:      scheduleRepo,
+		MemoryCache:       memoryCache,
+		SearchIndex:       searchIndex,
+		IncidentRepo:      incidentRepo,
+		ChangeRepo:        changeRepo,
+		SubscriptionRepo:  subscriptionRepo,
+		RoomOccupancyRepo: roomOccupancyRepo,
+		OutboxRepo:        outboxRepo,
+		WebhookRepo:       webhookRepo,
+		WebhookNotifier:   webhookNotifier,
+		FCM:               fcm,
 	})
 
 	// 8. Initialize API Server
@@ -105,6 +107,7 @@ func main() {
 		IncidentRepo:       incidentRepo,
 		ChangeRepo:         changeRepo,
 		SubscriptionRepo:   subscriptionRepo,
+		RoomOccupancyRepo:  roomOccupancyRepo,
 		WebhookRepo:        webhookRepo,
 		FailedDeliveryRepo: failedDeliveryRepo,
 		FCM:                fcm,

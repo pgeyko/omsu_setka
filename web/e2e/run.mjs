@@ -295,6 +295,20 @@ async function main() {
       await waitForText('.now-subject', 'Пятница');
     });
 
+    await scenario('auditory map: free rooms and room link', async () => {
+      await goto('/map');
+      await page.waitForSelector('.map-room');
+      assert.match(await text('.map-summary'), /свободно 2 из 3/);
+      const free = page.locator('.map-room').filter({ hasText: '4-112' });
+      assert.match(await free.locator('.map-room-state').textContent(), /свободна/);
+      const busy = page.locator('.map-room').filter({ hasText: '4-313' });
+      assert.match(await busy.locator('.map-room-state').textContent(), /занята/);
+      await free.click();
+      await page.waitForURL('**/auditory/3311');
+      await waitForText('.entity-title', '4-112');
+      await page.waitForSelector('.entity-status');
+    });
+
     await scenario('week: list, ranges and empty week', async () => {
       await goto('/g/472/week?week_start=2026-11-16');
       assert.equal(await text('.week-range'), '16–21 ноября');

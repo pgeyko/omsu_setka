@@ -385,6 +385,121 @@ const docTemplate = `{
                 }
             }
         },
+        "/auditories/buildings": {
+            "get": {
+                "description": "Returns buildings and the number of known rooms.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auditories"
+                ],
+                "summary": "List buildings that have an auditory map",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.BFFResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auditories/free": {
+            "get": {
+                "description": "Returns free and busy rooms for one pair based on the cached occupancy snapshot.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auditories"
+                ],
+                "summary": "Get free rooms for a building and pair",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building",
+                        "name": "building",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date in YYYY-MM-DD (default today)",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pair number 1-8",
+                        "name": "pair",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.BFFResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auditories/map": {
+            "get": {
+                "description": "Returns all known rooms with occupied pairs. Data is a cached snapshot, not live.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auditories"
+                ],
+                "summary": "Get room occupancy for a building and day",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building (1, 2, 4, 6, ... or Г)",
+                        "name": "building",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date in YYYY-MM-DD (default today)",
+                        "name": "date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.BFFResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auditories/{id}": {
             "get": {
                 "description": "Returns a single auditory by its ID.",
@@ -1954,6 +2069,9 @@ const docTemplate = `{
                 "auditCorps": {
                     "type": "string"
                 },
+                "auditory_id": {
+                    "type": "integer"
+                },
                 "building": {
                     "type": "string"
                 },
@@ -1963,11 +2081,17 @@ const docTemplate = `{
                 "group": {
                     "type": "string"
                 },
+                "group_id": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "lesson": {
                     "type": "string"
+                },
+                "lesson_id": {
+                    "type": "integer"
                 },
                 "publishDate": {
                     "type": "string"
@@ -1983,6 +2107,9 @@ const docTemplate = `{
                 },
                 "teacher": {
                     "type": "string"
+                },
+                "teacher_id": {
+                    "type": "integer"
                 },
                 "time": {
                     "type": "integer"

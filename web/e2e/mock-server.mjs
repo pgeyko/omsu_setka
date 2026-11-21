@@ -19,7 +19,11 @@ const groups = [
   { id: 468, name: 'ЮСС-002-О-01', real_group_id: 12190 },
 ];
 const tutors = [{ id: 15, name: 'Иванов Иван Иванович' }];
-const auditories = [{ id: 3310, name: '4-308', building: '4' }];
+const auditories = [
+  { id: 3310, name: '4-308', building: '4' },
+  { id: 3311, name: '4-112', building: '4' },
+  { id: 3312, name: '4-313', building: '4' },
+];
 
 function lesson(id, pair, subject, kind, room, teacher, options = {}) {
   const [building, number] = room.split('-');
@@ -224,6 +228,21 @@ function auditoryWeek() {
     .filter((day) => day.lessons.length);
 }
 
+function auditoryMap(date) {
+  return {
+    building: '4',
+    date,
+    updated_at: '2026-11-19T07:30:00+06:00',
+    ready: true,
+    stale: false,
+    rooms: [
+      { id: 3310, name: '4-308', floor: 3, busy: [3], free: false },
+      { id: 3311, name: '4-112', floor: 1, busy: [], free: true },
+      { id: 3312, name: '4-313', floor: 3, busy: [1, 2], free: false },
+    ],
+  };
+}
+
 function searchAll(query) {
   const q = query.trim().toLowerCase();
   const pick = (items) => items.filter((item) => item.name.toLowerCase().startsWith(q));
@@ -266,6 +285,19 @@ const server = createServer(async (req, res) => {
     const id = Number(path.split('/').pop());
     const tutor = tutors.find((item) => item.id === id) || tutors[0];
     return send(res, 200, bff(tutor));
+  }
+  if (path === '/api/v1/auditories/buildings') {
+    return send(res, 200, bff({ buildings: [{ building: '4', rooms: 3 }] }));
+  }
+  if (path === '/api/v1/auditories/map') {
+    return send(res, 200, bff(auditoryMap(q.get('date') || '2026-11-19')));
+  }
+  if (path === '/api/v1/auditories/free') {
+    const pair = Number(q.get('pair') || 1);
+    const map = auditoryMap(q.get('date') || '2026-11-19');
+    const free = map.rooms.filter((room) => !room.busy.includes(pair));
+    const busy = map.rooms.filter((room) => room.busy.includes(pair));
+    return send(res, 200, bff({ ...map, pair, free, busy }));
   }
   if (path.startsWith('/api/v1/auditories/')) {
     const id = Number(path.split('/').pop());

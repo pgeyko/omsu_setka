@@ -89,6 +89,8 @@ Dev-параметры:
 - `/g/:id/changes` — лента изменений «моя группа / все группы».
 - `/g/:id/settings` — тема, подгруппа, уведомления (изменения, дайджест,
   напоминание), отписка.
+- `/map` — карта занятости аудиторий: корпус, день, пара, свободные/занятые
+  комнаты и переход на расписание аудитории.
 - `/tutor/:id`, `/auditory/:id` — расписание сущности.
 
 ## Стили и движение
@@ -108,7 +110,7 @@ Dev-параметры:
 npm test           # Vitest + Testing Library, 149 тестов
 npm run build      # tsc -b && vite build
 npm run test:build # проверка dist: manifest, precache, sw, og.png, share-redirect
-npm run test:e2e   # 19 браузерных сценариев (Playwright + мок API)
+npm run test:e2e   # 20 браузерных сценариев (Playwright + мок API)
 ```
 
 E2E сами поднимают мок и Vite, фиксируют время и проходят онбординг, короткую

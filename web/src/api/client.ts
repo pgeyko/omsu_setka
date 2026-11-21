@@ -10,6 +10,8 @@ import type {
   SearchResult,
   Subscription,
   Auditory,
+  AuditoryMap,
+  BuildingInfo,
   Tutor,
 } from './types';
 
@@ -40,6 +42,18 @@ export async function search(query: string, type: string): Promise<SearchResult[
 
 export async function fetchGroups(): Promise<Group[]> {
   return unwrap(await readClient.get<BFFResponse<Group[]>>('/groups'));
+}
+
+export async function fetchBuildings(): Promise<{ buildings: BuildingInfo[] }> {
+  return unwrap(await readClient.get<BFFResponse<{ buildings: BuildingInfo[] }>>('/auditories/buildings'));
+}
+
+export async function fetchAuditoryMap(building: string, date: string): Promise<AuditoryMap> {
+  return unwrap(
+    await readClient.get<BFFResponse<AuditoryMap>>('/auditories/map', {
+      params: { building, date },
+    }),
+  );
 }
 
 export async function fetchTutors(): Promise<Tutor[]> {

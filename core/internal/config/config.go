@@ -17,17 +17,20 @@ type Config struct {
 	ServerPrefork      bool          `env:"SERVER_PREFORK" envDefault:"false"`
 
 	// Upstream
-	UpstreamBaseURL   string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
-	UpstreamTimeout   time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
-	UpstreamRateLimit int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
-	UpstreamUserAgent string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
-	UpstreamMaxConns  int           `env:"UPSTREAM_MAX_CONNS" envDefault:"10"`
+	UpstreamBaseURL    string        `env:"UPSTREAM_BASE_URL" envDefault:"https://eservice.omsu.ru/schedule/backend"`
+	UpstreamTimeout    time.Duration `env:"UPSTREAM_TIMEOUT" envDefault:"10s"`
+	UpstreamMapTimeout time.Duration `env:"UPSTREAM_MAP_TIMEOUT" envDefault:"90s"`
+	UpstreamRateLimit  int           `env:"UPSTREAM_RATE_LIMIT" envDefault:"2"`
+	UpstreamUserAgent  string        `env:"UPSTREAM_USER_AGENT" envDefault:"omsu_setka/1.0"`
+	UpstreamMaxConns   int           `env:"UPSTREAM_MAX_CONNS" envDefault:"10"`
 
 	// Synchronization
 	SyncDictInterval     time.Duration `env:"SYNC_DICT_INTERVAL" envDefault:"12h"`
 	SyncScheduleInterval time.Duration `env:"SYNC_SCHEDULE_INTERVAL" envDefault:"15m"`
 	SyncAuditInterval    time.Duration `env:"SYNC_AUDIT_INTERVAL" envDefault:"24h"`
+	SyncMapInterval      time.Duration `env:"SYNC_MAP_INTERVAL" envDefault:"12h"`
 	SyncOnStartup        bool          `env:"SYNC_ON_STARTUP" envDefault:"true"`
+	MapRetentionDays     int           `env:"MAP_RETENTION_DAYS" envDefault:"14"`
 
 	// Cache
 	CacheScheduleTTL     time.Duration `env:"CACHE_SCHEDULE_TTL" envDefault:"15m"`

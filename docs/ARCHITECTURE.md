@@ -44,6 +44,7 @@ L1 хранит не структуры, а уже сериализованны�
 |---|---|
 | Справочники (группы, преподаватели, аудитории) | 12 ч |
 | Расписания активных сущностей | 15 мин |
+| Карта занятости аудиторий | 12 ч (фоновый sync, тяжёлый upstream-ответ) |
 | Аудит/полная сверка | 24 ч |
 
 - Синхронизируются только «горячие» сущности — те, которые запрашивали за
@@ -63,6 +64,7 @@ SQLite-файл (`SQLITE_PATH`, по умолчанию `./data/mirror.db`) в W
 |---|---|
 | `dict_groups`, `dict_tutors`, `dict_auditories` | справочники для поиска и валидации ID |
 | `schedule_cache` | gzip-расписания по ключу `type:id`, TTL, счётчик попаданий |
+| `room_occupancy` | занятость аудиторий по корпусам/дням/парам (из `schedule/map`) |
 | `sync_metadata` | время последней синхронизации |
 | `upstream_incidents` | ошибки и восстановления upstream |
 | `schedule_changes` | история изменений (`added/removed/modified`, diff, old/new data) |
@@ -80,7 +82,8 @@ SQLite-файл (`SQLITE_PATH`, по умолчанию `./data/mirror.db`) в W
 Полная схема — Swagger (`/swagger/index.html` при `SWAGGER_ENABLED=true`).
 Группы эндпоинтов:
 
-- **Справочники**: `GET /api/v1/groups`, `/tutors`, `/auditories` (+ `/:id`).
+- **Справочники**: `GET /api/v1/groups`, `/tutors`, `/auditories` (+ `/:id`);
+  `/auditories/buildings`, `/auditories/map`, `/auditories/free` — карта занятости.
 - **Расписание**: `GET /api/v1/schedule/{group|tutor|auditory}/:id`,
   `.../day`, `.../subgroups` (группы), `.../ical`.
 - **Изменения**: `GET /api/v1/changes` (лента), `GET /api/v1/changes/:type/:id`.

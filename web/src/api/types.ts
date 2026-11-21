@@ -28,13 +28,17 @@ export interface Auditory {
 
 export interface Lesson {
   id: number;
+  lesson_id?: number;
   time: number;
   faculty: string;
   lesson: string;
   type_work: string;
   teacher: string;
+  teacher_id?: number;
   group: string;
+  group_id?: number;
   auditCorps: string;
+  auditory_id?: number;
   subgroupName?: string;
   subgroup_number?: string;
   building?: string;
@@ -56,6 +60,28 @@ export interface SearchResult {
   type: EntityType;
   real_group_id?: number;
   building?: string;
+}
+
+export interface BuildingInfo {
+  building: string;
+  rooms: number;
+}
+
+export interface AuditoryMapRoom {
+  id: number;
+  name: string;
+  floor: number;
+  busy: number[];
+  free: boolean;
+}
+
+export interface AuditoryMap {
+  building: string;
+  date: string;
+  updated_at?: string;
+  ready: boolean;
+  stale: boolean;
+  rooms: AuditoryMapRoom[];
 }
 
 export interface GroupedSearchResult {

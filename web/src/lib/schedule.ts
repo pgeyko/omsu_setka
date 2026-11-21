@@ -42,6 +42,14 @@ export interface Slot {
   window: boolean;
 }
 
+export function slotMinutes(slot: Slot): { start: number; end: number } {
+  const parse = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    return h * 60 + m;
+  };
+  return { start: parse(slot.start), end: parse(slot.end) };
+}
+
 export function normalizeSubgroup(value: string | undefined | null): string {
   if (!value) return '';
   const suffix = value.match(/\/(\d+)\s*$/);

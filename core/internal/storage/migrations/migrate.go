@@ -114,6 +114,18 @@ func Migrate(db *sql.DB) error {
 			FOREIGN KEY (subscriber_id) REFERENCES webhook_subscribers(id)
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_failed_deliveries_created ON webhook_failed_deliveries(created_at);`,
+		`CREATE TABLE IF NOT EXISTS room_occupancy (
+			building    TEXT NOT NULL,
+			day         TEXT NOT NULL,
+			room_id     INTEGER NOT NULL,
+			room_name   TEXT NOT NULL,
+			floor       INTEGER NOT NULL DEFAULT 0,
+			busy_times  TEXT NOT NULL DEFAULT '',
+			updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (building, day, room_id)
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_room_occ_day ON room_occupancy(building, day);`,
+
 		`CREATE TABLE IF NOT EXISTS notification_outbox (
 			id                 INTEGER PRIMARY KEY AUTOINCREMENT,
 			fcm_token          TEXT NOT NULL,

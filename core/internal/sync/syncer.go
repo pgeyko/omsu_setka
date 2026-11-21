@@ -38,39 +38,42 @@ func (u *UpstreamStatus) setLastError(err string) {
 }
 
 type Deps struct {
-	Client           *upstream.Client
-	DictRepo         *storage.DictRepo
-	ScheduleRepo     *storage.ScheduleRepo
-	MemoryCache      *cache.MemoryCache
-	SearchIndex      *cache.SearchIndex
-	IncidentRepo     *storage.IncidentRepo
-	ChangeRepo       *storage.ChangeRepo
-	SubscriptionRepo *storage.SubscriptionRepo
-	OutboxRepo       *storage.OutboxRepo
-	WebhookRepo      *storage.WebhookRepo
-	WebhookNotifier  *webhook.Notifier
-	FCM              *notifications.FCMClient
+	Client            *upstream.Client
+	DictRepo          *storage.DictRepo
+	ScheduleRepo      *storage.ScheduleRepo
+	MemoryCache       *cache.MemoryCache
+	SearchIndex       *cache.SearchIndex
+	IncidentRepo      *storage.IncidentRepo
+	ChangeRepo        *storage.ChangeRepo
+	SubscriptionRepo  *storage.SubscriptionRepo
+	RoomOccupancyRepo *storage.RoomOccupancyRepo
+	OutboxRepo        *storage.OutboxRepo
+	WebhookRepo       *storage.WebhookRepo
+	WebhookNotifier   *webhook.Notifier
+	FCM               *notifications.FCMClient
 }
 
 type Syncer struct {
-	cfg              *config.Config
-	client           *upstream.Client
-	dictRepo         *storage.DictRepo
-	scheduleRepo     *storage.ScheduleRepo
-	incidentRepo     *storage.IncidentRepo
-	changeRepo       *storage.ChangeRepo
-	subscriptionRepo *storage.SubscriptionRepo
-	outboxRepo       *storage.OutboxRepo
-	webhookRepo      *storage.WebhookRepo
-	webhookNotifier  *webhook.Notifier
-	fcm              *notifications.FCMClient
-	memoryCache      *cache.MemoryCache
-	searchIndex      *cache.SearchIndex
-	mu               sync.Mutex
-	status           *UpstreamStatus
-	dictSema         chan struct{}
-	schedSema        chan struct{}
-	wg               sync.WaitGroup
+	cfg               *config.Config
+	client            *upstream.Client
+	dictRepo          *storage.DictRepo
+	scheduleRepo      *storage.ScheduleRepo
+	incidentRepo      *storage.IncidentRepo
+	changeRepo        *storage.ChangeRepo
+	subscriptionRepo  *storage.SubscriptionRepo
+	roomOccupancyRepo *storage.RoomOccupancyRepo
+	outboxRepo        *storage.OutboxRepo
+	webhookRepo       *storage.WebhookRepo
+	webhookNotifier   *webhook.Notifier
+	fcm               *notifications.FCMClient
+	memoryCache       *cache.MemoryCache
+	searchIndex       *cache.SearchIndex
+	mu                sync.Mutex
+	status            *UpstreamStatus
+	dictSema          chan struct{}
+	schedSema         chan struct{}
+	mapSema           chan struct{}
+	wg                sync.WaitGroup
 }
 
 func (s *Syncer) Wait() {
@@ -79,24 +82,26 @@ func (s *Syncer) Wait() {
 
 func NewSyncer(cfg *config.Config, deps *Deps) *Syncer {
 	s := &Syncer{
-		cfg:              cfg,
-		client:           deps.Client,
-		dictRepo:         deps.DictRepo,
-		scheduleRepo:     deps.ScheduleRepo,
-		incidentRepo:     deps.IncidentRepo,
-		changeRepo:       deps.ChangeRepo,
-		subscriptionRepo: deps.SubscriptionRepo,
-		outboxRepo:       deps.OutboxRepo,
-		webhookRepo:      deps.WebhookRepo,
-		webhookNotifier:  deps.WebhookNotifier,
-		fcm:              deps.FCM,
-		memoryCache:      deps.MemoryCache,
-		searchIndex:      deps.SearchIndex,
+		cfg:               cfg,
+		client:            deps.Client,
+		dictRepo:          deps.DictRepo,
+		scheduleRepo:      deps.ScheduleRepo,
+		incidentRepo:      deps.IncidentRepo,
+		changeRepo:        deps.ChangeRepo,
+		subscriptionRepo:  deps.SubscriptionRepo,
+		roomOccupancyRepo: deps.RoomOccupancyRepo,
+		outboxRepo:        deps.OutboxRepo,
+		webhookRepo:       deps.WebhookRepo,
+		webhookNotifier:   deps.WebhookNotifier,
+		fcm:               deps.FCM,
+		memoryCache:       deps.MemoryCache,
+		searchIndex:       deps.SearchIndex,
 		status: &UpstreamStatus{
 			IsHealthy: true,
 		},
 		dictSema:  make(chan struct{}, 1),
 		schedSema: make(chan struct{}, 1),
+		mapSema:   make(chan struct{}, 1),
 	}
 	s.status.lastErrAtomic.Store("")
 	return s
@@ -160,6 +165,10 @@ func (s *Syncer) Run(ctx context.Context) {
 		}
 	}
 
+	if s.cfg.SyncOnStartup {
+		s.EnsureAuditoryMaps(ctx)
+	}
+
 	log.Info().Msg("Warming up L1 cache from L2 storage...")
 	if keys, err := s.scheduleRepo.GetActiveScheduleKeys(ctx, 2*time.Hour); err == nil {
 		for _, key := range keys {
@@ -174,11 +183,13 @@ func (s *Syncer) Run(ctx context.Context) {
 
 	dictTicker := time.NewTicker(s.cfg.SyncDictInterval)
 	schedTicker := time.NewTicker(s.cfg.SyncScheduleInterval)
+	mapTicker := time.NewTicker(s.cfg.SyncMapInterval)
 	notifyTicker := time.NewTicker(1 * time.Minute)
 	cleanTicker := time.NewTicker(1 * time.Hour) // Cleanup old cache and incidents periodically
 
 	defer dictTicker.Stop()
 	defer schedTicker.Stop()
+	defer mapTicker.Stop()
 	defer notifyTicker.Stop()
 	defer cleanTicker.Stop()
 
@@ -221,6 +232,24 @@ func (s *Syncer) Run(ctx context.Context) {
 				log.Info().Msg("Starting periodic active schedules synchronization...")
 				if err := s.SyncActiveSchedules(ctx); err != nil {
 					log.Error().Err(err).Msg("Periodic active schedules sync failed")
+				}
+			}()
+		case <-mapTicker.C:
+			s.wg.Add(1)
+			go func() {
+				defer s.wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				case s.mapSema <- struct{}{}:
+					defer func() { <-s.mapSema }()
+				default:
+					log.Warn().Msg("Auditory map sync skipped: already in progress")
+					return
+				}
+				log.Info().Msg("Starting periodic auditory map synchronization...")
+				if err := s.SyncAuditoryMaps(ctx); err != nil {
+					log.Error().Err(err).Msg("Periodic auditory map sync failed")
 				}
 			}()
 		case <-notifyTicker.C:
