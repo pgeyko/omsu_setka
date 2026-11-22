@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLink } from '../components/AppLink';
-import { ArrowLeft, ChevronRight, MapPin } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { useEntityInfo, useRecentChanges, useWeekSchedule } from '../api/queries';
 import { usePreferences } from '../store/preferences';
 import { useIsDesktop } from '../lib/useMediaQuery';
@@ -16,21 +17,30 @@ import {
   weekDays,
   type Slot,
 } from '../lib/schedule';
-import { currentWeekStart, weekRangeLabel } from '../lib/date';
+import { addDaysISO, currentWeekStart, weekRangeLabel } from '../lib/date';
 import { usePageMeta } from '../lib/usePageMeta';
 import { useNow } from '../lib/useNow';
 import type { Day } from '../api/types';
 
 export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: number }) {
   const isDesktop = useIsDesktop();
+  const [params, setParams] = useSearchParams();
   const savedGroup = usePreferences((state) => state.group);
   const groupName = savedGroup?.id ? savedGroup.name : '';
-  const week = useWeekSchedule(type, id, currentWeekStart());
+  const rawWeekStart = params.get('week_start');
+  const weekStart = rawWeekStart && /^\d{4}-\d{2}-\d{2}$/.test(rawWeekStart) ? rawWeekStart : currentWeekStart();
+  const week = useWeekSchedule(type, id, weekStart);
   const info = useEntityInfo(type, id);
   const recent = useRecentChanges(type, id);
   const [detail, setDetail] = useState<{ iso: string; slot: Slot } | null>(null);
 
-  const days = weekDays(currentWeekStart());
+  const shiftWeek = (direction: number) => {
+    const next = new URLSearchParams(params);
+    next.set('week_start', addDaysISO(weekStart, direction * 7));
+    setParams(next, { replace: true });
+  };
+
+  const days = weekDays(weekStart);
   const schedule = useMemo(() => {
     const map = new Map<string, Day>();
     week.data?.forEach((day) => map.set(lessonDate(day), day));
@@ -47,7 +57,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
     const day = schedule.get(iso);
     return count + (day ? slotsOf(day, '', changedIds).filter((slot) => !slot.window).length : 0);
   }, 0);
-  const pairLabel = week.data ? ` · ${pairCount} ${plural(pairCount, 'пара', 'пары', 'пар')} на этой неделе` : '';
+  const pairLabel = week.data ? ` · ${pairCount} ${plural(pairCount, 'пара', 'пары', 'пар')} на неделе` : '';
   const now = useNow();
   const todaySlots = useMemo(() => {
     if (type !== 'auditory') return [];
@@ -55,7 +65,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
     return day ? slotsOf(day, '', changedIds).filter((slot) => !slot.window && slot.entries.length > 0) : [];
   }, [type, schedule, changedIds]);
   const status = useMemo(() => {
-    if (type !== 'auditory' || !week.data) return null;
+    if (type !== 'auditory' || !week.data || !days.includes(todayISO())) return null;
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const current = todaySlots.find((slot) => {
       const minutes = slotMinutes(slot);
@@ -66,7 +76,7 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
     if (next) return { busy: false, text: `Свободна до ${next.start}` };
     if (todaySlots.length) return { busy: false, text: 'На сегодня пар больше нет' };
     return { busy: false, text: 'Сегодня занятий нет' };
-  }, [type, week.data, todaySlots, now]);
+  }, [type, week.data, todaySlots, now, days]);
   const building = type === 'auditory' && info.data && 'building' in info.data
     ? (info.data as { building?: string }).building
     : '';
@@ -94,9 +104,20 @@ export function EntityPage({ type, id }: { type: 'tutor' | 'auditory'; id: numbe
           </AppLink>
         ) : null}
       </div>
+      <div className="week-head entity-week-head">
+        <h2 className="week-range">{weekRangeLabel(weekStart)}</h2>
+        <div className="week-arrows">
+          <button className="arrow-btn" type="button" aria-label="Предыдущая неделя" onClick={() => shiftWeek(-1)}>
+            <ChevronLeft size={18} strokeWidth={1.6} />
+          </button>
+          <button className="arrow-btn" type="button" aria-label="Следующая неделя" onClick={() => shiftWeek(1)}>
+            <ChevronRight size={18} strokeWidth={1.6} />
+          </button>
+        </div>
+      </div>
       <div className="section-head">
         <h2 className="section-title">Эта неделя</h2>
-        <span className="section-note">{weekRangeLabel(currentWeekStart())}</span>
+        <span className="section-note">{pairCount ? `${pairCount} ${plural(pairCount, 'пара', 'пары', 'пар')}` : 'свободно'}</span>
       </div>
       {days.map((iso) => {
         const day = schedule.get(iso);

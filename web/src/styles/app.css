@@ -2252,3 +2252,5 @@ body.sheet-open { overflow: hidden; }
   text-underline-offset: 3px;
 }
 .entity-map-link:hover { color: var(--red); }
+
+.desk-page .entity-week-head { padding-left: 0; padding-right: 0; }

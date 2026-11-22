@@ -351,9 +351,14 @@ async function main() {
       await page.locator('.result-row').first().click();
       await page.waitForURL('**/tutor/15');
       await waitForText('.entity-title', 'Иванов Иван Иванович');
-      await waitForText('.entity-meta', /преподаватель · 4 пары на этой неделе/);
+      await waitForText('.entity-meta', /преподаватель · 4 пары на неделе/);
       assert.ok((await count('.wday')) >= 1);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
+      await page.getByRole('button', { name: 'Следующая неделя' }).click();
+      await page.waitForURL('**week_start=2026-11-23**');
+      await waitForText('.week-range', '23–28 ноября');
+      await page.getByRole('button', { name: 'Предыдущая неделя' }).click();
+      await page.waitForURL('**week_start=2026-11-16**');
       assert.equal(await text('.back-link'), 'К расписанию группы');
       await screenshot('04-tutor');
     });
@@ -361,7 +366,7 @@ async function main() {
     await scenario('auditory page', async () => {
       await goto('/auditory/3310');
       await waitForText('.entity-title', '4-308');
-      await waitForText('.entity-meta', /аудитория · корпус 4 · 6 пар на этой неделе/);
+      await waitForText('.entity-meta', /аудитория · корпус 4 · 6 пар на неделе/);
     });
 
     await scenario('changes: own group, all groups and deep links', async () => {
